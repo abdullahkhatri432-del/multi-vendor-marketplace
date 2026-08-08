@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, useEffect } from 'react';
+import { createContext, useContext, useReducer, useEffect, useState } from 'react';
 import { useAuth } from './AuthContext';
 
 const CartContext = createContext(null);
@@ -44,6 +44,7 @@ export function CartProvider({ children }) {
     }
     return initial;
   });
+  const [notifyItem, setNotifyItem] = useState(null);
 
   useEffect(() => {
     localStorage.setItem(CART_KEY, JSON.stringify(cart));
@@ -62,6 +63,7 @@ export function CartProvider({ children }) {
         quantity,
       },
     });
+    setNotifyItem(product.name);
   };
 
   const removeItem = (id) => dispatch({ type: 'REMOVE_ITEM', payload: id });
@@ -82,6 +84,7 @@ export function CartProvider({ children }) {
     clearCart,
     cartTotal,
     cartCount,
+    notifyItem,
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

@@ -5,7 +5,7 @@ export default function Footer() {
   return (
     <footer className="border-t border-surface-100 bg-white">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-5">
           <div>
             <Link to="/" className="flex items-center gap-2 mb-4">
               <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary-600 to-accent">
@@ -34,6 +34,15 @@ export default function Footer() {
               <li><Link to="/register" className="text-sm text-surface-500 hover:text-primary-600 transition-colors">Become a Vendor</Link></li>
               <li><Link to="/orders" className="text-sm text-surface-500 hover:text-primary-600 transition-colors">Order Tracking</Link></li>
               <li><Link to="/cart" className="text-sm text-surface-500 hover:text-primary-600 transition-colors">Cart</Link></li>
+              <li><Link to="/wishlist" className="text-sm text-surface-500 hover:text-primary-600 transition-colors">Wishlist</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-sm font-semibold text-surface-900 mb-4">Legal</h4>
+            <ul className="space-y-2">
+              <li><Link to="/terms" className="text-sm text-surface-500 hover:text-primary-600 transition-colors">Terms & Conditions</Link></li>
+              <li><Link to="/privacy" className="text-sm text-surface-500 hover:text-primary-600 transition-colors">Privacy Policy</Link></li>
             </ul>
           </div>
 
