@@ -222,3 +222,38 @@ export const incrementVendorSales = async (vendorId, amount) => {
   const ref = doc(vendorsCol(), vendorId);
   await updateDoc(ref, { totalSales: increment(1) });
 };
+
+export const getAllUsers = async () => {
+  const snap = await getDocs(query(usersCol(), orderBy('createdAt', 'desc')));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+};
+
+export const updateUserRole = async (userId, role) => {
+  const ref = doc(usersCol(), userId);
+  await updateDoc(ref, { role });
+};
+
+export const deleteUser = async (userId) => {
+  const ref = doc(usersCol(), userId);
+  await deleteDoc(ref);
+};
+
+export const updateOrderStatus = async (orderId, status) => {
+  const ref = doc(ordersCol(), orderId);
+  await updateDoc(ref, { status, updatedAt: serverTimestamp() });
+};
+
+export const deleteOrder = async (orderId) => {
+  const ref = doc(ordersCol(), orderId);
+  await deleteDoc(ref);
+};
+
+export const deleteProductById = async (productId) => {
+  const ref = doc(productsCol(), productId);
+  await deleteDoc(ref);
+};
+
+export const deleteCategory = async (categoryId) => {
+  const ref = doc(categoriesCol(), categoryId);
+  await deleteDoc(ref);
+};
