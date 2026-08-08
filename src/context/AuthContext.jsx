@@ -9,7 +9,7 @@ import {
   updateProfile,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db, PROJECT_PATH } from '../config/firebase';
+import { auth, db } from '../config/firebase';
 
 const AuthContext = createContext(null);
 
@@ -22,7 +22,7 @@ export function AuthProvider({ children }) {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser);
-        const userDoc = await getDoc(doc(db, PROJECT_PATH, 'users', firebaseUser.uid));
+        const userDoc = await getDoc(doc(db, 'projects', 'multi-vendor-marketplace', 'users', firebaseUser.uid));
         if (userDoc.exists()) {
           setUserRole(userDoc.data().role || 'customer');
         } else {
@@ -45,9 +45,9 @@ export function AuthProvider({ children }) {
   const loginWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
     const result = await signInWithPopup(auth, provider);
-    const userDoc = await getDoc(doc(db, PROJECT_PATH, 'users', result.user.uid));
+    const userDoc = await getDoc(doc(db, 'projects', 'multi-vendor-marketplace', 'users', result.user.uid));
     if (!userDoc.exists()) {
-      await setDoc(doc(db, PROJECT_PATH, 'users', result.user.uid), {
+      await setDoc(doc(db, 'projects', 'multi-vendor-marketplace', 'users', result.user.uid), {
         email: result.user.email,
         displayName: result.user.displayName,
         photoURL: result.user.photoURL,
@@ -61,14 +61,14 @@ export function AuthProvider({ children }) {
   const register = async (email, password, displayName, role = 'customer') => {
     const result = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(result.user, { displayName });
-    await setDoc(doc(db, PROJECT_PATH, 'users', result.user.uid), {
+    await setDoc(doc(db, 'projects', 'multi-vendor-marketplace', 'users', result.user.uid), {
       email,
       displayName,
       role,
       createdAt: serverTimestamp(),
     });
     if (role === 'vendor') {
-      await setDoc(doc(db, PROJECT_PATH, 'vendors', result.user.uid), {
+      await setDoc(doc(db, 'projects', 'multi-vendor-marketplace', 'vendors', result.user.uid), {
         storeName: displayName,
         description: '',
         logo: '',

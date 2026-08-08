@@ -17,15 +17,13 @@ import {
 } from 'firebase/firestore';
 import { db, PROJECT_PATH } from './firebase';
 
-const root = collection(db, PROJECT_PATH);
+const col = (name) => collection(db, 'projects', 'multi-vendor-marketplace', name);
 
-const subcollection = (name) => collection(root, name);
-
-const usersCol = () => subcollection('users');
-const vendorsCol = () => subcollection('vendors');
-const productsCol = () => subcollection('products');
-const ordersCol = () => subcollection('orders');
-const categoriesCol = () => subcollection('categories');
+const usersCol = () => col('users');
+const vendorsCol = () => col('vendors');
+const productsCol = () => col('products');
+const ordersCol = () => col('orders');
+const categoriesCol = () => col('categories');
 
 export const createUser = async (uid, data) => {
   const ref = doc(usersCol(), uid);
