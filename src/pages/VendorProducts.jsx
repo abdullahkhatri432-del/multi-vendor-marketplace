@@ -1,14 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Navigate, Link } from 'react-router-dom';
-import { Plus, Edit2, Trash2, Package, X, AlertTriangle, Search, ToggleLeft, ToggleRight, Archive, Link2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Package, X, AlertTriangle, Search, ToggleLeft, ToggleRight, Archive, Link2, Upload, ImageIcon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getProductsByVendor, createProduct, updateProduct, deleteProduct } from '../config/firestore';
+import { uploadProductImage, uploadMultipleProductImages } from '../config/upload';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import EmptyState from '../components/ui/EmptyState';
 import ImportProductModal from '../components/ui/ImportProductModal';
+import { useToast } from '../context/ToastContext';
 
 export default function VendorProducts() {
   const { user, isVendor, isAuthenticated } = useAuth();
+  const { addToast } = useToast();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -16,9 +19,13 @@ export default function VendorProducts() {
   const [editing, setEditing] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('all');
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [previewImages, setPreviewImages] = useState([]);
+  const fileInputRef = useRef(null);
   const [form, setForm] = useState({
     name: '', description: '', price: '', originalPrice: '',
-    category: 'electronics', images: [''], stock: '', discount: 0,
+    category: 'electronics', images: [], stock: '', discount: 0,
     addons: [],
   });
 
@@ -37,9 +44,14 @@ export default function VendorProducts() {
   }, [user]);
 
   const resetForm = () => {
-    setForm({ name: '', description: '', price: '', originalPrice: '', category: 'electronics', images: [''], stock: '', discount: 0, addons: [] });
+    setForm({ name: '', description: '', price: '', originalPrice: '', category: 'electronics', images: [], stock: '', discount: 0, addons: [] });
     setEditing(null);
     setShowForm(false);
+    setPreviewImages([]);
+    setUploadProgress(0);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleEdit = (product) => {
@@ -47,28 +59,54 @@ export default function VendorProducts() {
       name: product.name, description: product.description,
       price: product.price, originalPrice: product.originalPrice || '',
       category: product.category || 'electronics',
-      images: product.images?.length > 0 ? product.images : [product.image || ''],
+      images: product.images || [],
       stock: product.stock || '', discount: product.discount || 0,
       addons: product.addons || [],
     });
+    setPreviewImages(product.images || []);
     setEditing(product.id);
     setShowForm(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const productData = {
-      ...form,
-      price: parseFloat(form.price),
-      originalPrice: form.originalPrice ? parseFloat(form.originalPrice) : null,
-      stock: parseInt(form.stock) || 0,
-      discount: parseInt(form.discount) || 0,
-      images: form.images.filter((img) => img.trim() !== ''),
-      vendorId: user.uid, vendorName: user.displayName,
-      addons: form.addons.filter((addon) => addon.title.trim() !== ''),
-    };
+    setUploading(true);
+    setUploadProgress(0);
 
     try {
+      // Upload all images to Firebase Storage
+      const uploadedImages = [];
+      const imageFiles = form.newImages || [];
+
+      if (imageFiles.length > 0) {
+        const primaryImage = imageFiles[0];
+        const downloadURL = await uploadProductImage(primaryImage, setUploadProgress);
+        uploadedImages.push(downloadURL);
+
+        for (let i = 1; i < imageFiles.length; i++) {
+          setUploadProgress(Math.round((i / imageFiles.length) * 100));
+          const url = await uploadProductImage(imageFiles[i], () => {});
+          uploadedImages.push(url);
+        }
+      }
+
+      // Combine existing image URLs with newly uploaded ones
+      const allImages = [...form.images, ...uploadedImages];
+
+      const productData = {
+        ...form,
+        price: parseFloat(form.price),
+        originalPrice: form.originalPrice ? parseFloat(form.originalPrice) : null,
+        stock: parseInt(form.stock) || 0,
+        discount: parseInt(form.discount) || 0,
+        images: allImages,
+        vendorId: user.uid, vendorName: user.displayName,
+        addons: form.addons.filter((addon) => addon.title.trim() !== ''),
+      };
+
+      // Remove temporary fields not needed in Firestore
+      delete productData.newImages;
+
       if (editing) {
         await updateProduct(editing, productData);
         setProducts(products.map((p) => (p.id === editing ? { ...p, ...productData } : p)));
@@ -76,8 +114,15 @@ export default function VendorProducts() {
         const id = await createProduct(productData);
         setProducts([{ id, ...productData }, ...products]);
       }
+
+      addToast('Product saved successfully!', 'success');
       resetForm();
-    } catch (err) { console.error('Failed to save product:', err); alert('Failed to save product.'); }
+    } catch (err) {
+      console.error('Failed to save product:', err);
+      addToast('Failed to save product. Please try again.', 'error');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleDelete = async (id) => {
@@ -100,12 +145,15 @@ export default function VendorProducts() {
     } catch (err) { console.error('Failed to update stock:', err); }
   };
 
-  const handleImageChange = (index, value) => {
-    const newImages = [...form.images];
-    newImages[index] = value;
-    setForm({ ...form, images: newImages });
+  const handleImageUpload = (files) => {
+    if (!files || files.length === 0) return;
+
+    const fileArray = Array.from(files).slice(0, 5); // Limit to 5 images
+    const previews = fileArray.map((file) => URL.createObjectURL(file));
+
+    setPreviewImages(previews);
+    setForm((prev) => ({ ...prev, newImages: fileArray }));
   };
-  const addImageField = () => setForm({ ...form, images: [...form.images, ''] });
 
   if (!isAuthenticated) return <Navigate to="/login" />;
   if (!isVendor) return <Navigate to="/" />;
@@ -219,11 +267,46 @@ export default function VendorProducts() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-surface-700 mb-1">Image URLs</label>
-                {form.images.map((img, i) => (
-                  <input key={i} value={img} onChange={(e) => handleImageChange(i, e.target.value)} className="input-field mb-2" placeholder="https://example.com/image.jpg" />
-                ))}
-                <button type="button" onClick={addImageField} className="btn-ghost text-sm text-primary-600">+ Add another image</button>
+                <label className="block text-sm font-medium text-surface-700 mb-1">Product Images</label>
+                <div className="border-2 border-dashed border-surface-200 rounded-xl p-6 text-center hover:border-primary-300 transition-colors">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => handleImageUpload(e.target.files)}
+                    className="hidden"
+                    id="image-upload"
+                  />
+                  <label htmlFor="image-upload" className="flex flex-col items-center justify-center cursor-pointer">
+                    <ImageIcon className="h-12 w-12 text-surface-400 mb-3" />
+                    <span className="text-sm font-medium text-surface-900 mb-1">Click to upload images</span>
+                    <span className="text-xs text-surface-500">PNG, JPG, JPEG - Max 5 images</span>
+                  </label>
+                </div>
+                {previewImages.length > 0 && (
+                  <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {previewImages.map((img, i) => (
+                      <div key={i} className="relative h-24 w-24 rounded-xl overflow-hidden bg-surface-100">
+                        <img src={img} alt={`Preview ${i + 1}`} className="h-full w-full object-cover" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {uploading && (
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between text-xs text-surface-500 mb-1">
+                      <span>Uploading images...</span>
+                      <span>{uploadProgress}%</span>
+                    </div>
+                    <div className="w-full bg-surface-200 rounded-full h-2">
+                      <div 
+                        className="bg-primary-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Add-ons Section */}
