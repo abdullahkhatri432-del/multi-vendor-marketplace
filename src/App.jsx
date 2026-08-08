@@ -14,6 +14,7 @@ import VendorProducts from './pages/VendorProducts';
 import VendorOrders from './pages/VendorOrders';
 import AdminDashboard from './pages/AdminDashboard';
 import OrdersPage from './pages/OrdersPage';
+import WishlistPage from './pages/WishlistPage';
 import ProfilePage from './pages/ProfilePage';
 import NotFoundPage from './pages/NotFoundPage';
 
@@ -31,6 +32,7 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/orders" element={<OrdersPage />} />
+            <Route path="/wishlist" element={<WishlistPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/vendor" element={<VendorDashboard />} />
             <Route path="/vendor/products" element={<VendorProducts />} />

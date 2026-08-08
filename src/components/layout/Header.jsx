@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Search, User, Menu, X, Store, LayoutDashboard, LogOut, Package } from 'lucide-react';
+import { ShoppingCart, Search, User, Menu, X, Store, LayoutDashboard, LogOut, Package, Heart } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 
@@ -48,6 +48,9 @@ export default function Header() {
             <Link to="/products" className="btn-ghost text-sm">
               <Package className="h-4 w-4" />
               <span>Browse</span>
+            </Link>
+            <Link to="/wishlist" className="btn-ghost text-sm">
+              <Heart className="h-4 w-4" />
             </Link>
             <Link to="/cart" className="relative btn-ghost text-sm">
               <ShoppingCart className="h-4 w-4" />

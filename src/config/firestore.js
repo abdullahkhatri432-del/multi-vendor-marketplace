@@ -257,3 +257,74 @@ export const deleteCategory = async (categoryId) => {
   const ref = doc(categoriesCol(), categoryId);
   await deleteDoc(ref);
 };
+
+// Reviews
+export const createReview = async (productId, data) => {
+  const ref = await addDoc(collection(db, 'projects', 'multi-vendor-marketplace', 'reviews'), {
+    ...data,
+    productId,
+    createdAt: serverTimestamp(),
+  });
+  return ref.id;
+};
+
+export const getReviewsByProduct = async (productId) => {
+  const q = query(
+    collection(db, 'projects', 'multi-vendor-marketplace', 'reviews'),
+    where('productId', '==', productId),
+    orderBy('createdAt', 'desc')
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+};
+
+export const getProductRating = async (productId) => {
+  const reviews = await getReviewsByProduct(productId);
+  if (reviews.length === 0) return { avg: 0, count: 0 };
+  const avg = reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length;
+  return { avg: Math.round(avg * 10) / 10, count: reviews.length };
+};
+
+// Wishlist (stored as subcollection under user)
+export const addToWishlist = async (userId, productId) => {
+  const ref = doc(db, 'projects', 'multi-vendor-marketplace', 'users', userId, 'wishlist', productId);
+  await setDoc(ref, { productId, addedAt: serverTimestamp() });
+};
+
+export const removeFromWishlist = async (userId, productId) => {
+  const ref = doc(db, 'projects', 'multi-vendor-marketplace', 'users', userId, 'wishlist', productId);
+  await deleteDoc(ref);
+};
+
+export const getWishlist = async (userId) => {
+  const snap = await getDocs(
+    collection(db, 'projects', 'multi-vendor-marketplace', 'users', userId, 'wishlist')
+  );
+  return snap.docs.map((d) => d.data().productId);
+};
+
+// Vendor store profile
+export const getVendorProfile = async (vendorId) => {
+  const ref = doc(vendorsCol(), vendorId);
+  const snap = await getDoc(ref);
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+};
+
+export const updateVendorProfile = async (vendorId, data) => {
+  const ref = doc(vendorsCol(), vendorId);
+  await updateDoc(ref, { ...data, updatedAt: serverTimestamp() });
+};
+
+// Vendor analytics
+export const getVendorAnalytics = async (vendorId) => {
+  const ordersQuery = query(ordersCol(), where('vendorId', '==', vendorId));
+  const snap = await getDocs(ordersQuery);
+
+  const orders = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const totalRevenue = orders.reduce((sum, o) => sum + (o.total || 0), 0);
+  const totalOrders = orders.length;
+  const pendingOrders = orders.filter((o) => o.status === 'pending').length;
+  const completedOrders = orders.filter((o) => o.status === 'delivered').length;
+
+  return { totalRevenue, totalOrders, pendingOrders, completedOrders, orders };
+};
