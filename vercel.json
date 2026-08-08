@@ -7,9 +7,10 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "functions": {
-    "api/import-product.cjs": {
+    "api/import-product.js": {
       "maxDuration": 30,
-      "memory": 1024
+      "memory": 1024,
+      "runtime": "nodejs20.x"
     }
   }
 }
