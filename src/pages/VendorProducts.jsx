@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Navigate, Link } from 'react-router-dom';
-import { Plus, Edit2, Trash2, Package, X, AlertTriangle, Search, ToggleLeft, ToggleRight, Archive } from 'lucide-react';
+import { Plus, Edit2, Trash2, Package, X, AlertTriangle, Search, ToggleLeft, ToggleRight, Archive, Link2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getProductsByVendor, createProduct, updateProduct, deleteProduct } from '../config/firestore';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import EmptyState from '../components/ui/EmptyState';
+import ImportProductModal from '../components/ui/ImportProductModal';
 
 export default function VendorProducts() {
   const { user, isVendor, isAuthenticated } = useAuth();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('all');
@@ -128,9 +130,14 @@ export default function VendorProducts() {
           <h1 className="text-3xl font-display font-bold text-surface-900">My Products</h1>
           <p className="mt-1 text-surface-500">{products.length} products &middot; {products.filter((p) => p.active).length} active</p>
         </div>
-        <button onClick={() => setShowForm(true)} className="btn-primary">
-          <Plus className="h-4 w-4" /> Add Product
-        </button>
+        <div className="flex gap-3">
+          <button onClick={() => setShowImportModal(true)} className="btn-secondary">
+            <Link2 className="h-4 w-4" /> Import from URL
+          </button>
+          <button onClick={() => setShowForm(true)} className="btn-primary">
+            <Plus className="h-4 w-4" /> Add Product
+          </button>
+        </div>
       </div>
 
       {/* Inventory Alerts */}
@@ -268,6 +275,17 @@ export default function VendorProducts() {
       ) : (
         <EmptyState icon={Package} title="No products found" description="Adjust your filters or add your first product." action={() => setShowForm(true)} actionLabel="Add Product" />
       )}
+
+      {/* Import from URL Modal */}
+      <ImportProductModal
+        show={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        vendorId={user?.uid}
+        vendorName={user?.displayName}
+        onImported={(product) => {
+          setProducts([{ id: product.id, ...product }, ...products]);
+        }}
+      />
     </div>
   );
 }

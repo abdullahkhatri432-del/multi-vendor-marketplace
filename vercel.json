@@ -1,8 +1,15 @@
 {
   "rewrites": [
-    { "source": "/((?!assets/|favicon.svg).*)", "destination": "/index.html" }
+    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/((?!assets/|favicon.svg|api/).*)", "destination": "/index.html" }
   ],
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "framework": "vite"
+  "framework": "vite",
+  "functions": {
+    "api/import-product.cjs": {
+      "maxDuration": 30,
+      "memory": 1024
+    }
+  }
 }
