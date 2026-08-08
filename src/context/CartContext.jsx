@@ -50,7 +50,9 @@ export function CartProvider({ children }) {
     localStorage.setItem(CART_KEY, JSON.stringify(cart));
   }, [cart]);
 
-  const addItem = (product, quantity = 1) => {
+  const addItem = (product, quantity = 1, selectedAddons = []) => {
+    const addonTotal = selectedAddons.reduce((sum, addon) => sum + (addon.price || 0), 0);
+    
     dispatch({
       type: 'ADD_ITEM',
       payload: {
@@ -61,6 +63,8 @@ export function CartProvider({ children }) {
         vendorId: product.vendorId,
         vendorName: product.vendorName,
         quantity,
+        addons: selectedAddons,
+        addonTotal: addonTotal * quantity,
       },
     });
     setNotifyItem(product.name);
@@ -73,7 +77,7 @@ export function CartProvider({ children }) {
 
   const clearCart = () => dispatch({ type: 'CLEAR_CART' });
 
-  const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity + (item.addonTotal || 0), 0);
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const value = {

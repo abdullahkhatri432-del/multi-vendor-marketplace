@@ -21,6 +21,7 @@ export default function ProductDetailPage() {
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' });
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [selectedAddons, setSelectedAddons] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -47,7 +48,18 @@ export default function ProductDetailPage() {
 
   const handleAddToCart = () => {
     if (!isAuthenticated) { navigate('/login'); return; }
-    addItem(product, quantity);
+    addItem(product, quantity, selectedAddons);
+  };
+
+  const handleAddonToggle = (addon) => {
+    setSelectedAddons((prev) => {
+      const exists = prev.find((a) => a.id === addon.id);
+      if (exists) {
+        return prev.filter((a) => a.id !== addon.id);
+      } else {
+        return [...prev, addon];
+      }
+    });
   };
 
   const handleToggleWishlist = async () => {
@@ -142,6 +154,56 @@ export default function ProductDetailPage() {
           </div>
 
           <p className="mt-6 text-surface-600 leading-relaxed">{product.description}</p>
+
+          {/* Add-ons Section */}
+          {product.addons && product.addons.length > 0 && (
+            <div className="mt-8">
+              <h3 className="text-lg font-semibold text-surface-900 mb-4">Available Add-ons</h3>
+              <div className="space-y-3">
+                {product.addons.map((addon, index) => {
+                  const addonId = addon.id || `addon-${index}`;
+                  const isSelected = selectedAddons.some((a) => (a.id || `addon-${product.addons.indexOf(a)}`) === addonId);
+                  return (
+                    <label key={addonId} className="flex items-center justify-between p-4 rounded-xl border border-surface-200 cursor-pointer hover:border-primary-200 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleAddonToggle({ ...addon, id: addonId })}
+                          className="h-5 w-5 rounded border-surface-300 text-primary-600 focus:ring-primary-500"
+                        />
+                        <span className="text-sm font-medium text-surface-900">✔️ {addon.title}</span>
+                      </div>
+                      <span className="text-sm font-semibold text-primary-600">₹{addon.price?.toFixed(2)}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="mt-8">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-sm text-surface-500">Base Price:</span>
+              <span className="text-lg font-bold text-surface-900">${product.price?.toFixed(2)}</span>
+            </div>
+            {selectedAddons.length > 0 && (
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-sm text-surface-500">Add-ons:</span>
+                <span className="text-lg font-bold text-primary-600">
+                  +${selectedAddons.reduce((sum, addon) => sum + (addon.price || 0), 0).toFixed(2)}
+                </span>
+              </div>
+            )}
+            <div className="pt-3 border-t border-surface-200">
+              <div className="flex items-center justify-between">
+                <span className="text-base font-medium text-surface-600">Total for {quantity}×:</span>
+                <span className="text-2xl font-bold text-surface-900">
+                  ${((product.price || 0) * quantity + selectedAddons.reduce((sum, addon) => sum + (addon.price || 0) * quantity, 0)).toFixed(2)}
+                </span>
+              </div>
+            </div>
+          </div>
 
           {vendor && (
             <Link to={`/products?vendor=${product.vendorId}`} className="mt-6 flex items-center gap-3 rounded-2xl border border-surface-100 p-4 hover:border-primary-200 transition-colors">

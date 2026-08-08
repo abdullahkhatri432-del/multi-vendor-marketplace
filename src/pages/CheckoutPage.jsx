@@ -55,6 +55,8 @@ export default function CheckoutPage() {
           quantity: item.quantity,
           vendorId: item.vendorId,
           vendorName: item.vendorName,
+          addons: item.addons || [],
+          addonTotal: item.addonTotal || 0,
         })),
         subtotal: cartTotal,
         shipping,
@@ -167,7 +169,14 @@ export default function CheckoutPage() {
                       <p className="text-xs font-medium text-surface-900 line-clamp-1">{item.name}</p>
                       <p className="text-xs text-surface-500">Qty: {item.quantity}</p>
                     </div>
-                    <span className="text-xs font-semibold">${(item.price * item.quantity).toFixed(2)}</span>
+                    <span className="text-xs font-semibold">
+                      ${(item.price * item.quantity + (item.addonTotal || 0)).toFixed(2)}
+                    </span>
+                    {item.addons && item.addons.length > 0 && (
+                      <div className="mt-1 text-[10px] text-primary-600">
+                        +{item.addonTotal?.toFixed(2)} add-ons
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

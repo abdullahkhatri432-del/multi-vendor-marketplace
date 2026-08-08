@@ -48,6 +48,16 @@ export default function CartPage() {
                   {item.name}
                 </Link>
                 <p className="text-xs text-surface-500 mt-0.5">{item.vendorName}</p>
+                {item.addons && item.addons.length > 0 && (
+                  <div className="mt-1 space-y-0.5">
+                    {item.addons.map((addon, idx) => (
+                      <div key={idx} className="flex items-center justify-between text-xs">
+                        <span className="text-surface-500">✔️ {addon.title}</span>
+                        <span className="text-primary-600">₹{addon.price?.toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="mt-3 flex items-center justify-between">
                   <div className="flex items-center rounded-lg border border-surface-200 bg-white">
                     <button
@@ -64,7 +74,17 @@ export default function CartPage() {
                       <Plus className="h-3 w-3" />
                     </button>
                   </div>
-                  <span className="text-sm font-bold text-surface-900">${(item.price * item.quantity).toFixed(2)}</span>
+                  <div className="text-right">
+                    <span className="text-sm font-bold text-surface-900 block">
+                      ${(item.price * item.quantity + (item.addonTotal || 0)).toFixed(2)}
+                    </span>
+                    {item.addons && item.addons.length > 0 && (
+                      <div className="flex items-center gap-1 mt-1">
+                        <span className="text-xs text-surface-400">Add-ons:</span>
+                        <span className="text-xs text-primary-600">+{item.addonTotal?.toFixed(2)}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
               <button

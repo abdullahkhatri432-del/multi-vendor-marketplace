@@ -19,6 +19,7 @@ export default function VendorProducts() {
   const [form, setForm] = useState({
     name: '', description: '', price: '', originalPrice: '',
     category: 'electronics', images: [''], stock: '', discount: 0,
+    addons: [],
   });
 
   useEffect(() => {
@@ -36,7 +37,7 @@ export default function VendorProducts() {
   }, [user]);
 
   const resetForm = () => {
-    setForm({ name: '', description: '', price: '', originalPrice: '', category: 'electronics', images: [''], stock: '', discount: 0 });
+    setForm({ name: '', description: '', price: '', originalPrice: '', category: 'electronics', images: [''], stock: '', discount: 0, addons: [] });
     setEditing(null);
     setShowForm(false);
   };
@@ -48,6 +49,7 @@ export default function VendorProducts() {
       category: product.category || 'electronics',
       images: product.images?.length > 0 ? product.images : [product.image || ''],
       stock: product.stock || '', discount: product.discount || 0,
+      addons: product.addons || [],
     });
     setEditing(product.id);
     setShowForm(true);
@@ -63,6 +65,7 @@ export default function VendorProducts() {
       discount: parseInt(form.discount) || 0,
       images: form.images.filter((img) => img.trim() !== ''),
       vendorId: user.uid, vendorName: user.displayName,
+      addons: form.addons.filter((addon) => addon.title.trim() !== ''),
     };
 
     try {
@@ -221,6 +224,56 @@ export default function VendorProducts() {
                   <input key={i} value={img} onChange={(e) => handleImageChange(i, e.target.value)} className="input-field mb-2" placeholder="https://example.com/image.jpg" />
                 ))}
                 <button type="button" onClick={addImageField} className="btn-ghost text-sm text-primary-600">+ Add another image</button>
+              </div>
+
+              {/* Add-ons Section */}
+              <div className="border-t border-surface-100 pt-4">
+                <label className="block text-sm font-medium text-surface-700 mb-2">Product Add-ons</label>
+                {form.addons.map((addon, index) => (
+                  <div key={index} className="flex gap-2 mb-2">
+                    <input
+                      type="text"
+                      value={addon.title}
+                      onChange={(e) => {
+                        const newAddons = [...form.addons];
+                        newAddons[index] = { ...addon, title: e.target.value };
+                        setForm({ ...form, addons: newAddons });
+                      }}
+                      className="input-field flex-1 py-2 text-sm"
+                      placeholder="Add-on title (e.g., Original Box)"
+                    />
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={addon.price}
+                      onChange={(e) => {
+                        const newAddons = [...form.addons];
+                        newAddons[index] = { ...addon, price: parseFloat(e.target.value) || 0 };
+                        setForm({ ...form, addons: newAddons });
+                      }}
+                      className="input-field w-24 py-2 text-sm"
+                      placeholder="Extra price"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newAddons = form.addons.filter((_, i) => i !== index);
+                        setForm({ ...form, addons: newAddons });
+                      }}
+                      className="btn-ghost p-2 text-red-500"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, addons: [...form.addons, { title: '', price: 0 }] })}
+                  className="btn-ghost text-sm text-primary-600"
+                >
+                  + Add Add-on
+                </button>
+                <p className="text-xs text-surface-500 mt-1">Add optional purchasable add-ons (e.g., Extended Warranty, Original Packaging)</p>
               </div>
               <div className="flex gap-3 pt-4">
                 <button type="submit" className="btn-primary flex-1">{editing ? 'Update Product' : 'Add Product'}</button>

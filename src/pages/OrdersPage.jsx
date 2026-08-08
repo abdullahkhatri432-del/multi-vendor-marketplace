@@ -89,6 +89,11 @@ export default function OrdersPage() {
                     <div>
                       <p className="text-xs font-medium text-surface-700">{item.name}</p>
                       <p className="text-xs text-surface-400">Qty: {item.quantity}</p>
+                      {item.addons && item.addons.length > 0 && (
+                        <div className="text-[10px] text-primary-600 mt-0.5">
+                          Add-ons: {item.addons.map(a => a.title).join(', ')}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
