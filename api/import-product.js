@@ -3,20 +3,31 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 
 if (!admin.apps || !admin.apps.length) {
-  const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT
-    ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
-    : null;
+  const serviceAccountStr = process.env.FIREBASE_SERVICE_ACCOUNT;
+  let serviceAccount = null;
+  
+  if (serviceAccountStr) {
+    try {
+      serviceAccount = JSON.parse(serviceAccountStr);
+    } catch (e) {
+      console.error('[import-product] Invalid FIREBASE_SERVICE_ACCOUNT format:', e.message);
+    }
+  }
 
   if (serviceAccount) {
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
-  } else {
+    console.log('[import-product] Firebase initialized with service account');
+  } else if (process.env.GCLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT) {
     admin.initializeApp();
+    console.log('[import-product] Firebase initialized with application default credentials');
+  } else {
+    console.warn('[import-product] No Firebase credentials found. API calls will fail.');
   }
 }
 
-const db = admin.firestore();
+const db = admin.apps && admin.apps.length ? admin.firestore() : null;
 const PROJECT_PATH = 'projects/multi-vendor-marketplace';
 
 function extractImageUrls($) {
@@ -117,6 +128,13 @@ function extractCategory($) {
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  if (!db) {
+    return res.status(500).json({ 
+      error: 'Firebase is not initialized. Please set FIREBASE_SERVICE_ACCOUNT environment variable.',
+      details: 'See Vercel dashboard → Settings → Environment Variables'
+    });
   }
 
   try {
