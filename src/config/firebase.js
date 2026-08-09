@@ -3,6 +3,7 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
+// Debug: Log Firebase config at initialization
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyDArdfp21Rr20qpoL_4pSRBy00HJrcUJ7o',
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'myprojects-ebc25.firebaseapp.com',
@@ -12,6 +13,12 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:121866851521:web:6d13b45e15d00deef4f040',
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || 'G-X53ETGLJS4',
 };
+
+console.log('[Firebase] Initializing with config:', {
+  projectId: firebaseConfig.projectId,
+  authDomain: firebaseConfig.authDomain,
+  hasApiKey: !!firebaseConfig.apiKey,
+});
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);

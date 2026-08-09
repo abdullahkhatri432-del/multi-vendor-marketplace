@@ -15,9 +15,7 @@ const PORT = process.env.PORT || 3001;
 // Default markup percentage for wholesalers (can be overridden per vendor)
 const DEFAULT_MARKUP_PERCENTAGE = 20; // 20% markup
 
-app.use(cors());
-app.use(express.json());
-
+// Initialize Firebase Admin SDK
 if (!admin.apps || !admin.apps.length) {
   const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT
     ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
@@ -27,15 +25,36 @@ if (!admin.apps || !admin.apps.length) {
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
+    console.log('[Firebase Admin] Initialized with service account for project:', serviceAccount.project_id);
   } else {
     admin.initializeApp({
       credential: admin.credential.applicationDefault(),
     });
+    console.log('[Firebase Admin] Initialized with application default credentials');
   }
+} else {
+  console.log('[Firebase Admin] Already initialized');
 }
 
 const db = admin.firestore();
 const PROJECT_PATH = 'projects/multi-vendor-marketplace';
+
+// Health check endpoint for Firestore connectivity
+app.get('/api/health', async (req, res) => {
+  try {
+    // Test Firestore write
+    const testRef = db.collection(`${PROJECT_PATH}/health_check`).doc('test');
+    await testRef.set({ timestamp: admin.firestore.FieldValue.serverTimestamp(), test: true });
+    await testRef.delete();
+    res.json({ status: 'ok', firestore: 'connected', project: PROJECT_PATH });
+  } catch (error) {
+    console.error('[Health Check] Firestore connection failed:', error);
+    res.status(500).json({ status: 'error', firestore: 'disconnected', error: error.message });
+  }
+});
+
+app.use(cors());
+app.use(express.json());
 
 function extractImageUrls($) {
   const images = [];
@@ -222,7 +241,13 @@ app.post('/api/import-product', async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('[import-product] Error:', error.message);
+    console.error('[import-product] Error:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack,
+      url: req.body.url,
+      vendorId: req.body.vendorId,
+    });
 
     if (error.code === 'ECONNABORTED') {
       return res.status(408).json({ error: 'Request timeout. The URL may be taking too long to respond.' });
@@ -366,16 +391,20 @@ app.post('/api/bulk-import', async (req, res) => {
             updatedAt: productData.updatedAt?.toDate?.() || new Date().toISOString(),
           }
         };
-      } catch (error) {
-        console.error(`[bulk-import] Failed for URL ${url}:`, error.message);
-        return {
-          status: 'rejected',
-          index,
-          url,
-          error: getScrapingErrorMessage(error)
-        };
-      }
-    });
+} catch (error) {
+      console.error(`[bulk-import] Failed for URL ${url}:`, {
+        message: error.message,
+        code: error.code,
+        stack: error.stack,
+      });
+      return {
+        status: 'rejected',
+        index,
+        url,
+        error: getScrapingErrorMessage(error)
+      };
+    }
+  });
 
     const results = await Promise.allSettled(scrapePromises);
     
