@@ -43,12 +43,11 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
   }, [resendTimer]);
 
   const formatPhoneInput = (value) => {
-    // Basic phone number formatting
+    // Format as +91 XXXXX XXXXX (10 digits total)
     const digits = value.replace(/\D/g, '');
-    if (digits.length <= 3) return digits;
-    if (digits.length <= 6) return `${digits.slice(0, 3)} ${digits.slice(3)}`;
-    if (digits.length <= 10) return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
-    return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 10)}`;
+    if (digits.length <= 5) return `+91 ${digits}`;
+    if (digits.length <= 10) return `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
+    return `+91 ${digits.slice(0, 5)} ${digits.slice(5, 10)}`;
   };
 
   const handlePhoneChange = (e) => {
@@ -63,20 +62,18 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
 
   const getFullPhoneNumber = () => {
     const digits = phoneNumber.replace(/\D/g, '');
-    // Assume India format if no country code
-    if (digits.length === 10) return `+91${digits}`;
-    if (digits.length > 10 && !digits.startsWith('91')) return `+${digits}`;
-    return `+${digits}`;
+    // Always use +91 for India
+    return `+91${digits}`;
   };
 
   const isValidPhone = () => {
     const digits = phoneNumber.replace(/\D/g, '');
-    return digits.length >= 10;
+    return digits.length === 10;
   };
 
   const handleSendOtp = async () => {
     if (!isValidPhone()) {
-      setError('Please enter a valid phone number (10 digits)');
+      setError('Please enter a valid 10-digit Indian phone number');
       return;
     }
 
@@ -254,18 +251,19 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
               <form onSubmit={(e) => { e.preventDefault(); handleSendOtp(); }} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-surface-700 mb-1.5">
-                    Phone Number
+                    Phone Number (+91)
                   </label>
                   <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-500 font-medium text-lg">+91</span>
                     <input
                       type="tel"
                       value={phoneNumber}
                       onChange={handlePhoneChange}
-                      placeholder="Enter your phone number"
-                      className="input-field pl-10"
+                      placeholder="Enter 10-digit number"
+                      className="input-field pl-14"
                       required
                       autoComplete="tel"
+                      maxLength={15} // +91 + space + 5 + space + 5 = 14 chars
                     />
                   </div>
                 </div>
@@ -360,7 +358,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
 function getErrorMessage(code) {
   switch (code) {
     case 'auth/invalid-phone-number':
-      return 'Invalid phone number format. Please include country code.';
+      return 'Invalid phone number format.';
     case 'auth/missing-phone-number':
       return 'Please enter a phone number.';
     case 'auth/quota-exceeded':

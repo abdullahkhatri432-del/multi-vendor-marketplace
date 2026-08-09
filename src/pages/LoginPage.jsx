@@ -12,10 +12,9 @@ export default function LoginPage() {
 
   const formatPhoneInput = (value) => {
     const digits = value.replace(/\D/g, '');
-    if (digits.length <= 3) return digits;
-    if (digits.length <= 6) return `${digits.slice(0, 3)} ${digits.slice(3)}`;
-    if (digits.length <= 10) return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
-    return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 10)}`;
+    if (digits.length <= 5) return `+91 ${digits}`;
+    if (digits.length <= 10) return `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
+    return `+91 ${digits.slice(0, 5)} ${digits.slice(5, 10)}`;
   };
 
   const handlePhoneChange = (e) => {
@@ -25,20 +24,18 @@ export default function LoginPage() {
 
   const getFullPhoneNumber = () => {
     const digits = phoneNumber.replace(/\D/g, '');
-    if (digits.length === 10) return `+91${digits}`;
-    if (digits.length > 10 && !digits.startsWith('91')) return `+${digits}`;
-    return `+${digits}`;
+    return `+91${digits}`;
   };
 
   const isValidPhone = () => {
     const digits = phoneNumber.replace(/\D/g, '');
-    return digits.length >= 10;
+    return digits.length === 10;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!isValidPhone()) {
-      setError('Please enter a valid phone number (10 digits)');
+      setError('Please enter a valid 10-digit Indian phone number');
       return;
     }
     // Trigger the auth modal with login mode
@@ -56,7 +53,7 @@ export default function LoginPage() {
             <span className="text-xl font-display font-bold text-gradient">Speedersmania</span>
           </Link>
           <h1 className="text-2xl font-display font-bold text-surface-900">Welcome back</h1>
-          <p className="mt-2 text-sm text-surface-500">Sign in with your phone number to continue</p>
+          <p className="mt-2 text-sm text-surface-500">Sign in with your Indian phone number to continue</p>
         </div>
 
         <div className="card p-8">
@@ -69,16 +66,17 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-surface-700 mb-1.5">Phone Number</label>
+              <label className="block text-sm font-medium text-surface-700 mb-1.5">Phone Number (+91)</label>
               <div className="relative">
-                <Smartphone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-500 font-medium text-lg">+91</span>
                 <input
                   type="tel"
                   value={phoneNumber}
                   onChange={handlePhoneChange}
-                  placeholder="Enter your phone number"
-                  className="input-field pl-10"
+                  placeholder="Enter 10-digit number"
+                  className="input-field pl-14"
                   required
+                  maxLength={14}
                 />
               </div>
             </div>
