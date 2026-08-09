@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
-import { User, Mail, Shield, Edit2 } from 'lucide-react';
+import { User, Mail, Shield, Edit2, Phone, Smartphone } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getUser, updateUser } from '../config/firestore';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
@@ -58,10 +58,18 @@ export default function ProfilePage() {
 
         <div className="space-y-4">
           <div className="flex items-center gap-3 rounded-xl bg-surface-50 p-4">
+            <Smartphone className="h-5 w-5 text-surface-400" />
+            <div>
+              <p className="text-xs text-surface-500">Phone Number</p>
+              <p className="text-sm font-medium text-surface-900">{user?.phoneNumber || 'Not set'}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 rounded-xl bg-surface-50 p-4">
             <Mail className="h-5 w-5 text-surface-400" />
             <div>
               <p className="text-xs text-surface-500">Email</p>
-              <p className="text-sm font-medium text-surface-900">{user?.email}</p>
+              <p className="text-sm font-medium text-surface-900">{user?.email || 'Not set'}</p>
             </div>
           </div>
 

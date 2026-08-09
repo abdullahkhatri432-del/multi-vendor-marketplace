@@ -172,7 +172,7 @@ export default function CheckoutPage() {
           </button>
         </div>
         <p className="mt-6 text-sm text-surface-400">
-          Or <button onClick={() => navigate('/login')} className="text-primary-600 hover:underline font-medium">sign in with email</button>
+          Or <button onClick={() => navigate('/login')} className="text-primary-600 hover:underline font-medium">sign in with phone</button>
         </p>
       </div>
     );
