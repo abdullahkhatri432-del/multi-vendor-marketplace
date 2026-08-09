@@ -1,14 +1,12 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import {
   onAuthStateChanged,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
   signOut,
   GoogleAuthProvider,
   signInWithPopup,
   updateProfile,
-  sendEmailVerification,
   signInWithPhoneNumber,
+  RecaptchaVerifier,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
@@ -27,8 +25,8 @@ export function AuthProvider({ children }) {
         const userDoc = await getDoc(doc(db, 'projects', 'multi-vendor-marketplace', 'users', firebaseUser.uid));
         if (userDoc.exists()) {
           setUserRole(userDoc.data().role || 'customer');
-        } else if (firebaseUser.emailVerified || firebaseUser.phoneNumber) {
-          // Create user document after email verified OR phone auth (phone is pre-verified)
+        } else if (firebaseUser.phoneNumber) {
+          // Create user document for phone auth users (phone is pre-verified)
           await setDoc(doc(db, 'projects', 'multi-vendor-marketplace', 'users', firebaseUser.uid), {
             email: firebaseUser.email || '',
             displayName: firebaseUser.displayName || '',
@@ -50,43 +48,14 @@ export function AuthProvider({ children }) {
     return unsubscribe;
   }, []);
 
-  const login = async (email, password) => {
-    const result = await signInWithEmailAndPassword(auth, email, password);
-    return result.user;
-  };
-
-  const loginWithGoogle = async () => {
-    const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
-    const userDoc = await getDoc(doc(db, 'projects', 'multi-vendor-marketplace', 'users', result.user.uid));
-    if (!userDoc.exists()) {
-      await setDoc(doc(db, 'projects', 'multi-vendor-marketplace', 'users', result.user.uid), {
-        email: result.user.email,
-        displayName: result.user.displayName,
-        photoURL: result.user.photoURL,
-        role: 'customer',
-        createdAt: serverTimestamp(),
-      });
-    }
-    return result.user;
-  };
-
-  const register = async (email, password, displayName, role = 'customer') => {
-    const result = await createUserWithEmailAndPassword(auth, email, password);
-    await updateProfile(result.user, { displayName });
-
-    // Send verification email BEFORE creating Firestore document
-    await sendEmailVerification(result.user, {
-      url: 'https://multi-vendor-marketplace-alpha.vercel.app/login',
-      handleCodeInApp: true,
-    });
-
-    // Note: Firestore document is created in onAuthStateChanged when emailVerified becomes true
-    return result.user;
-  };
-
-  // Phone authentication - sends OTP
+  // Phone authentication - sends OTP for registration
   const registerWithPhone = async (phoneNumber, appVerifier) => {
+    const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+    return confirmationResult;
+  };
+
+  // Phone authentication - sends OTP for login
+  const loginWithPhone = async (phoneNumber, appVerifier) => {
     const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
     return confirmationResult;
   };
@@ -97,10 +66,22 @@ export function AuthProvider({ children }) {
     return result.user;
   };
 
-  // Login existing user with phone (sends OTP)
-  const loginWithPhone = async (phoneNumber, appVerifier) => {
-    const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
-    return confirmationResult;
+  // Google authentication (optional - keep for social login)
+  const loginWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    const result = await signInWithPopup(auth, provider);
+    const userDoc = await getDoc(doc(db, 'projects', 'multi-vendor-marketplace', 'users', result.user.uid));
+    if (!userDoc.exists()) {
+      await setDoc(doc(db, 'projects', 'multi-vendor-marketplace', 'users', result.user.uid), {
+        email: result.user.email,
+        displayName: result.user.displayName,
+        photoURL: result.user.photoURL,
+        phoneNumber: result.user.phoneNumber || '',
+        role: 'customer',
+        createdAt: serverTimestamp(),
+      });
+    }
+    return result.user;
   };
 
   // Create user account in Firestore after verification
@@ -142,11 +123,9 @@ export function AuthProvider({ children }) {
     user,
     userRole,
     loading,
-    login,
-    loginWithGoogle,
     loginWithPhone,
-    register,
     registerWithPhone,
+    loginWithGoogle,
     verifyPhoneCode,
     createUserAccount,
     logout,

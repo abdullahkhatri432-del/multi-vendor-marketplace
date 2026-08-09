@@ -1,201 +1,162 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Mail, Lock, Eye, EyeOff, User, Smartphone, Mail as MailIcon } from 'lucide-react';
+import { X, Phone, Loader2, CheckCircle, AlertCircle, ArrowRight, Smartphone } from 'lucide-react';
 import { RecaptchaVerifier } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 
 export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAuthSuccess }) {
-  const { login, loginWithGoogle, register, registerWithPhone, verifyPhoneCode, createUserAccount } = useAuth();
-  const [mode, setMode] = useState(initialMode);
-  const [step, setStep] = useState('input'); // 'input' | 'phone-otp'
-  const [showPassword, setShowPassword] = useState(false);
+  const { loginWithPhone, registerWithPhone, verifyPhoneCode, createUserAccount, loginWithGoogle } = useAuth();
+  const [mode, setMode] = useState(initialMode); // 'login' | 'register'
+  const [step, setStep] = useState('phone'); // 'phone' | 'otp'
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [confirmationResult, setConfirmationResult] = useState(null);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
+  const [resendTimer, setResendTimer] = useState(0);
+  const [displayName, setDisplayName] = useState('');
+  const [role, setRole] = useState('customer');
   const recaptchaRef = useRef(null);
 
   // Reset state when modal opens/closes
   useEffect(() => {
     if (isOpen) {
       setMode(initialMode);
-      setStep('input');
-      setShowPassword(false);
+      setStep('phone');
       setError('');
       setLoading(false);
       setConfirmationResult(null);
       setPhoneNumber('');
       setOtp('');
+      setDisplayName('');
+      setRole('customer');
+      setResendTimer(0);
     }
   }, [isOpen, initialMode]);
 
-  // Auto-detect email vs phone on input change
-  const [form, setForm] = useState({
-    emailOrPhone: '',
-    password: '',
-    displayName: '',
-    role: 'customer',
-  });
-
+  // Resend timer countdown
   useEffect(() => {
-    if (isOpen) {
-      setForm({
-        emailOrPhone: '',
-        password: '',
-        displayName: '',
-        role: 'customer',
-      });
+    if (resendTimer > 0) {
+      const timer = setInterval(() => setResendTimer((t) => t - 1), 1000);
+      return () => clearInterval(timer);
     }
-  }, [isOpen]);
+  }, [resendTimer]);
 
-  const isPhoneNumber = (value) => {
-    // Basic phone number detection - starts with + or has 10-15 digits
-    return value.startsWith('+') || (value.replace(/\D/g, '').length >= 10 && value.replace(/\D/g, '').length <= 15);
+  const formatPhoneInput = (value) => {
+    // Basic phone number formatting
+    const digits = value.replace(/\D/g, '');
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `${digits.slice(0, 3)} ${digits.slice(3)}`;
+    if (digits.length <= 10) return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
+    return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 10)}`;
   };
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handlePhoneChange = (e) => {
+    const formatted = formatPhoneInput(e.target.value);
+    setPhoneNumber(formatted);
+    setError('');
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleOtpChange = (e) => {
+    setOtp(e.target.value.replace(/\D/g, '').slice(0, 6));
+  };
+
+  const getFullPhoneNumber = () => {
+    const digits = phoneNumber.replace(/\D/g, '');
+    // Assume India format if no country code
+    if (digits.length === 10) return `+91${digits}`;
+    if (digits.length > 10 && !digits.startsWith('91')) return `+${digits}`;
+    return `+${digits}`;
+  };
+
+  const isValidPhone = () => {
+    const digits = phoneNumber.replace(/\D/g, '');
+    return digits.length >= 10;
+  };
+
+  const handleSendOtp = async () => {
+    if (!isValidPhone()) {
+      setError('Please enter a valid phone number (10 digits)');
+      return;
+    }
+
+    setLoading(true);
     setError('');
 
-    const value = form.emailOrPhone.trim();
-    if (!value) {
-      setError('Please enter your email or phone number.');
-      return;
-    }
-
-    if (mode === 'login') {
-      if (isPhoneNumber(value)) {
-        // Phone login flow
-        await handlePhoneLogin(value);
-      } else {
-        // Email login
-        await handleEmailLogin(value);
-      }
-    } else {
-      if (isPhoneNumber(value)) {
-        // Phone registration flow
-        await handlePhoneRegistration(value);
-      } else {
-        // Email registration
-        await handleEmailRegistration(value);
-      }
-    }
-  };
-
-  const handleEmailLogin = async (email) => {
-    if (!form.password) {
-      setError('Please enter your password.');
-      return;
-    }
-    setLoading(true);
     try {
-      await login(email, form.password);
-      onAuthSuccess?.();
-      onClose();
+      // Ensure recaptcha container exists
+      if (!document.getElementById('auth-recaptcha')) {
+        const div = document.createElement('div');
+        div.id = 'auth-recaptcha';
+        div.style.display = 'none';
+        document.body.appendChild(div);
+      }
+
+      const appVerifier = new RecaptchaVerifier(auth, 'auth-recaptcha', {
+        size: 'invisible',
+      });
+
+      const fullPhone = getFullPhoneNumber();
+      
+      let confirmation;
+      if (mode === 'login') {
+        confirmation = await loginWithPhone(fullPhone, appVerifier);
+      } else {
+        confirmation = await registerWithPhone(fullPhone, appVerifier);
+      }
+      
+      setConfirmationResult(confirmation);
+      setStep('otp');
+      setResendTimer(60);
     } catch (err) {
+      console.error('OTP send error:', err);
       setError(getErrorMessage(err.code));
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePhoneLogin = async (phone) => {
-    setLoading(true);
-    try {
-      const appVerifier = new RecaptchaVerifier('recaptcha-container', { size: 'invisible' }, auth);
-      const confirmation = await registerWithPhone(phone, appVerifier);
-      setConfirmationResult(confirmation);
-      setStep('phone-otp');
-    } catch (err) {
-      setError(err.message || 'Failed to send OTP. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleEmailRegistration = async (email) => {
-    if (!form.displayName) {
-      setError('Please enter your full name.');
-      return;
-    }
-    if (!form.password) {
-      setError('Please enter a password.');
-      return;
-    }
-    if (form.password.length < 6) {
-      setError('Password must be at least 6 characters.');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await register(email, form.password, form.displayName, form.role);
-      onAuthSuccess?.();
-      onClose();
-    } catch (err) {
-      setError(getErrorMessage(err.code));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePhoneRegistration = async (phone) => {
-    if (!form.displayName) {
-      setError('Please enter your full name.');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const appVerifier = new RecaptchaVerifier('recaptcha-container', { size: 'invisible' }, auth);
-      const confirmation = await registerWithPhone(phone, appVerifier);
-      setConfirmationResult(confirmation);
-      setStep('phone-otp');
-    } catch (err) {
-      setError(err.message || 'Failed to send OTP. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+  const handleResendOtp = async () => {
+    if (resendTimer > 0) return;
+    await handleSendOtp();
   };
 
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     if (!otp || otp.length !== 6) {
-      setError('Please enter a valid 6-digit code.');
+      setError('Please enter the 6-digit code');
       return;
     }
 
     setLoading(true);
+    setError('');
+
     try {
       const user = await verifyPhoneCode(confirmationResult, otp);
-      // Create Firestore document for phone auth users
-      await createUserAccount(user, form.displayName, form.role);
-      onAuthSuccess?.();
+      
+      // For registration, create user account with display name
+      if (mode === 'register') {
+        await createUserAccount(user, displayName, role);
+      }
+      
+      onAuthSuccess?.(user);
       onClose();
     } catch (err) {
+      console.error('OTP verify error:', err);
       setError(getErrorMessage(err.code));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogle = async () => {
-    try {
-      await loginWithGoogle();
-      onAuthSuccess?.();
-      onClose();
-    } catch (err) {
-      setError('Google authentication failed. Please try again.');
-    }
+  const handleClose = () => {
+    if (step === 'success') return;
+    onClose();
   };
 
   const switchMode = () => {
     setMode(mode === 'login' ? 'register' : 'login');
+    setStep('phone');
     setError('');
   };
 
@@ -206,11 +167,11 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
       <div className="relative w-full max-w-md">
         {/* Modal Content Box */}
         <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 animate-scale-in">
-          <div id="recaptcha-container" className="hidden" />
+          <div id="auth-recaptcha" className="hidden" />
           
           {/* Close Button */}
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="absolute right-4 top-4 text-surface-400 hover:text-surface-600 transition-colors"
             aria-label="Close modal"
           >
@@ -234,39 +195,37 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
 
           {error && (
             <div className="mb-4 flex items-center gap-2 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600 animate-shake">
-              <span className="flex-shrink-0" aria-hidden="true">⚠</span>
+              <AlertCircle className="h-4 w-4 flex-shrink-0" />
               {error}
             </div>
           )}
 
-          {step === 'input' && (
+          {step === 'phone' && (
             <>
               {mode === 'register' && (
                 <>
                   {/* Role Selection */}
                   <div className="grid grid-cols-2 gap-3 mb-6">
                     {[
-                      { value: 'customer', label: 'Customer', desc: 'I want to shop', icon: MailIcon },
-                      { value: 'vendor', label: 'Vendor', desc: 'I want to sell', icon: Smartphone },
-                    ].map((role) => (
+                      { value: 'customer', label: 'Customer', desc: 'I want to shop', icon: '🛍️' },
+                      { value: 'vendor', label: 'Vendor', desc: 'I want to sell', icon: '🏪' },
+                    ].map((r) => (
                       <button
-                        key={role.value}
+                        key={r.value}
                         type="button"
-                        onClick={() => setForm({ ...form, role: role.value })}
+                        onClick={() => setRole(r.value)}
                         className={`relative rounded-xl border-2 p-4 text-left transition-all ${
-                          form.role === role.value
+                          role === r.value
                             ? 'border-primary-500 bg-primary-50 text-primary-900 shadow-md'
                             : 'border-surface-200 hover:border-surface-300 hover:bg-surface-50'
                         }`}
                       >
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary-100 text-primary-600">
-                            <role.icon className="h-4 w-4" />
-                          </span>
-                          <p className="text-sm font-semibold">{role.label}</p>
+                          <span className="text-2xl">{r.icon}</span>
+                          <p className="text-sm font-semibold">{r.label}</p>
                         </div>
-                        <p className="text-xs text-surface-500 mt-0.5">{role.desc}</p>
-                        {form.role === role.value && (
+                        <p className="text-xs text-surface-500 mt-0.5">{r.desc}</p>
+                        {role === r.value && (
                           <div className="absolute inset-0 border-2 border-primary-500 rounded-xl pointer-events-none" />
                         )}
                       </button>
@@ -278,87 +237,70 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
                     <label className="block text-sm font-medium text-surface-700 mb-1.5">
                       Full Name
                     </label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
-                      <input
-                        name="displayName"
-                        value={form.displayName}
-                        onChange={handleChange}
-                        placeholder="John Doe"
-                        className="input-field pl-10"
-                        required
-                        autoComplete="name"
-                      />
-                    </div>
+                    <input
+                      type="text"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      placeholder="John Doe"
+                      className="input-field"
+                      required
+                      autoComplete="name"
+                    />
                   </div>
                 </>
               )}
 
-              {/* Email/Phone Form */}
-              <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Phone Number Form */}
+              <form onSubmit={(e) => { e.preventDefault(); handleSendOtp(); }} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-surface-700 mb-1.5">
-                    Email or Phone Number
+                    Phone Number
                   </label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
+                    <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
                     <input
-                      name="emailOrPhone"
-                      type="text"
-                      value={form.emailOrPhone}
-                      onChange={handleChange}
-                      placeholder="+1 (555) 123-4567 or you@example.com"
+                      type="tel"
+                      value={phoneNumber}
+                      onChange={handlePhoneChange}
+                      placeholder="Enter your phone number"
                       className="input-field pl-10"
                       required
-                      autoComplete={isPhoneNumber(form.emailOrPhone) ? 'tel' : 'email'}
+                      autoComplete="tel"
                     />
                   </div>
                 </div>
 
-                {mode === 'login' && (
-                  <div>
-                    <label className="block text-sm font-medium text-surface-700 mb-1.5">
-                      Password
-                    </label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        name="password"
-                        value={form.password}
-                        onChange={handleChange}
-                        placeholder="Enter your password"
-                        className="input-field pl-10 pr-10"
-                        autoComplete="current-password"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-surface-400 hover:text-surface-600 transition-colors"
-                        aria-label={showPassword ? 'Hide password' : 'Show password'}
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || !isValidPhone()}
                   className="btn-primary w-full py-3"
                 >
-                  {loading
-                    ? mode === 'login'
-                      ? 'Signing in...'
-                      : 'Creating account...'
-                    : mode === 'login'
-                    ? 'Sign In'
-                    : 'Create Account'}
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Sending OTP...
+                    </>
+                  ) : (
+                    <>
+                      <ArrowRight className="h-4 w-4 mr-2" />
+                      Get OTP
+                    </>
+                  )}
                 </button>
               </form>
 
-              {/* Divider + Google */}
+              <p className="mt-6 text-center text-sm text-surface-500">
+                {mode === 'login'
+                  ? "Don't have an account? "
+                  : 'Already have an account? '}
+                <button
+                  onClick={switchMode}
+                  className="font-semibold text-primary-600 hover:text-primary-700 transition-colors"
+                >
+                  {mode === 'login' ? 'Sign up' : 'Sign in'}
+                </button>
+              </p>
+
               <div className="mt-6">
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
@@ -369,7 +311,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
                   </div>
                 </div>
 
-                <button onClick={handleGoogle} className="btn-secondary w-full mt-4">
+                <button onClick={loginWithGoogle} className="btn-secondary w-full mt-4">
                   <svg className="h-4 w-4" viewBox="0 0 24 24">
                     <path
                       fill="#4285F4"
@@ -391,35 +333,21 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
                   Continue with Google
                 </button>
               </div>
-
-              {/* Switch Mode */}
-              <p className="mt-6 text-center text-sm text-surface-500">
-                {mode === 'login'
-                  ? "Don't have an account? "
-                  : 'Already have an account? '}
-                <button
-                  onClick={switchMode}
-                  className="font-semibold text-primary-600 hover:text-primary-700 transition-colors"
-                >
-                  {mode === 'login' ? 'Sign up' : 'Sign in'}
-                </button>
-              </p>
             </>
           )}
 
-          {/* OTP Verification Step */}
-          {step === 'phone-otp' && (
+          {step === 'otp' && (
             <form onSubmit={handleVerifyOtp} className="space-y-4">
               <div className="text-center mb-2">
                 <p className="text-sm text-surface-600">Enter the 6-digit code sent to</p>
-                <p className="font-medium text-surface-900">{phoneNumber || form.emailOrPhone}</p>
+                <p className="font-medium text-surface-900">{getFullPhoneNumber()}</p>
               </div>
               <div>
                 <label className="sr-only">OTP Code</label>
                 <input
                   type="text"
                   value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  onChange={handleOtpChange}
                   placeholder="000000"
                   className="input-field text-center text-2xl tracking-widest font-mono"
                   maxLength={6}
@@ -428,15 +356,31 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
                   inputMode="numeric"
                 />
               </div>
+              {error && (
+                <div className="flex items-center gap-2 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                  {error}
+                </div>
+              )}
               <button type="submit" disabled={loading} className="btn-primary w-full py-3">
                 {loading ? 'Verifying...' : 'Verify & Continue'}
               </button>
+              <div className="text-center text-sm text-surface-500">
+                Didn't receive the code?{' '}
+                <button
+                  onClick={handleResendOtp}
+                  disabled={resendTimer > 0 || loading}
+                  className="text-primary-600 hover:underline disabled:text-surface-400 disabled:cursor-not-allowed font-medium"
+                >
+                  {resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend Code'}
+                </button>
+              </div>
               <button
                 type="button"
-                onClick={() => setStep('input')}
-                className="w-full text-sm text-primary-600 hover:text-primary-700 transition-colors"
+                onClick={() => setStep('phone')}
+                className="w-full text-sm text-primary-600 hover:text-primary-700 transition-colors mt-2"
               >
-                Back
+                Change phone number
               </button>
             </form>
           )}
@@ -448,26 +392,24 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
 
 function getErrorMessage(code) {
   switch (code) {
-    case 'auth/user-not-found':
-      return 'No account found with this email.';
-    case 'auth/wrong-password':
-      return 'Incorrect password.';
-    case 'auth/invalid-email':
-      return 'Invalid email address.';
-    case 'auth/too-many-requests':
-      return 'Too many attempts. Please try again later.';
-    case 'auth/email-already-in-use':
-      return 'An account with this email already exists.';
-    case 'auth/weak-password':
-      return 'Password is too weak.';
     case 'auth/invalid-phone-number':
-      return 'Invalid phone number format.';
+      return 'Invalid phone number format. Please include country code.';
     case 'auth/missing-phone-number':
       return 'Please enter a phone number.';
+    case 'auth/quota-exceeded':
+      return 'SMS quota exceeded. Please try again later.';
+    case 'auth/captcha-check-failed':
+      return 'Security check failed. Please try again.';
     case 'auth/code-expired':
       return 'The verification code has expired. Please request a new one.';
     case 'auth/invalid-verification-code':
-      return 'Invalid verification code.';
+      return 'Invalid verification code. Please try again.';
+    case 'auth/too-many-requests':
+      return 'Too many attempts. Please try again later.';
+    case 'auth/user-not-found':
+      return 'No account found with this phone number. Please sign up.';
+    case 'auth/account-exists-with-different-credential':
+      return 'An account already exists with this phone number. Please sign in.';
     default:
       return 'Authentication failed. Please try again.';
   }

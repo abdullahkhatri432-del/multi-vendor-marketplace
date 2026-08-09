@@ -1,157 +1,49 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Store, Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Store, AlertCircle, Smartphone, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { loginWithPhone } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [showModal, setShowModal] = useState(true);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState('form'); // 'form' | 'verify-email'
 
-  const handleSubmit = async (e) => {
+  const formatPhoneInput = (value) => {
+    const digits = value.replace(/\D/g, '');
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `${digits.slice(0, 3)} ${digits.slice(3)}`;
+    if (digits.length <= 10) return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
+    return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 10)}`;
+  };
+
+  const handlePhoneChange = (e) => {
+    const formatted = formatPhoneInput(e.target.value);
+    setPhoneNumber(formatted);
+  };
+
+  const getFullPhoneNumber = () => {
+    const digits = phoneNumber.replace(/\D/g, '');
+    if (digits.length === 10) return `+91${digits}`;
+    if (digits.length > 10 && !digits.startsWith('91')) return `+${digits}`;
+    return `+${digits}`;
+  };
+
+  const isValidPhone = () => {
+    const digits = phoneNumber.replace(/\D/g, '');
+    return digits.length >= 10;
+  };
+
+  const handleSubmit = (e) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      const userCredential = await login(email, password);
-      // Check if email is verified
-      if (userCredential && !userCredential.emailVerified) {
-        setStep('verify-email');
-      } else {
-        navigate('/');
-      }
-    } catch (err) {
-      setError(getErrorMessage(err.code));
-    } finally {
-      setLoading(false);
+    if (!isValidPhone()) {
+      setError('Please enter a valid phone number (10 digits)');
+      return;
     }
+    // Trigger the auth modal with login mode
+    setShowModal(true);
   };
-
-  const resendVerification = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const { sendEmailVerification } = await import('firebase/auth');
-      const { auth } = await import('../config/firebase');
-      if (auth.currentUser) {
-        await sendEmailVerification(auth.currentUser, {
-          url: 'https://multi-vendor-marketplace-alpha.vercel.app/login',
-          handleCodeInApp: true,
-        });
-        setError('Verification email sent! Please check your inbox.');
-      }
-    } catch (err) {
-      setError('Failed to resend verification email.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const renderForm = () => (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-surface-700 mb-1.5">Email</label>
-        <div className="relative">
-          <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            className="input-field pl-10"
-            required
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-surface-700 mb-1.5">Password</label>
-        <div className="relative">
-          <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
-          <input
-            type={showPassword ? 'text' : 'password'}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter your password"
-            className="input-field pl-10 pr-10"
-            required
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-surface-400 hover:text-surface-600"
-          >
-            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
-        </div>
-      </div>
-
-      <button type="submit" disabled={loading} className="btn-primary w-full">
-        {loading ? 'Signing in...' : 'Sign In'}
-      </button>
-    </form>
-  );
-
-  const renderGoogleButton = () => (
-    <div className="mt-6">
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-surface-200" />
-        </div>
-        <div className="relative flex justify-center text-xs">
-          <span className="bg-white px-3 text-surface-400">or continue with</span>
-        </div>
-      </div>
-
-      <button
-        onClick={() => {}}
-        className="btn-secondary w-full mt-4"
-        disabled
-      >
-        <svg className="h-4 w-4" viewBox="0 0 24 24">
-          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-        </svg>
-        Continue with Google
-      </button>
-    </div>
-  );
-
-  const renderVerifyEmail = () => (
-    <div className="text-center space-y-4">
-      <div className="flex justify-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
-          <AlertCircle className="h-8 w-8 text-amber-600" />
-        </div>
-      </div>
-      <div>
-        <p className="text-sm text-surface-600 mb-2">
-          Your email has not been verified yet
-        </p>
-        <p className="font-medium text-surface-900">{email}</p>
-      </div>
-      <p className="text-sm text-surface-500">
-        Please check your inbox (and spam folder) and click the verification link to activate your account.
-      </p>
-      <button
-        onClick={resendVerification}
-        disabled={loading}
-        className="btn-secondary w-full mt-4"
-      >
-        {loading ? 'Sending...' : "Resend Verification Email"}
-      </button>
-      <p className="text-sm text-surface-500">
-        Didn't receive the email? <button onClick={resendVerification} className="text-primary-600 hover:underline">Resend</button>
-      </p>
-    </div>
-  );
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12 animate-fade-in">
@@ -163,14 +55,8 @@ export default function LoginPage() {
             </div>
             <span className="text-xl font-display font-bold text-gradient">Speedersmania</span>
           </Link>
-          <h1 className="text-2xl font-display font-bold text-surface-900">
-            {step === 'form' ? 'Welcome back' : 'Verify your email'}
-          </h1>
-          <p className="mt-2 text-sm text-surface-500">
-            {step === 'form'
-              ? 'Sign in to your account to continue'
-              : 'Your email needs to be verified before you can access your account'}
-          </p>
+          <h1 className="text-2xl font-display font-bold text-surface-900">Welcome back</h1>
+          <p className="mt-2 text-sm text-surface-500">Sign in with your phone number to continue</p>
         </div>
 
         <div className="card p-8">
@@ -181,14 +67,51 @@ export default function LoginPage() {
             </div>
           )}
 
-          {step === 'form' ? (
-            <>
-              {renderForm()}
-              {renderGoogleButton()}
-            </>
-          ) : (
-            renderVerifyEmail()
-          )}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-surface-700 mb-1.5">Phone Number</label>
+              <div className="relative">
+                <Smartphone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
+                <input
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={handlePhoneChange}
+                  placeholder="Enter your phone number"
+                  className="input-field pl-10"
+                  required
+                />
+              </div>
+            </div>
+
+            <button type="submit" className="btn-primary w-full py-3">
+              <ArrowRight className="h-4 w-4 mr-2" />
+              Get OTP & Sign In
+            </button>
+          </form>
+
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-surface-200" />
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="bg-white px-3 text-surface-400">or continue with</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowModal(true)}
+              className="btn-secondary w-full mt-4"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+              </svg>
+              Continue with Google
+            </button>
+          </div>
         </div>
 
         <p className="mt-6 text-center text-sm text-surface-500">
@@ -198,19 +121,4 @@ export default function LoginPage() {
       </div>
     </div>
   );
-}
-
-function getErrorMessage(code) {
-  switch (code) {
-    case 'auth/user-not-found':
-      return 'No account found with this email.';
-    case 'auth/wrong-password':
-      return 'Incorrect password.';
-    case 'auth/invalid-email':
-      return 'Invalid email address.';
-    case 'auth/too-many-requests':
-      return 'Too many attempts. Please try again later.';
-    default:
-      return 'Sign in failed. Please try again.';
-  }
 }
