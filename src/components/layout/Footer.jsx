@@ -11,7 +11,7 @@ export default function Footer() {
               <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary-600 to-accent">
                 <Store className="h-4 w-4 text-white" />
               </div>
-              <span className="text-lg font-display font-bold text-gradient">NexusMart</span>
+              <span className="text-lg font-display font-bold text-gradient">Speedersmania</span>
             </Link>
             <p className="text-sm text-surface-500 leading-relaxed">
               The premium multi-vendor marketplace. Discover unique products from verified sellers worldwide.
@@ -63,7 +63,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-10 border-t border-surface-100 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-surface-400">&copy; {new Date().getFullYear()} NexusMart. All rights reserved.</p>
+          <p className="text-xs text-surface-400">&copy; {new Date().getFullYear()} Speedersmania. All rights reserved.</p>
           <p className="text-xs text-surface-400">Built with React + Firebase + Tailwind CSS</p>
         </div>
       </div>

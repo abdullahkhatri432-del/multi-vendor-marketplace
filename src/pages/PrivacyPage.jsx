@@ -90,8 +90,8 @@ export default function PrivacyPage() {
             <h2 className="text-lg font-semibold text-surface-900 mb-3">10. Contact Us</h2>
             <p className="text-sm text-surface-600 leading-relaxed">
               If you have questions about this Privacy Policy or your data, contact us at:
-              <br />Email: privacy@nexusmart.com
-              <br />Platform: NexusMart Support Center
+              <br />Email: privacy@speedersmania.com
+              <br />Platform: Speedersmania Support Center
             </p>
           </section>
         </div>

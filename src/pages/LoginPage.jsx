@@ -161,7 +161,7 @@ export default function LoginPage() {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary-600 to-accent shadow-glow">
               <Store className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xl font-display font-bold text-gradient">NexusMart</span>
+            <span className="text-xl font-display font-bold text-gradient">Speedersmania</span>
           </Link>
           <h1 className="text-2xl font-display font-bold text-surface-900">
             {step === 'form' ? 'Welcome back' : 'Verify your email'}

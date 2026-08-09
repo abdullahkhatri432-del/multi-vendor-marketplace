@@ -190,7 +190,7 @@ const testimonials = [
     name: 'Sarah Mitchell',
     avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&h=80&fit=crop',
     rating: 5,
-    text: 'NexusMart has completely transformed how I shop online. The curated selection from verified vendors means I never have to worry about quality. Found my favorite leather jacket from Fashion Forward - arrived in 2 days!',
+    text: 'Speedersmania has completely transformed how I shop online. The curated selection from verified vendors means I never have to worry about quality. Found my favorite leather jacket from Fashion Forward - arrived in 2 days!',
     location: 'San Francisco, CA',
     verified: true,
   },
@@ -199,7 +199,7 @@ const testimonials = [
     name: 'James Chen',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop',
     rating: 5,
-    text: 'As a vendor, the platform tools are incredible. Analytics dashboard, inventory management, and the seller support team is actually helpful. My sales tripled in the first quarter after joining NexusMart.',
+    text: 'As a vendor, the platform tools are incredible. Analytics dashboard, inventory management, and the seller support team is actually helpful. My sales tripled in the first quarter after joining Speedersmania.',
     location: 'Austin, TX',
     verified: true,
   },
@@ -660,7 +660,7 @@ export default function HomePage() {
           <div className="absolute top-0 right-0 h-64 w-64 rounded-full bg-white/10 blur-[80px]" />
           <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full bg-white/5 blur-[80px]" />
           <div className="relative max-w-2xl">
-            <h2 className="text-3xl font-display font-bold text-white">Start Selling on NexusMart</h2>
+            <h2 className="text-3xl font-display font-bold text-white">Start Selling on Speedersmania</h2>
             <p className="mt-4 text-lg text-primary-100/80">
               Join thousands of vendors and reach millions of customers. Set up your store in minutes.
             </p>

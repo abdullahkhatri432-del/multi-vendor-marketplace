@@ -219,8 +219,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
             </h2>
             <p className="mt-1 text-sm text-surface-500">
               {mode === 'login'
-                ? 'Sign in to continue to NexusMart'
-                : 'Join NexusMart and start your journey'}
+                ? 'Sign in to continue to Speedersmania'
+                : 'Join Speedersmania and start your journey'}
             </p>
           </div>
 

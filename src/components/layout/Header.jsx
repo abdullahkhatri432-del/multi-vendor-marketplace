@@ -31,7 +31,7 @@ export default function Header() {
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary-600 to-accent shadow-glow">
               <Store className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xl font-display font-bold text-gradient hidden sm:block">NexusMart</span>
+            <span className="text-xl font-display font-bold text-gradient hidden sm:block">Speedersmania</span>
           </Link>
 
           <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-md">
