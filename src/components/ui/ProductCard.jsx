@@ -1,10 +1,29 @@
 import { Link } from 'react-router-dom';
-import { ShoppingCart, Star, Heart } from 'lucide-react';
+import { ShoppingCart, Star, Heart, Bolt } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
+import { useCheckoutInterceptor } from '../../context/CheckoutInterceptorContext';
+import { useNavigate } from 'react-router-dom';
 
 export default function ProductCard({ product }) {
   const { addItem } = useCart();
+  const { intercept } = useCheckoutInterceptor();
+  const navigate = useNavigate();
   const image = product.images?.[0] || product.image || `https://picsum.photos/seed/${product.id}/400/400`;
+
+  const handleAddToCart = () => {
+    addItem(product);
+  };
+
+  const handleBuyNow = async () => {
+    try {
+      await intercept('buy_now', { productId: product.id, quantity: 1 });
+      navigate('/checkout');
+    } catch (err) {
+      if (err.message !== 'Authentication cancelled') {
+        console.error('Buy now intercept failed:', err);
+      }
+    }
+  };
 
   return (
     <div className="group card overflow-hidden animate-fade-in">
@@ -49,12 +68,21 @@ export default function ProductCard({ product }) {
               <span className="text-sm text-surface-400 line-through">${product.originalPrice.toFixed(2)}</span>
             )}
           </div>
-          <button
-            onClick={(e) => { e.preventDefault(); addItem(product); }}
-            className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary-50 text-primary-600 transition-all hover:bg-primary-600 hover:text-white hover:shadow-glow active:scale-95"
-          >
-            <ShoppingCart className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleBuyNow}
+              className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 text-white transition-all hover:shadow-[0_0_15px_rgba(245,158,11,0.5)] active:scale-95"
+              title="Buy Now"
+            >
+              <Bolt className="h-4 w-4" />
+            </button>
+            <button
+              onClick={(e) => { e.preventDefault(); handleAddToCart(); }}
+              className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary-50 text-primary-600 transition-all hover:bg-primary-600 hover:text-white hover:shadow-glow active:scale-95"
+            >
+              <ShoppingCart className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
     </div>

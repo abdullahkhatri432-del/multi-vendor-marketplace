@@ -4,6 +4,7 @@ import { ShoppingCart, Star, Truck, Shield, RotateCcw, Heart, ArrowLeft, Minus, 
 import { getProduct, getVendor, getReviewsByProduct, createReview, getWishlist, addToWishlist, removeFromWishlist } from '../config/firestore';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useCheckoutInterceptor } from '../context/CheckoutInterceptorContext';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 
 export default function ProductDetailPage() {
@@ -11,6 +12,7 @@ export default function ProductDetailPage() {
   const navigate = useNavigate();
   const { addItem } = useCart();
   const { user, isAuthenticated } = useAuth();
+  const { intercept } = useCheckoutInterceptor();
   const [product, setProduct] = useState(null);
   const [vendor, setVendor] = useState(null);
   const [reviews, setReviews] = useState([]);
@@ -49,6 +51,17 @@ export default function ProductDetailPage() {
   const handleAddToCart = () => {
     if (!isAuthenticated) { navigate('/login'); return; }
     addItem(product, quantity, selectedAddons);
+  };
+
+  const handleBuyNow = async () => {
+    try {
+      await intercept('buy_now', { productId: id, quantity, selectedAddons });
+      navigate('/checkout');
+    } catch (err) {
+      if (err.message !== 'Authentication cancelled') {
+        console.error('Buy now intercept failed:', err);
+      }
+    }
   };
 
   const handleAddonToggle = (addon) => {
@@ -106,6 +119,7 @@ export default function ProductDetailPage() {
 
   const images = product.images?.length > 0 ? product.images : [product.image || `https://picsum.photos/seed/${product.id}/600/600`];
   const avgRating = reviews.length > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : (product.rating?.toFixed(1) || '4.5');
+  const totalPrice = (product.price || 0) * quantity + selectedAddons.reduce((sum, addon) => sum + (addon.price || 0) * quantity, 0);
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
@@ -199,7 +213,7 @@ export default function ProductDetailPage() {
               <div className="flex items-center justify-between">
                 <span className="text-base font-medium text-surface-600">Total for {quantity}×:</span>
                 <span className="text-2xl font-bold text-surface-900">
-                  ${((product.price || 0) * quantity + selectedAddons.reduce((sum, addon) => sum + (addon.price || 0) * quantity, 0)).toFixed(2)}
+                  ${totalPrice.toFixed(2)}
                 </span>
               </div>
             </div>
@@ -215,14 +229,18 @@ export default function ProductDetailPage() {
             </Link>
           )}
 
-          <div className="mt-8 flex items-center gap-4">
+          <div className="mt-8 flex flex-col sm:flex-row items-center gap-4">
             <div className="flex items-center rounded-xl border border-surface-200 bg-white">
               <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="flex h-11 w-11 items-center justify-center text-surface-500 hover:text-surface-900"><Minus className="h-4 w-4" /></button>
               <span className="w-12 text-center text-sm font-semibold">{quantity}</span>
               <button onClick={() => setQuantity(quantity + 1)} className="flex h-11 w-11 items-center justify-center text-surface-500 hover:text-surface-900"><Plus className="h-4 w-4" /></button>
             </div>
-            <button onClick={handleAddToCart} className="btn-primary flex-1"><ShoppingCart className="h-5 w-5" /> Add to Cart</button>
-            <button onClick={handleToggleWishlist} className={`flex h-11 w-11 items-center justify-center rounded-xl border transition-colors ${isInWishlist ? 'border-red-200 bg-red-50 text-red-500' : 'border-surface-200 text-surface-400 hover:text-red-500 hover:border-red-200'}`}>
+            <button onClick={handleBuyNow} className="btn-secondary flex-1 sm:flex-none" style={{ background: 'linear-gradient(135deg, #f59e0b, #f97316)' }}>
+              <Truck className="h-5 w-5 mr-2" />
+              Buy Now
+            </button>
+            <button onClick={handleAddToCart} className="btn-primary flex-1 sm:flex-none"><ShoppingCart className="h-5 w-5" /> Add to Cart</button>
+            <button onClick={handleToggleWishlist} className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition-colors ${isInWishlist ? 'border-red-200 bg-red-50 text-red-500' : 'border-surface-200 text-surface-400 hover:text-red-500 hover:border-red-200'}`}>
               <Heart className={`h-5 w-5 ${isInWishlist ? 'fill-current' : ''}`} />
             </button>
           </div>

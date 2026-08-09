@@ -8,7 +8,7 @@ import {
   signInWithPopup,
   updateProfile,
   sendEmailVerification,
-  RecaptchaVerifier,
+  signInWithPhoneNumber,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
@@ -27,12 +27,13 @@ export function AuthProvider({ children }) {
         const userDoc = await getDoc(doc(db, 'projects', 'multi-vendor-marketplace', 'users', firebaseUser.uid));
         if (userDoc.exists()) {
           setUserRole(userDoc.data().role || 'customer');
-        } else if (firebaseUser.emailVerified) {
-          // Create user document only after email is verified
+        } else if (firebaseUser.emailVerified || firebaseUser.phoneNumber) {
+          // Create user document after email verified OR phone auth (phone is pre-verified)
           await setDoc(doc(db, 'projects', 'multi-vendor-marketplace', 'users', firebaseUser.uid), {
-            email: firebaseUser.email,
+            email: firebaseUser.email || '',
             displayName: firebaseUser.displayName || '',
             photoURL: firebaseUser.photoURL || '',
+            phoneNumber: firebaseUser.phoneNumber || '',
             role: 'customer',
             createdAt: serverTimestamp(),
           });
@@ -73,7 +74,7 @@ export function AuthProvider({ children }) {
   const register = async (email, password, displayName, role = 'customer') => {
     const result = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(result.user, { displayName });
-    
+
     // Send verification email BEFORE creating Firestore document
     await sendEmailVerification(result.user, {
       url: 'https://multi-vendor-marketplace-alpha.vercel.app/login',
@@ -84,17 +85,25 @@ export function AuthProvider({ children }) {
     return result.user;
   };
 
+  // Phone authentication - sends OTP
   const registerWithPhone = async (phoneNumber, appVerifier) => {
-    const { ConfirmationResult } = await import('firebase/auth');
-    const confirmationResult = await ConfirmationResult(auth, phoneNumber, appVerifier);
+    const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
     return confirmationResult;
   };
 
+  // Verify OTP code
   const verifyPhoneCode = async (confirmationResult, code) => {
     const result = await confirmationResult.confirm(code);
     return result.user;
   };
 
+  // Login existing user with phone (sends OTP)
+  const loginWithPhone = async (phoneNumber, appVerifier) => {
+    const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+    return confirmationResult;
+  };
+
+  // Create user account in Firestore after verification
   const createUserAccount = async (firebaseUser, displayName, role = 'customer') => {
     const userDoc = await getDoc(doc(db, 'projects', 'multi-vendor-marketplace', 'users', firebaseUser.uid));
     if (!userDoc.exists()) {
@@ -135,6 +144,7 @@ export function AuthProvider({ children }) {
     loading,
     login,
     loginWithGoogle,
+    loginWithPhone,
     register,
     registerWithPhone,
     verifyPhoneCode,

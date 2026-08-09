@@ -2,16 +2,31 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Trash2, Minus, Plus, ShoppingBag, ArrowRight } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useCheckoutInterceptor } from '../context/CheckoutInterceptorContext';
 import EmptyState from '../components/ui/EmptyState';
 
 export default function CartPage() {
   const { cart, removeItem, updateQuantity, cartTotal, clearCart } = useCart();
   const { isAuthenticated } = useAuth();
+  const { intercept } = useCheckoutInterceptor();
   const navigate = useNavigate();
 
   const shipping = cartTotal > 50 ? 0 : 5.99;
   const tax = cartTotal * 0.08;
   const total = cartTotal + shipping + tax;
+
+  const handleCheckout = async () => {
+    try {
+      // Intercept will handle auth if needed, then redirect to checkout
+      await intercept('checkout');
+      navigate('/checkout');
+    } catch (err) {
+      // User cancelled auth - stay on cart page
+      if (err.message !== 'Authentication cancelled') {
+        console.error('Checkout intercept failed:', err);
+      }
+    }
+  };
 
   if (cart.length === 0) {
     return (
@@ -131,7 +146,7 @@ export default function CartPage() {
             )}
 
             <button
-              onClick={() => navigate(isAuthenticated ? '/checkout' : '/login')}
+              onClick={handleCheckout}
               className="btn-primary w-full mt-6"
             >
               {isAuthenticated ? 'Proceed to Checkout' : 'Sign In to Checkout'}

@@ -1,17 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CreditCard, Lock, CheckCircle, MapPin } from 'lucide-react';
+import { CreditCard, Lock, CheckCircle, MapPin, AlertCircle, Phone } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useCheckoutInterceptor } from '../context/CheckoutInterceptorContext';
 import { createOrder, incrementProductSold, incrementVendorSales } from '../config/firestore';
 
 export default function CheckoutPage() {
   const { cart, cartTotal, clearCart } = useCart();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const { intercept } = useCheckoutInterceptor();
   const navigate = useNavigate();
   const [processing, setProcessing] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
   const [orderId, setOrderId] = useState(null);
+  const [needsAuth, setNeedsAuth] = useState(false);
 
   const [form, setForm] = useState({
     fullName: user?.displayName || '',
@@ -32,8 +35,43 @@ export default function CheckoutPage() {
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
+  // Check auth when page loads - redirect to login if no cart or if we need to intercept
+  useEffect(() => {
+    if (cart.length === 0) {
+      navigate('/cart');
+      return;
+    }
+    
+    // If user is not authenticated, we'll show the login prompt
+    if (!isAuthenticated) {
+      setNeedsAuth(true);
+    }
+  }, [cart.length, isAuthenticated, navigate]);
+
+  // Intercept checkout for unauthenticated users
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!isAuthenticated) {
+      try {
+        // This will open the lazy auth modal and wait for resolution
+        await intercept('checkout', { form, total });
+        // If we get here, auth succeeded - the page will re-render with user
+        return;
+      } catch (err) {
+        // User cancelled or auth failed
+        if (err.message !== 'Authentication cancelled') {
+          setError('Authentication required to complete purchase');
+        }
+        return;
+      }
+    }
+
+    // Proceed with normal checkout for authenticated users
+    await processCheckout();
+  };
+
+  const processCheckout = async () => {
     setProcessing(true);
 
     try {
@@ -80,11 +118,14 @@ export default function CheckoutPage() {
       clearCart();
     } catch (err) {
       console.error('Order failed:', err);
-      alert('Failed to place order. Please try again.');
+      setError('Failed to place order. Please try again.');
     } finally {
       setProcessing(false);
     }
   };
+
+  // Error state for display
+  const [error, setError] = useState('');
 
   if (orderComplete) {
     return (
@@ -105,12 +146,47 @@ export default function CheckoutPage() {
   }
 
   if (cart.length === 0) {
-    navigate('/cart');
     return null;
+  }
+
+  // Show auth prompt for unauthenticated users
+  if (needsAuth && !isAuthenticated) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-16 text-center animate-fade-in">
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary-100 mx-auto mb-6">
+          <Phone className="h-10 w-10 text-primary-600" />
+        </div>
+        <h1 className="text-2xl font-display font-bold text-surface-900">Sign in to Complete Purchase</h1>
+        <p className="mt-4 text-surface-500 max-w-md mx-auto">
+          To securely process your order, please verify your phone number. We'll send a 6-digit code to authenticate your purchase.
+        </p>
+        <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+          <button
+            onClick={() => handleSubmit({ preventDefault: () => {} })}
+            className="btn-primary"
+          >
+            Continue with Phone Verification
+          </button>
+          <button onClick={() => navigate('/cart')} className="btn-secondary">
+            Back to Cart
+          </button>
+        </div>
+        <p className="mt-6 text-sm text-surface-400">
+          Or <button onClick={() => navigate('/login')} className="text-primary-600 hover:underline font-medium">sign in with email</button>
+        </p>
+      </div>
+    );
   }
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+      {error && (
+        <div className="mb-6 flex items-center gap-3 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">
+          <AlertCircle className="h-5 w-5 flex-shrink-0" />
+          {error}
+        </div>
+      )}
+
       <h1 className="text-3xl font-display font-bold text-surface-900 mb-8">Checkout</h1>
 
       <form onSubmit={handleSubmit}>
