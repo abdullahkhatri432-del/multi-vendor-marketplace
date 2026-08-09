@@ -2,8 +2,6 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import {
   onAuthStateChanged,
   signOut,
-  GoogleAuthProvider,
-  signInWithPopup,
   updateProfile,
   signInWithPhoneNumber,
   RecaptchaVerifier,
@@ -66,24 +64,6 @@ export function AuthProvider({ children }) {
     return result.user;
   };
 
-  // Google authentication (optional - keep for social login)
-  const loginWithGoogle = async () => {
-    const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
-    const userDoc = await getDoc(doc(db, 'projects', 'multi-vendor-marketplace', 'users', result.user.uid));
-    if (!userDoc.exists()) {
-      await setDoc(doc(db, 'projects', 'multi-vendor-marketplace', 'users', result.user.uid), {
-        email: result.user.email,
-        displayName: result.user.displayName,
-        photoURL: result.user.photoURL,
-        phoneNumber: result.user.phoneNumber || '',
-        role: 'customer',
-        createdAt: serverTimestamp(),
-      });
-    }
-    return result.user;
-  };
-
   // Create user account in Firestore after verification
   const createUserAccount = async (firebaseUser, displayName, role = 'customer') => {
     const userDoc = await getDoc(doc(db, 'projects', 'multi-vendor-marketplace', 'users', firebaseUser.uid));
@@ -125,7 +105,6 @@ export function AuthProvider({ children }) {
     loading,
     loginWithPhone,
     registerWithPhone,
-    loginWithGoogle,
     verifyPhoneCode,
     createUserAccount,
     logout,
