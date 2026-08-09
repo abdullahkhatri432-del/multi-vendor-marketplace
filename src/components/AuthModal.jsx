@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Mail, Lock, Eye, EyeOff, User } from 'lucide-react';
+import { X, Mail, Lock, Eye, EyeOff, User, Smartphone, Mail as MailIcon } from 'lucide-react';
 import { RecaptchaVerifier } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
@@ -202,18 +202,26 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="relative w-full max-w-md animate-fade-in">
-        <div id="recaptcha-container" className="hidden"></div>
-        <div className="card m-4 p-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+      <div className="relative w-full max-w-md">
+        {/* Modal Content Box */}
+        <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 animate-scale-in">
+          <div id="recaptcha-container" className="hidden" />
+          
+          {/* Close Button */}
           <button
             onClick={onClose}
-            className="absolute right-4 top-4 text-surface-400 hover:text-surface-600"
+            className="absolute right-4 top-4 text-surface-400 hover:text-surface-600 transition-colors"
+            aria-label="Close modal"
           >
             <X className="h-5 w-5" />
           </button>
 
+          {/* Brand Header */}
           <div className="text-center mb-6">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-600 to-accent mx-auto mb-4 shadow-lg">
+              <Smartphone className="h-7 w-7 text-white" />
+            </div>
             <h2 className="text-2xl font-display font-bold text-surface-900">
               {mode === 'login' ? 'Welcome back' : 'Create your account'}
             </h2>
@@ -225,7 +233,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
           </div>
 
           {error && (
-            <div className="mb-4 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">
+            <div className="mb-4 flex items-center gap-2 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600 animate-shake">
+              <span className="flex-shrink-0" aria-hidden="true">⚠</span>
               {error}
             </div>
           )}
@@ -234,26 +243,37 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
             <>
               {mode === 'register' && (
                 <>
+                  {/* Role Selection */}
                   <div className="grid grid-cols-2 gap-3 mb-6">
                     {[
-                      { value: 'customer', label: 'Customer', desc: 'I want to shop' },
-                      { value: 'vendor', label: 'Vendor', desc: 'I want to sell' },
+                      { value: 'customer', label: 'Customer', desc: 'I want to shop', icon: MailIcon },
+                      { value: 'vendor', label: 'Vendor', desc: 'I want to sell', icon: Smartphone },
                     ].map((role) => (
                       <button
                         key={role.value}
                         type="button"
                         onClick={() => setForm({ ...form, role: role.value })}
-                        className={`rounded-xl border-2 p-4 text-center text-sm font-semibold transition-all ${
+                        className={`relative rounded-xl border-2 p-4 text-left transition-all ${
                           form.role === role.value
-                            ? 'border-primary-500 bg-primary-50 text-primary-900'
-                            : 'border-surface-200 text-surface-700 hover:border-surface-300'
+                            ? 'border-primary-500 bg-primary-50 text-primary-900 shadow-md'
+                            : 'border-surface-200 hover:border-surface-300 hover:bg-surface-50'
                         }`}
                       >
-                        {role.label}
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary-100 text-primary-600">
+                            <role.icon className="h-4 w-4" />
+                          </span>
+                          <p className="text-sm font-semibold">{role.label}</p>
+                        </div>
+                        <p className="text-xs text-surface-500 mt-0.5">{role.desc}</p>
+                        {form.role === role.value && (
+                          <div className="absolute inset-0 border-2 border-primary-500 rounded-xl pointer-events-none" />
+                        )}
                       </button>
                     ))}
                   </div>
 
+                  {/* Full Name */}
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-surface-700 mb-1.5">
                       Full Name
@@ -267,12 +287,14 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
                         placeholder="John Doe"
                         className="input-field pl-10"
                         required
+                        autoComplete="name"
                       />
                     </div>
                   </div>
                 </>
               )}
 
+              {/* Email/Phone Form */}
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-surface-700 mb-1.5">
@@ -282,11 +304,13 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
                     <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
                     <input
                       name="emailOrPhone"
+                      type="text"
                       value={form.emailOrPhone}
                       onChange={handleChange}
                       placeholder="+1 (555) 123-4567 or you@example.com"
                       className="input-field pl-10"
                       required
+                      autoComplete={isPhoneNumber(form.emailOrPhone) ? 'tel' : 'email'}
                     />
                   </div>
                 </div>
@@ -305,11 +329,13 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
                         onChange={handleChange}
                         placeholder="Enter your password"
                         className="input-field pl-10 pr-10"
+                        autoComplete="current-password"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-surface-400 hover:text-surface-600"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-surface-400 hover:text-surface-600 transition-colors"
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
                       >
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
@@ -320,7 +346,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
                 <button
                   type="submit"
                   disabled={loading}
-                  className="btn-primary w-full"
+                  className="btn-primary w-full py-3"
                 >
                   {loading
                     ? mode === 'login'
@@ -332,13 +358,14 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
                 </button>
               </form>
 
+              {/* Divider + Google */}
               <div className="mt-6">
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-surface-200" />
                   </div>
                   <div className="relative flex justify-center text-xs">
-                    <span className="bg-surface-50 px-3 text-surface-400">or continue with</span>
+                    <span className="bg-white px-3 text-surface-400">or continue with</span>
                   </div>
                 </div>
 
@@ -365,13 +392,14 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
                 </button>
               </div>
 
+              {/* Switch Mode */}
               <p className="mt-6 text-center text-sm text-surface-500">
                 {mode === 'login'
                   ? "Don't have an account? "
                   : 'Already have an account? '}
                 <button
                   onClick={switchMode}
-                  className="font-semibold text-primary-600 hover:text-primary-700"
+                  className="font-semibold text-primary-600 hover:text-primary-700 transition-colors"
                 >
                   {mode === 'login' ? 'Sign up' : 'Sign in'}
                 </button>
@@ -379,29 +407,34 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
             </>
           )}
 
+          {/* OTP Verification Step */}
           {step === 'phone-otp' && (
             <form onSubmit={handleVerifyOtp} className="space-y-4">
+              <div className="text-center mb-2">
+                <p className="text-sm text-surface-600">Enter the 6-digit code sent to</p>
+                <p className="font-medium text-surface-900">{phoneNumber || form.emailOrPhone}</p>
+              </div>
               <div>
-                <label className="block text-sm font-medium text-surface-700 mb-1.5">
-                  Enter OTP sent to {phoneNumber || form.emailOrPhone}
-                </label>
+                <label className="sr-only">OTP Code</label>
                 <input
                   type="text"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="6-digit code"
-                  className="input-field text-center text-2xl tracking-widest"
+                  placeholder="000000"
+                  className="input-field text-center text-2xl tracking-widest font-mono"
                   maxLength={6}
                   required
+                  autoComplete="one-time-code"
+                  inputMode="numeric"
                 />
               </div>
-              <button type="submit" disabled={loading} className="btn-primary w-full">
-                {loading ? 'Verifying...' : 'Verify OTP'}
+              <button type="submit" disabled={loading} className="btn-primary w-full py-3">
+                {loading ? 'Verifying...' : 'Verify & Continue'}
               </button>
               <button
                 type="button"
                 onClick={() => setStep('input')}
-                className="text-sm text-primary-600 hover:text-primary-700"
+                className="w-full text-sm text-primary-600 hover:text-primary-700 transition-colors"
               >
                 Back
               </button>
