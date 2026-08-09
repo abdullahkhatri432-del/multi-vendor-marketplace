@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Search, User, Menu, X, Store, LayoutDashboard, LogOut, Package, Heart } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
+import AuthModal from '../AuthModal';
 
 export default function Header() {
   const { user, userRole, logout, isAuthenticated } = useAuth();
@@ -11,6 +12,8 @@ export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [profileOpen, setProfileOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState('login');
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -110,8 +113,18 @@ export default function Header() {
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <Link to="/login" className="btn-ghost text-sm">Sign In</Link>
-                <Link to="/register" className="btn-primary text-sm py-2">Get Started</Link>
+                <button
+                  onClick={() => { setAuthModalMode('login'); setAuthModalOpen(true); }}
+                  className="btn-ghost text-sm"
+                >
+                  Sign In
+                </button>
+                <button
+                  onClick={() => { setAuthModalMode('register'); setAuthModalOpen(true); }}
+                  className="btn-primary text-sm py-2"
+                >
+                  Get Started
+                </button>
               </div>
             )}
           </nav>
@@ -155,14 +168,20 @@ export default function Header() {
                 </>
               ) : (
                 <>
-                  <Link to="/login" onClick={() => setMobileOpen(false)} className="btn-ghost justify-start">Sign In</Link>
-                  <Link to="/register" onClick={() => setMobileOpen(false)} className="btn-primary justify-center">Get Started</Link>
+                  <button onClick={() => { setMobileOpen(false); setAuthModalMode('login'); setAuthModalOpen(true); }} className="btn-ghost justify-start">Sign In</button>
+                  <button onClick={() => { setMobileOpen(false); setAuthModalMode('register'); setAuthModalOpen(true); }} className="btn-primary justify-center">Get Started</button>
                 </>
               )}
             </div>
           </div>
         )}
       </div>
+
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        initialMode={authModalMode}
+      />
     </header>
   );
 }

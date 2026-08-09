@@ -7,6 +7,8 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   updateProfile,
+  sendEmailVerification,
+  RecaptchaVerifier,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
@@ -25,6 +27,16 @@ export function AuthProvider({ children }) {
         const userDoc = await getDoc(doc(db, 'projects', 'multi-vendor-marketplace', 'users', firebaseUser.uid));
         if (userDoc.exists()) {
           setUserRole(userDoc.data().role || 'customer');
+        } else if (firebaseUser.emailVerified) {
+          // Create user document only after email is verified
+          await setDoc(doc(db, 'projects', 'multi-vendor-marketplace', 'users', firebaseUser.uid), {
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName || '',
+            photoURL: firebaseUser.photoURL || '',
+            role: 'customer',
+            createdAt: serverTimestamp(),
+          });
+          setUserRole('customer');
         } else {
           setUserRole('customer');
         }
@@ -61,25 +73,54 @@ export function AuthProvider({ children }) {
   const register = async (email, password, displayName, role = 'customer') => {
     const result = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(result.user, { displayName });
-    await setDoc(doc(db, 'projects', 'multi-vendor-marketplace', 'users', result.user.uid), {
-      email,
-      displayName,
-      role,
-      createdAt: serverTimestamp(),
+    
+    // Send verification email BEFORE creating Firestore document
+    await sendEmailVerification(result.user, {
+      url: 'https://multi-vendor-marketplace-alpha.vercel.app/login',
+      handleCodeInApp: true,
     });
-    if (role === 'vendor') {
-      await setDoc(doc(db, 'projects', 'multi-vendor-marketplace', 'vendors', result.user.uid), {
-        storeName: displayName,
-        description: '',
-        logo: '',
-        rating: 0,
-        totalSales: 0,
-        totalProducts: 0,
-        verified: false,
+
+    // Note: Firestore document is created in onAuthStateChanged when emailVerified becomes true
+    return result.user;
+  };
+
+  const registerWithPhone = async (phoneNumber, appVerifier) => {
+    const { ConfirmationResult } = await import('firebase/auth');
+    const confirmationResult = await ConfirmationResult(auth, phoneNumber, appVerifier);
+    return confirmationResult;
+  };
+
+  const verifyPhoneCode = async (confirmationResult, code) => {
+    const result = await confirmationResult.confirm(code);
+    return result.user;
+  };
+
+  const createUserAccount = async (firebaseUser, displayName, role = 'customer') => {
+    const userDoc = await getDoc(doc(db, 'projects', 'multi-vendor-marketplace', 'users', firebaseUser.uid));
+    if (!userDoc.exists()) {
+      await setDoc(doc(db, 'projects', 'multi-vendor-marketplace', 'users', firebaseUser.uid), {
+        email: firebaseUser.email || '',
+        displayName: displayName || '',
+        photoURL: firebaseUser.photoURL || '',
+        phoneNumber: firebaseUser.phoneNumber || '',
+        role: role,
         createdAt: serverTimestamp(),
       });
+
+      if (role === 'vendor') {
+        await setDoc(doc(db, 'projects', 'multi-vendor-marketplace', 'vendors', firebaseUser.uid), {
+          storeName: displayName || 'My Store',
+          description: '',
+          logo: '',
+          rating: 0,
+          totalSales: 0,
+          totalProducts: 0,
+          verified: false,
+          createdAt: serverTimestamp(),
+        });
+      }
     }
-    return result.user;
+    setUserRole(role);
   };
 
   const logout = async () => {
@@ -95,6 +136,9 @@ export function AuthProvider({ children }) {
     login,
     loginWithGoogle,
     register,
+    registerWithPhone,
+    verifyPhoneCode,
+    createUserAccount,
     logout,
     isAuthenticated: !!user,
     isVendor: userRole === 'vendor',
