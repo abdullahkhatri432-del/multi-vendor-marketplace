@@ -3,6 +3,7 @@ import { Link, Navigate } from 'react-router-dom';
 import {
   DollarSign, Package, ShoppingCart, TrendingUp, Plus, BarChart3, ClipboardList,
   AlertTriangle, CheckCircle, Clock, Star, Edit2, PackageOpen,
+  ExternalLink, Image as ImageIcon, Type, Tag, DollarSign as DollarIcon,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -10,6 +11,7 @@ import {
 } from '../config/firestore';
 import StatCard from '../components/ui/StatCard';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
+import ProductImporter from '../components/ProductImporter';
 
 export default function VendorDashboard() {
   const { user, isVendor, isAuthenticated } = useAuth();
@@ -212,6 +214,11 @@ export default function VendorDashboard() {
                 <BarChart3 className="h-4 w-4 text-primary-500" /> View Storefront
               </Link>
             </div>
+          </div>
+
+          {/* Product Importer */}
+          <div>
+            <ProductImporter onProductImported={() => {}} />
           </div>
         </div>
       </div>
