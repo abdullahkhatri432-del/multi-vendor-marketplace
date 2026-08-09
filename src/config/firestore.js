@@ -22,6 +22,7 @@ const col = (name) => collection(db, 'projects', 'multi-vendor-marketplace', nam
 const usersCol = () => col('users');
 const vendorsCol = () => col('vendors');
 const productsCol = () => col('products');
+const pendingProductsCol = () => col('pending_products');
 const ordersCol = () => col('orders');
 const categoriesCol = () => col('categories');
 
@@ -327,4 +328,62 @@ export const getVendorAnalytics = async (vendorId) => {
   const completedOrders = orders.filter((o) => o.status === 'delivered').length;
 
   return { totalRevenue, totalOrders, pendingOrders, completedOrders, orders };
+};
+
+// ===================== PENDING PRODUCTS (Bulk Import Drafts) =====================
+export const createPendingProduct = async (data) => {
+  const ref = await addDoc(pendingProductsCol(), {
+    ...data,
+    status: 'draft',
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+  return ref.id;
+};
+
+export const getPendingProducts = async (vendorId) => {
+  const q = query(pendingProductsCol(), where('vendorId', '==', vendorId), orderBy('createdAt', 'desc'));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+};
+
+export const getPendingProduct = async (productId) => {
+  const ref = doc(pendingProductsCol(), productId);
+  const snap = await getDoc(ref);
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+};
+
+export const updatePendingProduct = async (productId, data) => {
+  const ref = doc(pendingProductsCol(), productId);
+  await updateDoc(ref, { ...data, updatedAt: serverTimestamp() });
+};
+
+export const deletePendingProduct = async (productId) => {
+  const ref = doc(pendingProductsCol(), productId);
+  await deleteDoc(ref);
+};
+
+export const publishPendingProduct = async (productId) => {
+  const pendingRef = doc(pendingProductsCol(), productId);
+  const pendingSnap = await getDoc(pendingRef);
+  
+  if (!pendingSnap.exists()) {
+    throw new Error('Pending product not found');
+  }
+  
+  const pendingData = pendingSnap.data();
+  
+  // Create in main products collection
+  const productRef = await addDoc(productsCol(), {
+    ...pendingData,
+    status: 'active',
+    active: true,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+  
+  // Delete from pending_products
+  await deleteDoc(pendingRef);
+  
+  return productRef.id;
 };
