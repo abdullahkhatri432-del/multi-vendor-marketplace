@@ -16,7 +16,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
   const [resendTimer, setResendTimer] = useState(0);
   const [displayName, setDisplayName] = useState('');
   const [role, setRole] = useState('customer');
-  const recaptchaRef = useRef(null);
+  const appVerifierRef = useRef(null);
 
   // Reset state when modal opens/closes
   useEffect(() => {
@@ -31,6 +31,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
       setDisplayName('');
       setRole('customer');
       setResendTimer(0);
+    } else {
+      appVerifierRef.current = null;
     }
   }, [isOpen, initialMode]);
 
@@ -81,17 +83,20 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
     setError('');
 
     try {
-      // Ensure recaptcha container exists
-      if (!document.getElementById('auth-recaptcha')) {
-        const div = document.createElement('div');
-        div.id = 'auth-recaptcha';
-        div.style.display = 'none';
-        document.body.appendChild(div);
+      // Reuse the same verifier instance — creating a new one on the same
+      // container each time throws "reCAPTCHA has already been rendered".
+      if (!appVerifierRef.current) {
+        const container = document.getElementById('auth-recaptcha') || document.createElement('div');
+        if (!container.id) {
+          container.id = 'auth-recaptcha';
+          container.style.display = 'none';
+          document.body.appendChild(container);
+        }
+        appVerifierRef.current = new RecaptchaVerifier(auth, 'auth-recaptcha', {
+          size: 'invisible',
+        });
       }
-
-      const appVerifier = new RecaptchaVerifier(auth, 'auth-recaptcha', {
-        size: 'invisible',
-      });
+      const appVerifier = appVerifierRef.current;
 
       const fullPhone = getFullPhoneNumber();
       

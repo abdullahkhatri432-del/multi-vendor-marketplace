@@ -66,18 +66,20 @@ export function AuthProvider({ children }) {
 
   // Create user account in Firestore after verification
   const createUserAccount = async (firebaseUser, displayName, role = 'customer') => {
-    const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-    if (!userDoc.exists()) {
-      await setDoc(doc(db, 'users', firebaseUser.uid), {
-        email: firebaseUser.email || '',
-        displayName: displayName || '',
-        photoURL: firebaseUser.photoURL || '',
-        phoneNumber: firebaseUser.phoneNumber || '',
-        role: role,
-        createdAt: serverTimestamp(),
-      });
+    // Merge instead of skip: onAuthStateChanged may have already auto-created
+    // the doc (role 'customer', no name), so overwrite role + displayName.
+    await setDoc(doc(db, 'users', firebaseUser.uid), {
+      email: firebaseUser.email || '',
+      displayName: displayName || '',
+      photoURL: firebaseUser.photoURL || '',
+      phoneNumber: firebaseUser.phoneNumber || '',
+      role: role,
+      createdAt: serverTimestamp(),
+    }, { merge: true });
 
-      if (role === 'vendor') {
+    if (role === 'vendor') {
+      const vendorDoc = await getDoc(doc(db, 'vendors', firebaseUser.uid));
+      if (!vendorDoc.exists()) {
         await setDoc(doc(db, 'vendors', firebaseUser.uid), {
           storeName: displayName || 'My Store',
           description: '',
