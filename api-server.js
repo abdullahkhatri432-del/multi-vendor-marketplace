@@ -21,7 +21,7 @@ if (!admin.apps || !admin.apps.length) {
     ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
     : null;
 
-if (serviceAccount) {
+  if (serviceAccount) {
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
       projectId: serviceAccount.project_id,
@@ -60,13 +60,17 @@ await new Promise(resolve => setTimeout(resolve, 500));
   
 const PROJECT_ID = 'speedersmania-aecd2';
 
-// Request logging middleware (FIRST)
+// Global request logging middleware (FIRST)
 app.use((req, res, next) => {
   console.log('[Global] >>>', req.method, req.url, req.path);
   next();
 });
 
-// Health check endpoint for Firestore connectivity
+// Middleware (BEFORE routes)
+app.use(cors());
+app.use(express.json());
+
+// Routes (BEFORE 404 handler)
 app.get('/api/test', (req, res) => {
     console.log('[Test Route] >>> HIT:', req.method, req.url, req.path);
     res.json({ status: 'ok', message: 'Test route works' });
@@ -121,3 +125,7 @@ app.use((req, res) => {
 });
 
 // Routes will be added here later
+
+app.listen(PORT, () => {
+  console.log(`[api-server] Import product API listening on port ${PORT}`);
+});
