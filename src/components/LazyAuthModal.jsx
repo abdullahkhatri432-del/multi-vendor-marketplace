@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Phone, Loader2, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react';
 import { RecaptchaVerifier } from 'firebase/auth';
 import { auth } from '../config/firebase';
@@ -325,7 +326,7 @@ export default function LazyAuthModal({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="relative w-full max-w-md animate-scale-in">
         <div className="card bg-white p-8">
@@ -342,7 +343,8 @@ export default function LazyAuthModal({
           {step === 'success' && renderSuccessStep()}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

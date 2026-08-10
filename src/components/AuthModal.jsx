@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Phone, Loader2, CheckCircle, AlertCircle, ArrowRight, Smartphone } from 'lucide-react';
 import { RecaptchaVerifier } from 'firebase/auth';
 import { auth } from '../config/firebase';
@@ -164,7 +165,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
       <div className="relative w-full max-w-md">
         {/* Modal Content Box */}
@@ -356,7 +357,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
