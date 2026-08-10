@@ -45,11 +45,11 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
   }, [resendTimer]);
 
   const formatPhoneInput = (value) => {
-    // Format as +91 XXXXX XXXXX (10 digits total)
+    // Format as XXXXX XXXXX (10 digits total); the +91 prefix is shown via the fixed label
     const digits = value.replace(/\D/g, '');
-    if (digits.length <= 5) return `+91 ${digits}`;
-    if (digits.length <= 10) return `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
-    return `+91 ${digits.slice(0, 5)} ${digits.slice(5, 10)}`;
+    if (digits.length <= 5) return digits;
+    if (digits.length <= 10) return `${digits.slice(0, 5)} ${digits.slice(5)}`;
+    return `${digits.slice(0, 5)} ${digits.slice(5, 10)}`;
   };
 
   const handlePhoneChange = (e) => {
@@ -168,7 +168,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
       <div className="relative w-full max-w-md">
         {/* Modal Content Box */}
-        <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 animate-scale-in">
+        <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 animate-scale-in max-h-[90vh] overflow-y-auto">
           <div id="auth-recaptcha" className="hidden" />
           
           {/* Close Button */}
@@ -310,7 +310,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
             <form onSubmit={handleVerifyOtp} className="space-y-4">
               <div className="text-center mb-2">
                 <p className="text-sm text-surface-600">Enter the 6-digit code sent to</p>
-                <p className="font-medium text-surface-900">{getFullPhoneNumber()}</p>
+                <p className="font-medium text-surface-900">+91 {phoneNumber}</p>
               </div>
               <div>
                 <label className="sr-only">OTP Code</label>
