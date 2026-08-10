@@ -15,10 +15,11 @@ import {
   serverTimestamp,
   increment,
 } from 'firebase/firestore';
-import { db, PROJECT_PATH } from './firebase';
+import { db } from './firebase';
+import { PROJECT_ID } from './firebase';
 
 // Helper to create collection references
-const col = (name) => collection(db, 'projects', 'multi-vendor-marketplace', name);
+const col = (name) => collection(db, name);
 
 const usersCol = () => col('users');
 const vendorsCol = () => col('vendors');
@@ -362,7 +363,7 @@ export const deleteCategory = async (categoryId) => {
 // ===================== REVIEWS =====================
 export const createReview = async (productId, data) => {
   return withErrorLogging('createReview', async () => {
-    const ref = await addDoc(collection(db, 'projects', 'multi-vendor-marketplace', 'reviews'), {
+    const ref = await addDoc(collection(db, 'reviews'), {
       ...data,
       productId,
       createdAt: serverTimestamp(),
@@ -374,7 +375,7 @@ export const createReview = async (productId, data) => {
 export const getReviewsByProduct = async (productId) => {
   return withErrorLogging('getReviewsByProduct', async () => {
     const q = query(
-      collection(db, 'projects', 'multi-vendor-marketplace', 'reviews'),
+      collection(db, 'reviews'),
       where('productId', '==', productId),
       orderBy('createdAt', 'desc')
     );
@@ -395,14 +396,14 @@ export const getProductRating = async (productId) => {
 // ===================== WISHLIST =====================
 export const addToWishlist = async (userId, productId) => {
   return withErrorLogging('addToWishlist', async () => {
-    const ref = doc(db, 'projects', 'multi-vendor-marketplace', 'users', userId, 'wishlist', productId);
+    const ref = doc(db, 'users', userId, 'wishlist', productId);
     await setDoc(ref, { productId, addedAt: serverTimestamp() });
   });
 };
 
 export const removeFromWishlist = async (userId, productId) => {
   return withErrorLogging('removeFromWishlist', async () => {
-    const ref = doc(db, 'projects', 'multi-vendor-marketplace', 'users', userId, 'wishlist', productId);
+    const ref = doc(db, 'users', userId, 'wishlist', productId);
     await deleteDoc(ref);
   });
 };
@@ -410,7 +411,7 @@ export const removeFromWishlist = async (userId, productId) => {
 export const getWishlist = async (userId) => {
   return withErrorLogging('getWishlist', async () => {
     const snap = await getDocs(
-      collection(db, 'projects', 'multi-vendor-marketplace', 'users', userId, 'wishlist')
+      collection(db, 'users', userId, 'wishlist')
     );
     return snap.docs.map((d) => d.data().productId);
   });

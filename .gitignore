@@ -7,3 +7,6 @@ dist
 .DS_Store
 serviceAccountKey.json
 *.pem
+# Firebase admin service account keys (SECRET — never commit)
+*-firebase-adminsdk-*.json
+speedersmania-aecd2-firebase-adminsdk-*.json

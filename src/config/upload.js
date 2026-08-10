@@ -1,7 +1,7 @@
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { storage, PROJECT_PATH } from './firebase';
+import { storage } from './firebase';
 
-const STORAGE_PATH = `${PROJECT_PATH}/product-images`;
+const STORAGE_PATH = 'product-images';
 
 export const uploadProductImage = async (file, onProgress = () => {}) => {
   return new Promise((resolve, reject) => {

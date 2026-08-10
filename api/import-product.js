@@ -28,7 +28,7 @@ if (!admin.apps || !admin.apps.length) {
 }
 
 const db = admin.apps && admin.apps.length ? admin.firestore() : null;
-const PROJECT_PATH = 'projects/multi-vendor-marketplace';
+const PRODUCTS_COLLECTION = 'products'; // root collection (matches client)
 
 function extractImageUrls($) {
   const images = [];
@@ -197,7 +197,7 @@ module.exports = async function handler(req, res) {
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
-    const docRef = await db.collection(`${PROJECT_PATH}/products`).add(productDoc);
+    const docRef = await db.collection(PRODUCTS_COLLECTION).add(productDoc);
 
     console.log(`[import-product] Created product ${docRef.id} for vendor ${vendorId} from ${url}`);
 

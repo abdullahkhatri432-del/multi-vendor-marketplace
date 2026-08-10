@@ -20,12 +20,12 @@ export function AuthProvider({ children }) {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser);
-        const userDoc = await getDoc(doc(db, 'projects', 'multi-vendor-marketplace', 'users', firebaseUser.uid));
+        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
         if (userDoc.exists()) {
           setUserRole(userDoc.data().role || 'customer');
         } else if (firebaseUser.phoneNumber) {
           // Create user document for phone auth users (phone is pre-verified)
-          await setDoc(doc(db, 'projects', 'multi-vendor-marketplace', 'users', firebaseUser.uid), {
+          await setDoc(doc(db, 'users', firebaseUser.uid), {
             email: firebaseUser.email || '',
             displayName: firebaseUser.displayName || '',
             photoURL: firebaseUser.photoURL || '',
@@ -66,9 +66,9 @@ export function AuthProvider({ children }) {
 
   // Create user account in Firestore after verification
   const createUserAccount = async (firebaseUser, displayName, role = 'customer') => {
-    const userDoc = await getDoc(doc(db, 'projects', 'multi-vendor-marketplace', 'users', firebaseUser.uid));
+    const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
     if (!userDoc.exists()) {
-      await setDoc(doc(db, 'projects', 'multi-vendor-marketplace', 'users', firebaseUser.uid), {
+      await setDoc(doc(db, 'users', firebaseUser.uid), {
         email: firebaseUser.email || '',
         displayName: displayName || '',
         photoURL: firebaseUser.photoURL || '',
@@ -78,7 +78,7 @@ export function AuthProvider({ children }) {
       });
 
       if (role === 'vendor') {
-        await setDoc(doc(db, 'projects', 'multi-vendor-marketplace', 'vendors', firebaseUser.uid), {
+        await setDoc(doc(db, 'vendors', firebaseUser.uid), {
           storeName: displayName || 'My Store',
           description: '',
           logo: '',

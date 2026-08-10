@@ -5,13 +5,13 @@ import { getStorage } from 'firebase/storage';
 
 // Debug: Log Firebase config at initialization
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyDArdfp21Rr20qpoL_4pSRBy00HJrcUJ7o',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'myprojects-ebc25.firebaseapp.com',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'myprojects-ebc25',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'myprojects-ebc25.firebasestorage.app',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '121866851521',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:121866851521:web:6d13b45e15d00deef4f040',
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || 'G-X53ETGLJS4',
+  apiKey: "AIzaSyCwLQOAJCyi9D6u3NLeH1GuyzzQ4vFKGj0",
+  authDomain: "speedersmania-aecd2.firebaseapp.com",
+  projectId: "speedersmania-aecd2",
+  storageBucket: "speedersmania-aecd2.firebasestorage.app",
+  messagingSenderId: "835568462695",
+  appId: "1:835568462695:web:40578c423a474f21465dc2",
+  measurementId: "G-QTF3SGCR3B"
 };
 
 console.log('[Firebase] Initializing with config:', {
@@ -24,5 +24,5 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
-export const PROJECT_PATH = 'projects/multi-vendor-marketplace';
+export const PROJECT_ID = 'speedersmania-aecd2';
 export default app;
