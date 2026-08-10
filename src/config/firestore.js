@@ -517,3 +517,35 @@ export const publishPendingProduct = async (productId) => {
     return productRef.id;
   });
 };
+
+// ===================== NEWSLETTER =====================
+const newsletterCol = () => col('newsletter_subscribers');
+
+/**
+ * Subscribe an email to the newsletter. Idempotent — returns whether this was
+ * a brand-new subscription or the email was already on the list.
+ */
+export const subscribeToNewsletter = async (email) => {
+  return withErrorLogging('subscribeToNewsletter', async () => {
+    const normalized = email.trim().toLowerCase();
+
+    // Dedupe: treat as already subscribed if an active entry exists for this email.
+    const existing = await getDocs(
+      query(newsletterCol(), where('email', '==', normalized), limit(1))
+    );
+
+    if (!existing.empty) {
+      return { subscribed: false, alreadySubscribed: true };
+    }
+
+    await addDoc(newsletterCol(), {
+      email: normalized,
+      source: 'footer',
+      subscribed: true,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    return { subscribed: true, alreadySubscribed: false };
+  });
+};

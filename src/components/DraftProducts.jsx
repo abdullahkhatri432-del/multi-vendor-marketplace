@@ -370,7 +370,7 @@ export default function DraftProducts() {
                                 Cancel
                               </button>
                             </>
-                          ) : isViewing === product.id ? (
+                          ) : viewingId === product.id ? (
                             <button
                               onClick={() => setViewingId(null)}
                               className="btn-secondary text-xs py-1.5 px-3"

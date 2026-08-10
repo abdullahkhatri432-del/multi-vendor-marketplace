@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom';
 import { Store, Github, Twitter, Mail } from 'lucide-react';
+import Newsletter from '../Newsletter';
 
 export default function Footer() {
   return (
     <footer className="border-t border-surface-100 bg-white">
+      <Newsletter />
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-5">
           <div>
