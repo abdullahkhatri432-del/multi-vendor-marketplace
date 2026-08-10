@@ -3,8 +3,8 @@ import {
   onAuthStateChanged,
   signOut,
   updateProfile,
-  signInWithPhoneNumber,
-  RecaptchaVerifier,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
@@ -46,22 +46,21 @@ export function AuthProvider({ children }) {
     return unsubscribe;
   }, []);
 
-  // Phone authentication - sends OTP for registration
-  const registerWithPhone = async (phoneNumber, appVerifier) => {
-    const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
-    return confirmationResult;
+  // Email/password authentication - register a new account
+  const registerWithEmail = async (email, password, displayName, role = 'customer') => {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const firebaseUser = userCredential.user;
+    if (displayName) {
+      await updateProfile(firebaseUser, { displayName });
+    }
+    await createUserAccount(firebaseUser, displayName, role);
+    return firebaseUser;
   };
 
-  // Phone authentication - sends OTP for login
-  const loginWithPhone = async (phoneNumber, appVerifier) => {
-    const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
-    return confirmationResult;
-  };
-
-  // Verify OTP code
-  const verifyPhoneCode = async (confirmationResult, code) => {
-    const result = await confirmationResult.confirm(code);
-    return result.user;
+  // Email/password authentication - sign in existing account
+  const loginWithEmail = async (email, password) => {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    return userCredential.user;
   };
 
   // Create user account in Firestore after verification
@@ -105,9 +104,8 @@ export function AuthProvider({ children }) {
     user,
     userRole,
     loading,
-    loginWithPhone,
-    registerWithPhone,
-    verifyPhoneCode,
+    registerWithEmail,
+    loginWithEmail,
     createUserAccount,
     logout,
     isAuthenticated: !!user,

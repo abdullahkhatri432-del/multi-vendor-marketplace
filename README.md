@@ -36,7 +36,7 @@ npm install
 ### 2. Firebase Setup
 
 1. Create a Firebase project at [console.firebase.google.com](https://console.firebase.google.com)
-2. Enable **Authentication** (Email/Password + Google)
+2. Enable **Authentication** (Email/Password)
 3. Create a **Firestore Database** in test mode
 4. Copy your config to `.env`:
 
@@ -87,7 +87,7 @@ service cloud.firestore {
 
 ## Modules
 
-- **Authentication** — Email/password + Google OAuth, role selection at signup
+- **Authentication** — Email/password, role selection at signup
 - **Storefront** — Product grid, category filtering, search, detailed product pages
 - **Cart & Checkout** — Full cart management, order placement with tax/shipping calculation
 - **Vendor Portal** — Add/edit/delete products, fulfill orders, sales analytics

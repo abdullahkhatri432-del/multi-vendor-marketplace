@@ -1,24 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Store, AlertCircle, Smartphone, ArrowRight } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { Store, AlertCircle, Mail } from 'lucide-react';
 import AuthModal from '../components/AuthModal';
 
 export default function LoginPage() {
-  const { loginWithPhone } = useAuth();
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState('');
-
-  const handleOpenModal = () => {
-    setError('');
-    setShowModal(true);
-  };
-
-  const handleAuthSuccess = () => {
-    setShowModal(false);
-    navigate('/');
-  };
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12 animate-fade-in">
@@ -31,7 +19,7 @@ export default function LoginPage() {
             <span className="text-xl font-display font-bold text-gradient">Speedersmania</span>
           </Link>
           <h1 className="text-2xl font-display font-bold text-surface-900">Welcome back</h1>
-          <p className="mt-2 text-sm text-surface-500">Sign in with your Indian phone number to continue</p>
+          <p className="mt-2 text-sm text-surface-500">Sign in with your email to continue</p>
         </div>
 
         <div className="card p-8">
@@ -44,15 +32,15 @@ export default function LoginPage() {
 
           <div className="space-y-4">
             <p className="text-sm text-surface-500 text-center">
-              Enter your phone number to receive a 6-digit OTP for verification
+              Use your email address and password to sign in
             </p>
 
-            <button 
+            <button
               onClick={() => { setError(''); setShowModal(true); }}
               className="btn-primary w-full py-3"
             >
-              <Smartphone className="h-4 w-4 mr-2" />
-              Get OTP & Sign In
+              <Mail className="h-4 w-4 mr-2" />
+              Sign In
             </button>
           </div>
         </div>
@@ -67,7 +55,7 @@ export default function LoginPage() {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         initialMode="login"
-        onAuthSuccess={() => { setShowModal(false); navigate('/'); }}
+        onAuthSuccess={() => navigate('/')}
       />
     </div>
   );

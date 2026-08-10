@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CreditCard, Lock, CheckCircle, MapPin, AlertCircle, Phone } from 'lucide-react';
+import { CreditCard, Lock, CheckCircle, MapPin, AlertCircle, Mail } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useCheckoutInterceptor } from '../context/CheckoutInterceptorContext';
@@ -154,25 +154,25 @@ export default function CheckoutPage() {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 text-center animate-fade-in">
         <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary-100 mx-auto mb-6">
-          <Phone className="h-10 w-10 text-primary-600" />
+          <Mail className="h-10 w-10 text-primary-600" />
         </div>
         <h1 className="text-2xl font-display font-bold text-surface-900">Sign in to Complete Purchase</h1>
         <p className="mt-4 text-surface-500 max-w-md mx-auto">
-          To securely process your order, please verify your phone number. We'll send a 6-digit code to authenticate your purchase.
+          To securely process your order, please sign in with your email and password.
         </p>
         <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
           <button
             onClick={() => handleSubmit({ preventDefault: () => {} })}
             className="btn-primary"
           >
-            Continue with Phone Verification
+            Sign In to Continue
           </button>
           <button onClick={() => navigate('/cart')} className="btn-secondary">
             Back to Cart
           </button>
         </div>
         <p className="mt-6 text-sm text-surface-400">
-          Or <button onClick={() => navigate('/login')} className="text-primary-600 hover:underline font-medium">sign in with phone</button>
+          Or <button onClick={() => navigate('/login')} className="text-primary-600 hover:underline font-medium">sign in with email</button>
         </p>
       </div>
     );
