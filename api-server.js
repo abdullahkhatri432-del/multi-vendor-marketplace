@@ -24,6 +24,7 @@ if (!admin.apps || !admin.apps.length) {
   if (serviceAccount) {
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
+      projectId: serviceAccount.project_id,
     });
     console.log('[Firebase Admin] Initialized with service account for project:', serviceAccount.project_id);
   } else {
@@ -33,23 +34,49 @@ if (!admin.apps || !admin.apps.length) {
     console.log('[Firebase Admin] Initialized with application default credentials');
   }
 } else {
-  console.log('[Firebase Admin] Already initialized');
-}
+    console.log('[Firebase Admin] Already initialized');
+  }
 
-const db = admin.firestore();
-const PROJECT_PATH = 'projects/multi-vendor-marketplace';
+  // Get the app instance
+
+// Get the app instance
+const appInstance = admin.apps[0] || admin.apps.length > 0 ? admin.apps[0] : null;
+console.log('[Firebase Admin] App instance:', appInstance ? 'exists' : 'null');
+console.log('[Firebase Admin] App project ID:', appInstance?.options?.projectId || 'unknown');
+
+const db = admin.firestore(appInstance);
+console.log('[Firebase Admin] Firestore instance created');
+console.log('[Firebase Admin] Firestore project ID:', db.projectId);
+// Use root collections (no project path prefix)
+const PROJECT_ID = 'myprojects-ebc25';
 
 // Health check endpoint for Firestore connectivity
 app.get('/api/health', async (req, res) => {
   try {
+    console.log('[Health Check] Testing Firestore connection...');
+    console.log('[Health Check] Project ID:', PROJECT_ID);
+    
     // Test Firestore write
-    const testRef = db.collection(`${PROJECT_PATH}/health_check`).doc('test');
+    const testRef = db.collection('health_check').doc('test');
+    console.log('[Health Check] Writing test document...');
     await testRef.set({ timestamp: admin.firestore.FieldValue.serverTimestamp(), test: true });
+    console.log('[Health Check] Write successful, reading back...');
+    const snapshot = await testRef.get();
+    console.log('[Health Check] Read successful, exists:', snapshot.exists);
     await testRef.delete();
-    res.json({ status: 'ok', firestore: 'connected', project: PROJECT_PATH });
+    console.log('[Health Check] Delete successful');
+    res.json({ status: 'ok', firestore: 'connected', project: PROJECT_ID });
   } catch (error) {
-    console.error('[Health Check] Firestore connection failed:', error);
-    res.status(500).json({ status: 'error', firestore: 'disconnected', error: error.message });
+    console.error('[Health Check] Firestore connection failed - FULL ERROR:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    console.error('[Health Check] Error message:', error.message);
+    console.error('[Health Check] Error code:', error.code);
+    
+    let errorMessage = error.message;
+    if (error.message && error.message.includes('Unable to detect a Project Id')) {
+      errorMessage = 'Firestore database not found. Please create the Firestore database in Firebase Console: https://console.firebase.google.com/project/myprojects-ebc25/firestore';
+    }
+    
+    res.status(500).json({ status: 'error', firestore: 'disconnected', error: errorMessage, code: error.code });
   }
 });
 
@@ -210,7 +237,7 @@ app.post('/api/import-product', async (req, res) => {
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
-    const docRef = await db.collection(`${PROJECT_PATH}/products`).add(productDoc);
+    const docRef = await db.collection('products').add(productDoc);
 
     const savedDoc = await docRef.get();
     const productData = savedDoc.data();
@@ -357,7 +384,7 @@ app.post('/api/bulk-import', async (req, res) => {
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         };
 
-        const docRef = await db.collection(`${PROJECT_PATH}/pending_products`).add(productDoc);
+        const docRef = await db.collection('pending_products').add(productDoc);
         const savedDoc = await docRef.get();
         const productData = savedDoc.data();
 

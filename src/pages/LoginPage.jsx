@@ -2,44 +2,22 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Store, AlertCircle, Smartphone, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import AuthModal from '../components/AuthModal';
 
 export default function LoginPage() {
   const { loginWithPhone } = useAuth();
   const navigate = useNavigate();
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [showModal, setShowModal] = useState(true);
+  const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState('');
 
-  const formatPhoneInput = (value) => {
-    const digits = value.replace(/\D/g, '');
-    if (digits.length <= 5) return `+91 ${digits}`;
-    if (digits.length <= 10) return `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
-    return `+91 ${digits.slice(0, 5)} ${digits.slice(5, 10)}`;
-  };
-
-  const handlePhoneChange = (e) => {
-    const formatted = formatPhoneInput(e.target.value);
-    setPhoneNumber(formatted);
-  };
-
-  const getFullPhoneNumber = () => {
-    const digits = phoneNumber.replace(/\D/g, '');
-    return `+91${digits}`;
-  };
-
-  const isValidPhone = () => {
-    const digits = phoneNumber.replace(/\D/g, '');
-    return digits.length === 10;
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!isValidPhone()) {
-      setError('Please enter a valid 10-digit Indian phone number');
-      return;
-    }
-    // Trigger the auth modal with login mode
+  const handleOpenModal = () => {
+    setError('');
     setShowModal(true);
+  };
+
+  const handleAuthSuccess = () => {
+    setShowModal(false);
+    navigate('/');
   };
 
   return (
@@ -64,28 +42,20 @@ export default function LoginPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-surface-700 mb-1.5">Phone Number (+91)</label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-500 font-medium text-lg">+91</span>
-                <input
-                  type="tel"
-                  value={phoneNumber}
-                  onChange={handlePhoneChange}
-                  placeholder="Enter 10-digit number"
-                  className="input-field pl-14"
-                  required
-                  maxLength={14}
-                />
-              </div>
-            </div>
+          <div className="space-y-4">
+            <p className="text-sm text-surface-500 text-center">
+              Enter your phone number to receive a 6-digit OTP for verification
+            </p>
 
-            <button type="submit" className="btn-primary w-full py-3">
-              <ArrowRight className="h-4 w-4 mr-2" />
+            <button 
+              onClick={handleOpenModal}
+              className="btn-primary w-full py-3"
+              disabled={false}
+            >
+              <Smartphone className="h-4 w-4 mr-2" />
               Get OTP & Sign In
             </button>
-          </form>
+          </div>
         </div>
 
         <p className="mt-6 text-center text-sm text-surface-500">
@@ -93,6 +63,13 @@ export default function LoginPage() {
           <Link to="/register" className="font-semibold text-primary-600 hover:text-primary-700">Sign up</Link>
         </p>
       </div>
+
+      <AuthModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        initialMode="login"
+        onAuthSuccess={handleAuthSuccess}
+      />
     </div>
   );
 }
