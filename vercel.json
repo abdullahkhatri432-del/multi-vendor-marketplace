@@ -9,6 +9,10 @@
     "api/import-product.js": {
       "maxDuration": 30,
       "memory": 1024
+    },
+    "api/bulk-import.js": {
+      "maxDuration": 30,
+      "memory": 1024
     }
   }
 }
