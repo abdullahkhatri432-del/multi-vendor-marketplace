@@ -521,31 +521,43 @@ export const publishPendingProduct = async (productId) => {
 // ===================== NEWSLETTER =====================
 const newsletterCol = () => col('newsletter_subscribers');
 
+// Cryptographically hash the email so the doc ID is deterministic and doesn't
+// leak the raw address in the URL/path (it still lives in the `email` field).
+const hashEmail = async (email) => {
+  const data = new TextEncoder().encode(email);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+};
+
 /**
- * Subscribe an email to the newsletter. Idempotent — returns whether this was
- * a brand-new subscription or the email was already on the list.
+ * Subscribe an email to the newsletter. Idempotent — the doc ID is the SHA-256
+ * hash of the email, so re-subscribing writes to the same doc (no duplicates,
+ * and no reads are required).
  */
 export const subscribeToNewsletter = async (email) => {
   return withErrorLogging('subscribeToNewsletter', async () => {
     const normalized = email.trim().toLowerCase();
+    const ref = doc(newsletterCol(), await hashEmail(normalized));
 
-    // Dedupe: treat as already subscribed if an active entry exists for this email.
-    const existing = await getDocs(
-      query(newsletterCol(), where('email', '==', normalized), limit(1))
-    );
-
-    if (!existing.empty) {
-      return { subscribed: false, alreadySubscribed: true };
+    // `create` semantics are enforced in Firestore rules (allow create only),
+    // so an existing doc makes this throw a "document already exists" error,
+    // which we surface to the user as an already-subscribed message.
+    let alreadySubscribed = false;
+    try {
+      await setDoc(ref, {
+        email: normalized,
+        source: 'footer',
+        subscribed: true,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    } catch (err) {
+      if (err?.code === 'already-exists') alreadySubscribed = true;
+      else throw err;
     }
 
-    await addDoc(newsletterCol(), {
-      email: normalized,
-      source: 'footer',
-      subscribed: true,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-
-    return { subscribed: true, alreadySubscribed: false };
+    return { subscribed: !alreadySubscribed, alreadySubscribed };
   });
 };
