@@ -86,11 +86,21 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
     try {
       // Reuse the same verifier instance — creating a new one on the same
       // container each time throws "reCAPTCHA has already been rendered".
+      // Container must NOT be display:none — invisible reCAPTCHA can't render
+      // into a hidden element and signInWithPhoneNumber would hang forever.
       if (!appVerifierRef.current) {
-        const container = document.getElementById('auth-recaptcha') || document.createElement('div');
-        if (!container.id) {
+        let container = document.getElementById('auth-recaptcha');
+        if (!container) {
+          container = document.createElement('div');
           container.id = 'auth-recaptcha';
-          container.style.display = 'none';
+          container.style.position = 'fixed';
+          container.style.bottom = '0';
+          container.style.left = '0';
+          container.style.width = '60px';
+          container.style.height = '60px';
+          container.style.opacity = '0';
+          container.style.pointerEvents = 'none';
+          container.style.zIndex = '-1';
           document.body.appendChild(container);
         }
         appVerifierRef.current = new RecaptchaVerifier(auth, 'auth-recaptcha', {
@@ -170,7 +180,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
       <div className="relative w-full max-w-md">
         {/* Modal Content Box */}
         <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 animate-scale-in max-h-[90vh] overflow-y-auto">
-          <div id="auth-recaptcha" className="hidden" />
+          <div id="auth-recaptcha" style={{ position: 'fixed', bottom: 0, left: 0, width: 60, height: 60, opacity: 0, pointerEvents: 'none', zIndex: -1 }} />
           
           {/* Close Button */}
           <button

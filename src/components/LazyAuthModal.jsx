@@ -32,7 +32,7 @@ export default function LazyAuthModal({
   const [loading, setLoading] = useState(false);
   const [confirmationResult, setConfirmationResult] = useState(null);
   const [resendTimer, setResendTimer] = useState(0);
-  const recaptchaRef = useRef(null);
+  const appVerifierRef = useRef(null);
 
   // Reset state when modal opens/closes
   useEffect(() => {
@@ -44,6 +44,8 @@ export default function LazyAuthModal({
       setLoading(false);
       setConfirmationResult(null);
       setResendTimer(0);
+    } else {
+      appVerifierRef.current = null;
     }
   }, [isOpen]);
 
@@ -100,17 +102,28 @@ export default function LazyAuthModal({
     setError('');
 
     try {
-      // Ensure recaptcha container exists
-      if (!document.getElementById('lazy-auth-recaptcha')) {
-        const div = document.createElement('div');
-        div.id = 'lazy-auth-recaptcha';
-        div.style.display = 'none';
-        document.body.appendChild(div);
+      // Container must NOT be display:none — invisible reCAPTCHA can't render
+      // into a hidden element and signInWithPhoneNumber would hang forever.
+      // Reuse the verifier instance to avoid "reCAPTCHA has already been rendered".
+      if (!appVerifierRef.current) {
+        if (!document.getElementById('lazy-auth-recaptcha')) {
+          const div = document.createElement('div');
+          div.id = 'lazy-auth-recaptcha';
+          div.style.position = 'fixed';
+          div.style.bottom = '0';
+          div.style.left = '0';
+          div.style.width = '60px';
+          div.style.height = '60px';
+          div.style.opacity = '0';
+          div.style.pointerEvents = 'none';
+          div.style.zIndex = '-1';
+          document.body.appendChild(div);
+        }
+        appVerifierRef.current = new RecaptchaVerifier(auth, 'lazy-auth-recaptcha', {
+          size: 'invisible',
+        });
       }
-
-      const appVerifier = new RecaptchaVerifier(auth, 'lazy-auth-recaptcha', {
-        size: 'invisible',
-      });
+      const appVerifier = appVerifierRef.current;
 
       const confirmation = await registerWithPhone(getFullPhoneNumber(), appVerifier);
       setConfirmationResult(confirmation);
