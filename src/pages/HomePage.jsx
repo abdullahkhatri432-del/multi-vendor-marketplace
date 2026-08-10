@@ -676,31 +676,6 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-
-      {/* Newsletter Signup */}
-      <section className="border-t border-surface-100 bg-white py-16">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Sparkles className="h-5 w-5 text-primary-600" />
-            <span className="text-sm font-semibold text-primary-600 uppercase tracking-wide">Stay Updated</span>
-          </div>
-          <h2 className="text-2xl font-display font-bold text-surface-900">Subscribe to Our Newsletter</h2>
-          <p className="mt-2 text-sm text-surface-500">Get exclusive deals, new arrivals, and vendor stories delivered to your inbox.</p>
-          <form className="mt-6 flex flex-col sm:flex-row gap-3 max-w-md mx-auto" onSubmit={(e) => e.preventDefault()}>
-            <label className="sr-only">Email address</label>
-            <input
-              type="email"
-              placeholder="Enter your email"
-              className="flex-1 input-field text-center sm:text-left"
-              required
-            />
-            <button type="submit" className="btn-primary whitespace-nowrap">
-              Subscribe
-            </button>
-          </form>
-          <p className="mt-3 text-xs text-surface-400">No spam, unsubscribe anytime. By subscribing, you agree to our <Link to="/privacy" className="underline hover:text-primary-600">Privacy Policy</Link>.</p>
-        </div>
-      </section>
     </div>
   );
 }

@@ -48,9 +48,8 @@ export default function LoginPage() {
             </p>
 
             <button 
-              onClick={handleOpenModal}
+              onClick={() => { setError(''); setShowModal(true); }}
               className="btn-primary w-full py-3"
-              disabled={false}
             >
               <Smartphone className="h-4 w-4 mr-2" />
               Get OTP & Sign In
@@ -68,7 +67,7 @@ export default function LoginPage() {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         initialMode="login"
-        onAuthSuccess={handleAuthSuccess}
+        onAuthSuccess={() => { setShowModal(false); navigate('/'); }}
       />
     </div>
   );

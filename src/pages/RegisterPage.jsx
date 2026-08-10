@@ -48,7 +48,7 @@ export default function RegisterPage() {
             </p>
 
             <button 
-              onClick={handleOpenModal}
+              onClick={() => { setError(''); setShowModal(true); }}
               className="btn-primary w-full py-3"
             >
               <Smartphone className="h-4 w-4 mr-2" />
@@ -67,7 +67,7 @@ export default function RegisterPage() {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         initialMode="register"
-        onAuthSuccess={handleAuthSuccess}
+        onAuthSuccess={() => { setShowModal(false); navigate('/'); }}
       />
     </div>
   );
