@@ -17,6 +17,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { PROJECT_ID } from './firebase';
+import { fallbackProducts, fallbackVendors, findFallbackProduct, findFallbackVendor, fallbackCoupons, findFallbackCoupon } from './fallbackData';
 
 // Helper to create collection references
 const col = (name) => collection(db, name);
@@ -27,6 +28,7 @@ const productsCol = () => col('products');
 const pendingProductsCol = () => col('pending_products');
 const ordersCol = () => col('orders');
 const categoriesCol = () => col('categories');
+const couponsCol = () => col('coupons');
 
 // ===================== DEBUG WRAPPER =====================
 const withErrorLogging = async (operationName, fn) => {
@@ -99,7 +101,8 @@ export const getVendor = async (vendorId) => {
   return withErrorLogging('getVendor', async () => {
     const ref = doc(vendorsCol(), vendorId);
     const snap = await getDoc(ref);
-    return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+    if (snap.exists()) return { id: snap.id, ...snap.data() };
+    return findFallbackVendor(vendorId);
   });
 };
 
@@ -133,7 +136,7 @@ export const createProduct = async (data) => {
       rating: 0,
       reviewCount: 0,
       soldCount: 0,
-      active: true,
+      active: data.active !== false,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
@@ -145,7 +148,8 @@ export const getProduct = async (productId) => {
   return withErrorLogging('getProduct', async () => {
     const ref = doc(productsCol(), productId);
     const snap = await getDoc(ref);
-    return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+    if (snap.exists()) return { id: snap.id, ...snap.data() };
+    return findFallbackProduct(productId);
   });
 };
 
@@ -167,7 +171,8 @@ export const getAllProducts = async (limitCount = 50) => {
   return withErrorLogging('getAllProducts', async () => {
     const q = query(productsCol(), where('active', '==', true), orderBy('createdAt', 'desc'), limit(limitCount));
     const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    return docs.length > 0 ? docs : fallbackProducts.slice(0, limitCount);
   });
 };
 
@@ -183,7 +188,9 @@ export const getProductsByCategory = async (category) => {
   return withErrorLogging('getProductsByCategory', async () => {
     const q = query(productsCol(), where('category', '==', category), where('active', '==', true));
     const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    if (docs.length > 0) return docs;
+    return fallbackProducts.filter((p) => p.active && p.category === category);
   });
 };
 
@@ -191,7 +198,7 @@ export const searchProducts = async (searchTerm) => {
   return withErrorLogging('searchProducts', async () => {
     const snap = await getDocs(productsCol());
     const term = searchTerm.toLowerCase();
-    return snap.docs
+    const docs = snap.docs
       .map((d) => ({ id: d.id, ...d.data() }))
       .filter(
         (p) =>
@@ -200,20 +207,26 @@ export const searchProducts = async (searchTerm) => {
             p.description?.toLowerCase().includes(term) ||
             p.category?.toLowerCase().includes(term))
       );
+    if (docs.length > 0) return docs;
+    return fallbackProducts.filter(
+      (p) =>
+        p.active &&
+        (p.name?.toLowerCase().includes(term) ||
+          p.description?.toLowerCase().includes(term) ||
+          p.category?.toLowerCase().includes(term))
+    );
   });
 };
 
 // ===================== ORDERS =====================
 export const createOrder = async (data) => {
-  return withErrorLogging('createOrder', async () => {
-    const ref = await addDoc(ordersCol(), {
-      ...data,
-      status: 'pending',
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-    return ref.id;
+  const ref = await addDoc(ordersCol(), {
+    ...data,
+    status: 'pending',
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   });
+  return ref.id;
 };
 
 export const getOrder = async (orderId) => {
@@ -224,10 +237,40 @@ export const getOrder = async (orderId) => {
   });
 };
 
+// Find any existing order already using this UTR (blocks reuse of the same reference).
+export const getOrderByUtr = async (utr) => {
+  return withErrorLogging('getOrderByUtr', async () => {
+    const q = query(ordersCol(), where('paymentReference', '==', utr), limit(1));
+    const snap = await getDocs(q);
+    if (!snap.empty) {
+      const d = snap.docs[0];
+      return { id: d.id, ...d.data() };
+    }
+    const q2 = query(ordersCol(), where('paymentDetails.transactionRef', '==', utr), limit(1));
+    const snap2 = await getDocs(q2);
+    return snap2.empty ? null : { id: snap2.docs[0].id, ...snap2.docs[0].data() };
+  });
+};
+
 export const updateOrder = async (orderId, data) => {
   return withErrorLogging('updateOrder', async () => {
     const ref = doc(ordersCol(), orderId);
     await updateDoc(ref, { ...data, updatedAt: serverTimestamp() });
+  });
+};
+
+export const verifyOrderPayment = async (orderId, { utr, amount, matchedBy = 'manual' }) => {
+  return withErrorLogging('verifyOrderPayment', async () => {
+    const ref = doc(ordersCol(), orderId);
+    await updateDoc(ref, {
+      paymentStatus: 'verified',
+      verifiedAt: serverTimestamp(),
+      verifiedBy: 'admin',
+      verifiedUtr: utr,
+      verifiedAmount: amount,
+      matchedBy,
+      updatedAt: serverTimestamp(),
+    });
   });
 };
 
@@ -239,11 +282,19 @@ export const getOrdersByUser = async (userId) => {
   });
 };
 
+// Orders where this vendor's products appear (items[].vendorId). New orders store a
+// vendorIds[] array for cheap queries; legacy orders fall back to an in-memory scan.
 export const getOrdersByVendor = async (vendorId) => {
   return withErrorLogging('getOrdersByVendor', async () => {
-    const q = query(ordersCol(), where('vendorId', '==', vendorId), orderBy('createdAt', 'desc'));
-    const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    let snap = await getDocs(query(ordersCol(), where('vendorIds', 'array-contains', vendorId), orderBy('createdAt', 'desc')));
+    let orders = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    if (orders.length === 0) {
+      const all = await getDocs(ordersCol());
+      orders = all.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .filter((o) => (o.items || []).some((it) => it.vendorId === vendorId));
+    }
+    return orders;
   });
 };
 
@@ -270,6 +321,62 @@ export const getAllCategories = async () => {
   return withErrorLogging('getAllCategories', async () => {
     const snap = await getDocs(categoriesCol());
     return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  });
+};
+
+// ===================== COUPONS =====================
+export const createCoupon = async (data) => {
+  return withErrorLogging('createCoupon', async () => {
+    const code = String(data.code || '').trim().toUpperCase();
+    const ref = await addDoc(couponsCol(), {
+      ...data,
+      code,
+      active: data.active !== false,
+      usedCount: 0,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    return ref.id;
+  });
+};
+
+export const getAllCoupons = async () => {
+  return withErrorLogging('getAllCoupons', async () => {
+    const snap = await getDocs(query(couponsCol(), orderBy('createdAt', 'desc')));
+    const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    return docs.length > 0 ? docs : fallbackCoupons;
+  });
+};
+
+export const getCouponByCode = async (code) => {
+  return withErrorLogging('getCouponByCode', async () => {
+    const normalized = String(code || '').trim().toUpperCase();
+    const q = query(couponsCol(), where('code', '==', normalized), limit(1));
+    const snap = await getDocs(q);
+    if (!snap.empty) return { id: snap.docs[0].id, ...snap.docs[0].data() };
+    return findFallbackCoupon(normalized);
+  });
+};
+
+export const updateCoupon = async (couponId, data) => {
+  return withErrorLogging('updateCoupon', async () => {
+    const ref = doc(couponsCol(), couponId);
+    await updateDoc(ref, { ...data, updatedAt: serverTimestamp() });
+  });
+};
+
+export const deleteCoupon = async (couponId) => {
+  return withErrorLogging('deleteCoupon', async () => {
+    await deleteDoc(doc(couponsCol(), couponId));
+  });
+};
+
+export const incrementCouponUsage = async (couponId) => {
+  return withErrorLogging('incrementCouponUsage', async () => {
+    await updateDoc(doc(couponsCol(), couponId), {
+      usedCount: increment(1),
+      updatedAt: serverTimestamp(),
+    });
   });
 };
 
@@ -306,7 +413,7 @@ export const incrementProductSold = async (productId, qty = 1) => {
 export const incrementVendorSales = async (vendorId, amount) => {
   return withErrorLogging('incrementVendorSales', async () => {
     const ref = doc(vendorsCol(), vendorId);
-    await updateDoc(ref, { totalSales: increment(1) });
+    await updateDoc(ref, { totalSales: increment(1), totalRevenue: increment(amount || 0) });
   });
 };
 
@@ -436,11 +543,12 @@ export const updateVendorProfile = async (vendorId, data) => {
 // ===================== VENDOR ANALYTICS =====================
 export const getVendorAnalytics = async (vendorId) => {
   return withErrorLogging('getVendorAnalytics', async () => {
-    const ordersQuery = query(ordersCol(), where('vendorId', '==', vendorId));
-    const snap = await getDocs(ordersQuery);
+    const orders = await getOrdersByVendor(vendorId);
 
-    const orders = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    const totalRevenue = orders.reduce((sum, o) => sum + (o.total || 0), 0);
+    const totalRevenue = orders.reduce((sum, o) => {
+      const items = (o.items || []).filter((it) => it.vendorId === vendorId);
+      return sum + items.reduce((s, it) => s + (it.price || 0) * (it.quantity || 1) + (it.addonTotal || 0), 0);
+    }, 0);
     const totalOrders = orders.length;
     const pendingOrders = orders.filter((o) => o.status === 'pending').length;
     const completedOrders = orders.filter((o) => o.status === 'delivered').length;

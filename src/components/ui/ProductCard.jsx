@@ -17,6 +17,7 @@ export default function ProductCard({ product }) {
   const handleBuyNow = async () => {
     try {
       await intercept('buy_now', { productId: product.id, quantity: 1 });
+      addItem(product);
       navigate('/checkout');
     } catch (err) {
       if (err.message !== 'Authentication cancelled') {
@@ -63,9 +64,9 @@ export default function ProductCard({ product }) {
 
         <div className="mt-3 flex items-center justify-between">
           <div className="flex items-baseline gap-2">
-            <span className="text-lg font-bold text-surface-900">${product.price?.toFixed(2)}</span>
+            <span className="text-lg font-bold text-surface-900">₹{product.price?.toFixed(2)}</span>
             {product.originalPrice && product.originalPrice > product.price && (
-              <span className="text-sm text-surface-400 line-through">${product.originalPrice.toFixed(2)}</span>
+              <span className="text-sm text-surface-400 line-through">₹{product.originalPrice.toFixed(2)}</span>
             )}
           </div>
           <div className="flex items-center gap-2">

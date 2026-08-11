@@ -1,9 +1,11 @@
 import { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import LazyAuthModal from '../components/LazyAuthModal';
+import { useAuth } from './AuthContext';
 
 const CheckoutInterceptorContext = createContext(null);
 
 export function CheckoutInterceptorProvider({ children }) {
+  const { isAuthenticated } = useAuth();
   const [modalState, setModalState] = useState({
     isOpen: false,
     triggerAction: null,
@@ -12,13 +14,17 @@ export function CheckoutInterceptorProvider({ children }) {
 
   const intercept = useCallback((action, params = {}) => {
     return new Promise((resolve, reject) => {
+      if (isAuthenticated) {
+        resolve();
+        return;
+      }
       setModalState({
         isOpen: true,
         triggerAction: action,
         triggerParams: { ...params, resolve, reject },
       });
     });
-  }, []);
+  }, [isAuthenticated]);
 
   const handleAuthSuccess = useCallback((user) => {
     if (modalState.triggerParams?.resolve) {

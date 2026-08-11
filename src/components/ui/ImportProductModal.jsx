@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { X, Link2, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { createProduct } from '../../config/firestore';
 
 const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT || '/api/import-product';
 
@@ -21,11 +22,7 @@ export default function ImportProductModal({ show, onClose, vendorId, vendorName
       const response = await fetch(API_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          url: url.trim(),
-          vendorId,
-          vendorName,
-        }),
+        body: JSON.stringify({ url: url.trim() }),
       });
 
       const data = await response.json();
@@ -34,14 +31,24 @@ export default function ImportProductModal({ show, onClose, vendorId, vendorName
         throw new Error(data.error || 'Failed to import product');
       }
 
-      setPreview(data.product);
-      onImported?.(data.product);
-      onClose();
+      const imported = {
+        ...data.product,
+        stock: 0,
+        discount: 0,
+        active: false,
+        vendorId,
+        vendorName,
+        importedFrom: url.trim(),
+      };
+
+      const id = await createProduct(imported);
+      onImported?.({ id, ...imported });
+      setPreview({ id, ...imported });
+      setUrl('');
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
-      setUrl('');
     }
   };
 
@@ -131,9 +138,9 @@ export default function ImportProductModal({ show, onClose, vendorId, vendorName
                   <img src={preview.images[0]} alt={preview.name} className="h-full w-full object-cover" />
                 </div>
               )}
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-surface-900">{preview.name}</h3>
-                <p className="text-lg font-bold text-primary-600">${preview.price?.toFixed(2)}</p>
+                <p className="text-lg font-bold text-primary-600">₹{preview.price?.toFixed(2)}</p>
                 <p className="mt-1 text-xs text-surface-500">Category: {preview.category}</p>
                 {preview.description && (
                   <p className="mt-2 text-xs text-surface-600 line-clamp-2">{preview.description}</p>
@@ -149,6 +156,16 @@ export default function ImportProductModal({ show, onClose, vendorId, vendorName
                   Go to <strong>My Products</strong> to edit and activate it for sale.
                 </p>
               </div>
+            </div>
+
+            <div className="mt-4 flex gap-3">
+              <button onClick={onClose} className="btn-primary flex-1">Done</button>
+              <button
+                onClick={() => setPreview(null)}
+                className="btn-secondary"
+              >
+                Import Another
+              </button>
             </div>
           </div>
         )}

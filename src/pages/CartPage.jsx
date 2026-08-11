@@ -11,7 +11,7 @@ export default function CartPage() {
   const { intercept } = useCheckoutInterceptor();
   const navigate = useNavigate();
 
-  const shipping = cartTotal > 50 ? 0 : 5.99;
+  const shipping = cartTotal > 999 ? 0 : 49;
   const tax = cartTotal * 0.08;
   const total = cartTotal + shipping + tax;
 
@@ -91,12 +91,12 @@ export default function CartPage() {
                   </div>
                   <div className="text-right">
                     <span className="text-sm font-bold text-surface-900 block">
-                      ${(item.price * item.quantity + (item.addonTotal || 0)).toFixed(2)}
+                      ₹{(item.price * item.quantity + (item.addonTotal || 0)).toFixed(2)}
                     </span>
                     {item.addons && item.addons.length > 0 && (
                       <div className="flex items-center gap-1 mt-1">
                         <span className="text-xs text-surface-400">Add-ons:</span>
-                        <span className="text-xs text-primary-600">+{item.addonTotal?.toFixed(2)}</span>
+                        <span className="text-xs text-primary-600">+₹{item.addonTotal?.toFixed(2)}</span>
                       </div>
                     )}
                   </div>
@@ -123,25 +123,25 @@ export default function CartPage() {
             <div className="space-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-surface-500">Subtotal ({cart.length} items)</span>
-                <span className="font-medium text-surface-900">${cartTotal.toFixed(2)}</span>
+                <span className="font-medium text-surface-900">₹{cartTotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-surface-500">Shipping</span>
-                <span className="font-medium text-surface-900">{shipping === 0 ? 'Free' : `$${shipping.toFixed(2)}`}</span>
+                <span className="font-medium text-surface-900">{shipping === 0 ? 'Free' : `₹${shipping.toFixed(2)}`}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-surface-500">Tax (8%)</span>
-                <span className="font-medium text-surface-900">${tax.toFixed(2)}</span>
+                <span className="font-medium text-surface-900">₹{tax.toFixed(2)}</span>
               </div>
               <div className="border-t border-surface-100 pt-3 flex justify-between">
                 <span className="text-base font-semibold text-surface-900">Total</span>
-                <span className="text-base font-bold text-surface-900">${total.toFixed(2)}</span>
+                <span className="text-base font-bold text-surface-900">₹{total.toFixed(2)}</span>
               </div>
             </div>
 
-            {cartTotal < 50 && (
+            {cartTotal < 999 && (
               <p className="mt-4 text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
-                Add ${(50 - cartTotal).toFixed(2)} more for free shipping!
+                Add ₹{(999 - cartTotal).toFixed(2)} more for free shipping!
               </p>
             )}
 

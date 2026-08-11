@@ -3,14 +3,14 @@ import { Navigate, Link } from 'react-router-dom';
 import { Plus, Edit2, Trash2, Package, X, AlertTriangle, Search, ToggleLeft, ToggleRight, Archive, Link2, Upload, ImageIcon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getProductsByVendor, createProduct, updateProduct, deleteProduct } from '../config/firestore';
-import { uploadProductImage, uploadMultipleProductImages } from '../config/upload';
+import { uploadMultipleProductImages } from '../config/upload';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import EmptyState from '../components/ui/EmptyState';
 import ImportProductModal from '../components/ui/ImportProductModal';
 import { useToast } from '../context/ToastContext';
 
 export default function VendorProducts() {
-  const { user, isVendor, isAuthenticated } = useAuth();
+  const { user, isVendor, isAuthenticated, loading: authLoading } = useAuth();
   const { addToast } = useToast();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -74,20 +74,13 @@ export default function VendorProducts() {
     setUploadProgress(0);
 
     try {
-      // Upload all images to Firebase Storage
+      // Compress + base64-encode all images (no external storage needed — free)
       const uploadedImages = [];
       const imageFiles = form.newImages || [];
 
       if (imageFiles.length > 0) {
-        const primaryImage = imageFiles[0];
-        const downloadURL = await uploadProductImage(primaryImage, setUploadProgress);
-        uploadedImages.push(downloadURL);
-
-        for (let i = 1; i < imageFiles.length; i++) {
-          setUploadProgress(Math.round((i / imageFiles.length) * 100));
-          const url = await uploadProductImage(imageFiles[i], () => {});
-          uploadedImages.push(url);
-        }
+        const urls = await uploadMultipleProductImages(imageFiles, setUploadProgress);
+        uploadedImages.push(...urls);
       }
 
       // Combine existing image URLs with newly uploaded ones
@@ -155,6 +148,7 @@ export default function VendorProducts() {
     setForm((prev) => ({ ...prev, newImages: fileArray }));
   };
 
+  if (authLoading) return <LoadingSpinner size="lg" className="py-32" />;
   if (!isAuthenticated) return <Navigate to="/login" />;
   if (!isVendor) return <Navigate to="/" />;
   if (loading) return <LoadingSpinner size="lg" className="py-32" />;
@@ -162,11 +156,11 @@ export default function VendorProducts() {
   const filteredProducts = products.filter((p) => {
     if (filter === 'active' && !p.active) return false;
     if (filter === 'inactive' && p.active) return false;
-    if (filter === 'low-stock') return p.stock < 10 && p.stock > 0;
-    if (filter === 'out-of-stock') return p.stock === 0;
+    if (filter === 'low-stock' && !(p.stock < 10 && p.stock > 0)) return false;
+    if (filter === 'out-of-stock' && !(p.stock === 0)) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      return p.name?.toLowerCase().includes(q) || p.category?.toLowerCase().includes(q);
+      if (!p.name?.toLowerCase().includes(q) && !p.category?.toLowerCase().includes(q)) return false;
     }
     return true;
   });
@@ -241,12 +235,12 @@ export default function VendorProducts() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-surface-700 mb-1">Price ($)</label>
-                  <input type="number" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="input-field" placeholder="99.99" required />
+                  <label className="block text-sm font-medium text-surface-700 mb-1">Price (₹)</label>
+                  <input type="number" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="input-field" placeholder="4995" required />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-surface-700 mb-1">Original Price ($)</label>
-                  <input type="number" step="0.01" value={form.originalPrice} onChange={(e) => setForm({ ...form, originalPrice: e.target.value })} className="input-field" placeholder="129.99" />
+                  <label className="block text-sm font-medium text-surface-700 mb-1">Original Price (₹)</label>
+                  <input type="number" step="0.01" value={form.originalPrice} onChange={(e) => setForm({ ...form, originalPrice: e.target.value })} className="input-field" placeholder="6999" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -381,7 +375,7 @@ export default function VendorProducts() {
                   {!product.active && <span className="badge-warning text-[10px]">Inactive</span>}
                 </div>
                 <div className="flex items-center gap-3 mt-1">
-                  <span className="text-sm font-bold text-primary-600">${product.price?.toFixed(2)}</span>
+                  <span className="text-sm font-bold text-primary-600">₹{product.price?.toFixed(2)}</span>
                   <span className="text-xs text-surface-400">{product.category}</span>
                 </div>
               </div>

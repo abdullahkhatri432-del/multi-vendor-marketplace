@@ -8,7 +8,7 @@ import EmptyState from '../components/ui/EmptyState';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 
 export default function WishlistPage() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
   const { addItem } = useCart();
   const [wishlistProducts, setWishlistProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,6 +33,7 @@ export default function WishlistPage() {
     setWishlistProducts(wishlistProducts.filter((p) => p.id !== productId));
   };
 
+  if (authLoading) return <LoadingSpinner size="lg" className="py-32" />;
   if (!isAuthenticated) return <Navigate to="/login" />;
   if (loading) return <LoadingSpinner size="lg" className="py-32" />;
 
@@ -61,7 +62,7 @@ export default function WishlistPage() {
                   <p className="text-sm font-semibold text-surface-900 line-clamp-2 hover:text-primary-600 transition-colors">{product.name}</p>
                 </Link>
                 <div className="mt-2 flex items-center justify-between">
-                  <span className="text-lg font-bold text-surface-900">${product.price?.toFixed(2)}</span>
+                  <span className="text-lg font-bold text-surface-900">₹{product.price?.toFixed(2)}</span>
                   <button
                     onClick={() => addItem(product)}
                     className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary-50 text-primary-600 hover:bg-primary-600 hover:text-white transition-all"

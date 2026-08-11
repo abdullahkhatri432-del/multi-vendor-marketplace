@@ -6,7 +6,7 @@ import { getUser, updateUser } from '../config/firestore';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 
 export default function ProfilePage() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -15,8 +15,10 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const data = await user?.uid && getUser(user.uid);
-        setProfile(data);
+        if (user?.uid) {
+          const data = await getUser(user.uid);
+          setProfile(data);
+        }
         setDisplayName(user?.displayName || '');
       } catch (err) {
         console.error('Failed to fetch profile:', err);
@@ -36,8 +38,8 @@ export default function ProfilePage() {
     }
   };
 
+  if (authLoading) return <LoadingSpinner size="lg" className="py-32" />;
   if (!isAuthenticated) return <Navigate to="/login" />;
-  if (loading) return <LoadingSpinner size="lg" className="py-32" />;
 
   return (
     <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">

@@ -1,7 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
 
 // Debug: Log Firebase config at initialization
 const firebaseConfig = {
@@ -23,6 +22,5 @@ console.log('[Firebase] Initializing with config:', {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const storage = getStorage(app);
 export const PROJECT_ID = 'speedersmania-aecd2';
 export default app;

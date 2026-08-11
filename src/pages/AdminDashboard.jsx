@@ -4,21 +4,23 @@ import {
   Users, Store, Package, ShoppingCart, DollarSign, Shield,
   CheckCircle, XCircle, BarChart3, Trash2, Edit2, Eye,
   Search, Calendar, ChevronDown, TrendingUp, AlertTriangle,
-  Tag, Plus, X, RefreshCw, Clock, Star,
+  Tag, Plus, X, RefreshCw, Clock, Star, Banknote, ScanLine, Ticket,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import {
   getPlatformStats, getAllVendors, getAllOrders, getAllProducts,
   getAllUsers, updateUserRole, deleteUser, updateOrderStatus,
   deleteOrder, deleteProductById, updateVendor, getAllCategories,
-  createCategory, deleteCategory,
+  createCategory, deleteCategory, verifyOrderPayment,
+  getAllCoupons, createCoupon, deleteCoupon,
 } from '../config/firestore';
 import StatCard from '../components/ui/StatCard';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import EmptyState from '../components/ui/EmptyState';
+import { matchFromPaste, normalizeUtr } from '../utils/paymentMatch';
 
 export default function AdminDashboard() {
-  const { user, isAdmin, isAuthenticated } = useAuth();
+  const { user, isAdmin, isAuthenticated, loading: authLoading } = useAuth();
   const [stats, setStats] = useState(null);
   const [vendors, setVendors] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -34,6 +36,13 @@ export default function AdminDashboard() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [newCategory, setNewCategory] = useState({ name: '', icon: '' });
+  const [utrPaste, setUtrPaste] = useState('');
+  const [matchResult, setMatchResult] = useState(null);
+  const [coupons, setCoupons] = useState([]);
+  const [showCouponForm, setShowCouponForm] = useState(false);
+  const [newCoupon, setNewCoupon] = useState({
+    code: '', type: 'percent', value: '', minOrder: '', maxDiscount: '', usageLimit: '',
+  });
 
   const fetchAllData = async () => {
     try {
@@ -51,6 +60,7 @@ export default function AdminDashboard() {
       setProducts(productsData);
       setUsers(usersData);
       setCategories(catsData);
+      try { setCoupons(await getAllCoupons()); } catch (err) { console.error('Failed to fetch coupons:', err); }
     } catch (err) {
       console.error('Failed to fetch admin data:', err);
     }
@@ -142,6 +152,34 @@ export default function AdminDashboard() {
     } catch (err) { console.error('Failed to delete category:', err); }
   };
 
+  const handleAddCoupon = async (e) => {
+    e.preventDefault();
+    if (!newCoupon.code.trim() || !newCoupon.value) return;
+    try {
+      const data = {
+        code: newCoupon.code.trim().toUpperCase(),
+        type: newCoupon.type,
+        value: parseFloat(newCoupon.value),
+        minOrder: newCoupon.minOrder ? parseFloat(newCoupon.minOrder) : null,
+        maxDiscount: newCoupon.maxDiscount ? parseFloat(newCoupon.maxDiscount) : null,
+        usageLimit: newCoupon.usageLimit ? parseInt(newCoupon.usageLimit) : null,
+      };
+      const id = await createCoupon(data);
+      setCoupons([{ id, ...data, active: true, usedCount: 0 }, ...coupons]);
+      setNewCoupon({ code: '', type: 'percent', value: '', minOrder: '', maxDiscount: '', usageLimit: '' });
+      setShowCouponForm(false);
+    } catch (err) { console.error('Failed to add coupon:', err); }
+  };
+
+  const handleDeleteCoupon = async (couponId) => {
+    if (!confirm('Delete this coupon?')) return;
+    try {
+      await deleteCoupon(couponId);
+      setCoupons(coupons.filter((c) => c.id !== couponId));
+    } catch (err) { console.error('Failed to delete coupon:', err); }
+  };
+
+  if (authLoading) return <LoadingSpinner size="lg" className="py-32" />;
   if (!isAuthenticated) return <Navigate to="/login" />;
   if (!isAdmin) return <Navigate to="/" />;
   if (loading) return <LoadingSpinner size="lg" className="py-32" />;
@@ -151,8 +189,10 @@ export default function AdminDashboard() {
     { id: 'users', label: 'Users', icon: Users },
     { id: 'vendors', label: 'Vendors', icon: Store },
     { id: 'orders', label: 'Orders', icon: ShoppingCart },
+    { id: 'payments', label: 'Payments', icon: Banknote },
     { id: 'products', label: 'Products', icon: Package },
     { id: 'categories', label: 'Categories', icon: Tag },
+    { id: 'coupons', label: 'Coupons', icon: Ticket },
   ];
 
   const statusColors = {
@@ -259,7 +299,7 @@ export default function AdminDashboard() {
             <StatCard icon={Store} label="Vendors" value={stats?.totalVendors || 0} color="accent" />
             <StatCard icon={Package} label="Products" value={stats?.totalProducts || 0} color="primary" />
             <StatCard icon={ShoppingCart} label="Orders" value={stats?.totalOrders || 0} color="success" />
-            <StatCard icon={DollarSign} label="Revenue" value={`$${stats?.totalRevenue?.toFixed(2) || '0.00'}`} color="success" />
+            <StatCard icon={DollarSign} label="Revenue" value={`₹${stats?.totalRevenue?.toFixed(2) || '0.00'}`} color="success" />
           </div>
 
           {/* Quick Stats */}
@@ -290,7 +330,7 @@ export default function AdminDashboard() {
                 <h4 className="text-sm font-semibold text-surface-900">Avg Order Value</h4>
               </div>
               <p className="text-3xl font-bold text-surface-900">
-                ${orders.length > 0 ? (orders.reduce((s, o) => s + (o.total || 0), 0) / orders.length).toFixed(2) : '0.00'}
+                ₹{orders.length > 0 ? (orders.reduce((s, o) => s + (o.total || 0), 0) / orders.length).toFixed(2) : '0.00'}
               </p>
             </div>
           </div>
@@ -317,7 +357,7 @@ export default function AdminDashboard() {
                         <td className="py-3 text-surface-600">{order.customerName || 'N/A'}</td>
                         <td className="py-3 text-surface-500">{order.createdAt?.toDate?.().toLocaleDateString() || '—'}</td>
                         <td className="py-3"><span className={`badge ${statusColors[order.status] || 'badge-primary'}`}>{order.status || 'pending'}</span></td>
-                        <td className="py-3 text-right font-semibold">${order.total?.toFixed(2) || '0.00'}</td>
+                        <td className="py-3 text-right font-semibold">₹{order.total?.toFixed(2) || '0.00'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -453,12 +493,20 @@ export default function AdminDashboard() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-surface-900">Order #{order.id?.slice(0, 8)}</p>
-                    <p className="text-xs text-surface-500">{order.customerName} &middot; {order.createdAt?.toDate?.().toLocaleDateString() || 'Processing'}</p>
+                    <p className="text-xs font-medium text-surface-900">{order.customerName}</p>
+                    <p className="text-xs text-surface-500">{order.createdAt?.toDate?.().toLocaleDateString() || 'Processing'}</p>
+                    {(order.paymentReference || order.paymentMethod) && (
+                      <p className="mt-0.5 text-xs text-primary-700 font-mono">
+                        {order.paymentMethod === 'cod' ? 'COD' : order.paymentMethod?.toUpperCase()}
+                        {order.paymentReference ? ` · UTR ${normalizeUtr(order.paymentReference)}` : ''}
+                        {order.advanceAmount ? ` · Adv ₹${order.advanceAmount.toFixed(2)}` : ''}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className={`badge ${statusColors[order.status] || 'badge-primary'}`}>{order.status || 'pending'}</span>
-                  <span className="text-lg font-bold text-surface-900">${order.total?.toFixed(2) || '0.00'}</span>
+                  <span className="text-lg font-bold text-surface-900">₹{order.total?.toFixed(2) || '0.00'}</span>
                   <ChevronDown className={`h-5 w-5 text-surface-400 transition-transform ${expandedOrder === order.id ? 'rotate-180' : ''}`} />
                 </div>
               </button>
@@ -472,15 +520,15 @@ export default function AdminDashboard() {
                         {order.items?.map((item, i) => (
                           <div key={i} className="flex items-center justify-between text-sm rounded-lg bg-white px-3 py-2">
                             <span className="text-surface-600">{item.name} x{item.quantity}</span>
-                            <span className="font-medium">${(item.price * item.quantity).toFixed(2)}</span>
+                            <span className="font-medium">₹{(item.price * item.quantity).toFixed(2)}</span>
                           </div>
                         ))}
                       </div>
                       <div className="mt-3 pt-3 border-t border-surface-100 space-y-1 text-sm">
-                        <div className="flex justify-between"><span className="text-surface-500">Subtotal</span><span>${order.subtotal?.toFixed(2)}</span></div>
-                        <div className="flex justify-between"><span className="text-surface-500">Shipping</span><span>${order.shipping?.toFixed(2)}</span></div>
-                        <div className="flex justify-between"><span className="text-surface-500">Tax</span><span>${order.tax?.toFixed(2)}</span></div>
-                        <div className="flex justify-between font-bold pt-1 border-t border-surface-100"><span>Total</span><span>${order.total?.toFixed(2)}</span></div>
+                        <div className="flex justify-between"><span className="text-surface-500">Subtotal</span><span>₹{order.subtotal?.toFixed(2)}</span></div>
+                        <div className="flex justify-between"><span className="text-surface-500">Shipping</span><span>₹{order.shipping?.toFixed(2)}</span></div>
+                        <div className="flex justify-between"><span className="text-surface-500">Tax</span><span>₹{order.tax?.toFixed(2)}</span></div>
+                        <div className="flex justify-between font-bold pt-1 border-t border-surface-100"><span>Total</span><span>₹{order.total?.toFixed(2)}</span></div>
                       </div>
                     </div>
                     <div>
@@ -490,6 +538,42 @@ export default function AdminDashboard() {
                         {order.shippingAddress?.city}, {order.shippingAddress?.state} {order.shippingAddress?.zip}<br />
                         {order.shippingAddress?.country}
                       </p>
+                      <div className="mt-4 rounded-xl bg-white p-3">
+                        <h4 className="text-sm font-semibold text-surface-900 mb-2">Payment</h4>
+                        <div className="space-y-1.5 text-sm">
+                          <div className="flex justify-between gap-4">
+                            <span className="text-surface-500">Method</span>
+                            <span className="font-medium">{order.paymentMethod?.toUpperCase() || '—'}</span>
+                          </div>
+                          {order.paymentReference && (
+                            <div className="flex justify-between gap-4">
+                              <span className="text-surface-500">UTR</span>
+                              <span className="font-mono font-semibold text-primary-700">{normalizeUtr(order.paymentReference)}</span>
+                            </div>
+                          )}
+                          {order.advanceAmount != null && (
+                            <div className="flex justify-between gap-4">
+                              <span className="text-surface-500">Advance Paid</span>
+                              <span className="font-medium">₹{order.advanceAmount.toFixed(2)}</span>
+                            </div>
+                          )}
+                          {order.balanceDue != null && (
+                            <div className="flex justify-between gap-4">
+                              <span className="text-surface-500">Balance on Delivery</span>
+                              <span className="font-medium">₹{order.balanceDue.toFixed(2)}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between gap-4">
+                            <span className="text-surface-500">Payment Status</span>
+                            <span className={`font-medium ${order.paymentStatus === 'verified' || order.paymentStatus === 'paid' ? 'text-emerald-600' : 'text-amber-600'}`}>
+                              {order.paymentStatus?.replace(/-/g, ' ') || '—'}
+                            </span>
+                          </div>
+                          {order.paymentNote && (
+                            <p className="pt-1.5 text-xs text-surface-500">{order.paymentNote}</p>
+                          )}
+                        </div>
+                      </div>
                       <div className="mt-4">
                         <h4 className="text-sm font-semibold text-surface-900 mb-2">Update Status</h4>
                         <div className="flex flex-wrap gap-2">
@@ -541,7 +625,7 @@ export default function AdminDashboard() {
                   <span className="text-xs text-surface-500">{product.category}</span>
                 </div>
                 <div className="flex items-center justify-between mt-3">
-                  <span className="text-sm font-bold text-primary-600">${product.price?.toFixed(2)}</span>
+                  <span className="text-sm font-bold text-primary-600">₹{product.price?.toFixed(2)}</span>
                   <div className="flex items-center gap-1">
                     <span className={`badge ${product.active ? 'badge-success' : 'badge-warning'}`}>
                       {product.active ? 'Active' : 'Inactive'}
@@ -611,6 +695,283 @@ export default function AdminDashboard() {
                 <span className="text-3xl">{cat.icon || '📦'}</span>
                 <p className="mt-2 text-sm font-semibold text-surface-700">{cat.name}</p>
                 <p className="text-xs text-surface-400 mt-0.5">{products.filter((p) => p.category === cat.id).length} products</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'payments' && (
+        <div className="space-y-6">
+          <div className="card p-6">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50">
+                <ScanLine className="h-5 w-5 text-primary-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-surface-900">Verify Payments via UTR</h3>
+                <p className="mt-1 text-sm text-surface-500">
+                  Paste the UTRs (and optionally amounts) you received on your UPI app / bank statement. One per line.
+                  System will match them against pending orders by UTR + amount.
+                </p>
+              </div>
+            </div>
+
+            <textarea
+              value={utrPaste}
+              onChange={(e) => setUtrPaste(e.target.value)}
+              rows={6}
+              placeholder={'412345678901 1499\n412345678902 2499\n412345678903'}
+              className="input-field font-mono text-sm"
+            />
+
+            <div className="mt-4 flex items-center gap-3">
+              <button
+                onClick={() => setMatchResult(matchFromPaste(orders, utrPaste))}
+                className="btn-primary"
+              >
+                Match Payments
+              </button>
+              <button
+                onClick={() => { setUtrPaste(''); setMatchResult(null); }}
+                className="btn-secondary"
+              >
+                Clear
+              </button>
+            </div>
+
+            {matchResult && (
+              <div className="mt-6">
+                <div className="flex flex-wrap gap-3 mb-4">
+                  <span className="badge badge-success">{matchResult.matched.length} matched</span>
+                  <span className="badge badge-warning">{matchResult.unmatched.length} unmatched orders</span>
+                  <span className="badge badge-primary">{matchResult.entries.length} UTRs parsed</span>
+                </div>
+
+                {matchResult.matched.length > 0 && (
+                  <div className="space-y-3 mb-6">
+                    <h4 className="text-sm font-semibold text-surface-900 flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-emerald-600" /> Matched Orders — Confirm them
+                    </h4>
+                    {matchResult.matched.map(({ order, bankEntry, amountMatches, reason }) => (
+                      <div key={order.id} className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-surface-900">
+                              Order #{order.id?.slice(0, 8)} · {order.customerName}
+                            </p>
+                            <p className="mt-0.5 text-xs text-surface-500 font-mono">
+                              UTR {normalizeUtr(order.paymentReference)} · ₹{(order.paymentMethod === 'cod' ? order.advanceAmount : order.total)?.toFixed?.(2)}
+                            </p>
+                            {!amountMatches && (
+                              <p className="mt-1 text-xs text-amber-700">
+                                UTR matches but amount differs — verify manually before confirming.
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`badge ${amountMatches ? 'badge-success' : 'badge-warning'}`}>
+                              {reason === 'utr+amount' ? 'UTR + Amount' : 'UTR only'}
+                            </span>
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await verifyOrderPayment(order.id, {
+                                    utr: bankEntry.utr,
+                                    amount: order.total,
+                                    matchedBy: reason,
+                                  });
+                                  setOrders(orders.map((o) => o.id === order.id ? { ...o, paymentStatus: 'verified', verifiedUtr: bankEntry.utr } : o));
+                                  setMatchResult((prev) => ({
+                                    ...prev,
+                                    matched: prev.matched.filter((m) => m.order.id !== order.id),
+                                    unmatched: [...prev.unmatched, order],
+                                  }));
+                                } catch (err) { console.error('Failed to verify:', err); }
+                              }}
+                              className="btn-primary text-xs px-3 py-1.5"
+                            >
+                              Confirm & Verify
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {matchResult.unmatched.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-semibold text-surface-900 flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-amber-600" /> Unmatched / Pending Orders
+                    </h4>
+                    {matchResult.unmatched.map((order) => (
+                      <div key={order.id} className="rounded-2xl border border-surface-200 bg-surface-50 p-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-surface-900">
+                              Order #{order.id?.slice(0, 8)} · {order.customerName}
+                            </p>
+                            <p className="mt-0.5 text-xs text-surface-500 font-mono">
+                              UTR {normalizeUtr(order.paymentReference) || '—'} · ₹{(order.paymentMethod === 'cod' ? order.advanceAmount : order.total)?.toFixed?.(2)} · {order.paymentStatus}
+                            </p>
+                          </div>
+                          <button
+                            onClick={async () => {
+                              if (!confirm('Manually verify this payment without a matching UTR?')) return;
+                              try {
+                                await verifyOrderPayment(order.id, {
+                                  utr: order.paymentReference,
+                                  amount: order.total,
+                                  matchedBy: 'manual',
+                                });
+                                setOrders(orders.map((o) => o.id === order.id ? { ...o, paymentStatus: 'verified' } : o));
+                                setMatchResult((prev) => ({ ...prev, unmatched: prev.unmatched.filter((o2) => o2.id !== order.id) }));
+                              } catch (err) { console.error('Failed to verify:', err); }
+                            }}
+                            className="btn-secondary text-xs px-3 py-1.5"
+                          >
+                            Verify Manually
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {matchResult.matched.length === 0 && matchResult.unmatched.length === 0 && (
+                  <p className="text-sm text-surface-500">No pending UPI payments found to verify.</p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'coupons' && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-surface-500">{coupons.length} coupons</p>
+            <button onClick={() => setShowCouponForm(true)} className="btn-primary text-sm">
+              <Plus className="h-4 w-4" /> Create Coupon
+            </button>
+          </div>
+
+          {showCouponForm && (
+            <div className="card p-6 animate-scale-in">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">New Coupon</h3>
+                <button onClick={() => setShowCouponForm(false)} className="btn-ghost p-2">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <form onSubmit={handleAddCoupon} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-surface-700 mb-1">Code</label>
+                    <input
+                      value={newCoupon.code}
+                      onChange={(e) => setNewCoupon({ ...newCoupon, code: e.target.value.toUpperCase() })}
+                      placeholder="SAVE10"
+                      className="input-field font-mono uppercase"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-surface-700 mb-1">Type</label>
+                    <select
+                      value={newCoupon.type}
+                      onChange={(e) => setNewCoupon({ ...newCoupon, type: e.target.value })}
+                      className="input-field"
+                    >
+                      <option value="percent">Percent (%)</option>
+                      <option value="fixed">Fixed (₹)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-surface-700 mb-1">
+                      Value ({newCoupon.type === 'percent' ? '%' : '₹'})
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="1"
+                      value={newCoupon.value}
+                      onChange={(e) => setNewCoupon({ ...newCoupon, value: e.target.value })}
+                      placeholder={newCoupon.type === 'percent' ? '10' : '500'}
+                      className="input-field"
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-surface-700 mb-1">Min Order (₹, optional)</label>
+                    <input
+                      type="number"
+                      value={newCoupon.minOrder}
+                      onChange={(e) => setNewCoupon({ ...newCoupon, minOrder: e.target.value })}
+                      placeholder="999"
+                      className="input-field"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-surface-700 mb-1">Max Discount (₹, percent only)</label>
+                    <input
+                      type="number"
+                      value={newCoupon.maxDiscount}
+                      onChange={(e) => setNewCoupon({ ...newCoupon, maxDiscount: e.target.value })}
+                      placeholder="2000"
+                      className="input-field"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-surface-700 mb-1">Usage Limit (optional)</label>
+                    <input
+                      type="number"
+                      value={newCoupon.usageLimit}
+                      onChange={(e) => setNewCoupon({ ...newCoupon, usageLimit: e.target.value })}
+                      placeholder="100"
+                      className="input-field"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button type="submit" className="btn-primary">Create Coupon</button>
+                  <button type="button" onClick={() => setShowCouponForm(false)} className="btn-secondary">Cancel</button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {coupons.map((c) => (
+              <div key={c.id} className="card p-5 relative group">
+                <button
+                  onClick={() => handleDeleteCoupon(c.id)}
+                  className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 btn-ghost p-1.5 text-red-500 hover:bg-red-50 transition-all"
+                  title="Delete coupon"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+                <div className="flex items-center gap-2">
+                  <Ticket className="h-5 w-5 text-primary-600" />
+                  <span className="font-mono text-sm font-bold text-surface-900">{c.code}</span>
+                  {!c.active && <span className="badge badge-warning text-[10px]">Inactive</span>}
+                </div>
+                <p className="mt-2 text-sm text-surface-600">
+                  {c.type === 'percent'
+                    ? `${c.value}% off${c.maxDiscount ? ` (up to ₹${c.maxDiscount})` : ''}`
+                    : `₹${c.value} off`}
+                </p>
+                <div className="mt-3 space-y-1 text-xs text-surface-500">
+                  {c.minOrder != null && c.minOrder > 0 && <p>Min order: ₹{c.minOrder}</p>}
+                  {c.usageLimit != null ? (
+                    <p>Used {c.usedCount || 0}/{c.usageLimit}</p>
+                  ) : (
+                    <p>Unlimited usage · Used {c.usedCount || 0}</p>
+                  )}
+                </div>
               </div>
             ))}
           </div>

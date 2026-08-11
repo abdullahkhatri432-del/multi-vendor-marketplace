@@ -17,7 +17,7 @@ import BulkImport from '../components/BulkImport';
 import DraftProducts from '../components/DraftProducts';
 
 export default function VendorDashboard() {
-  const { user, isVendor, isAuthenticated } = useAuth();
+  const { user, isVendor, isAuthenticated, loading: authLoading } = useAuth();
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [vendor, setVendor] = useState(null);
@@ -47,6 +47,7 @@ export default function VendorDashboard() {
     if (user) fetchData();
   }, [user]);
 
+  if (authLoading) return <LoadingSpinner size="lg" className="py-32" />;
   if (!isAuthenticated) return <Navigate to="/login" />;
   if (!isVendor) return <Navigate to="/" />;
   if (loading) return <LoadingSpinner size="lg" className="py-32" />;
@@ -54,6 +55,10 @@ export default function VendorDashboard() {
   const lowStockProducts = products.filter((p) => p.stock > 0 && p.stock < 10);
   const outOfStockProducts = products.filter((p) => p.stock === 0);
   const topProducts = [...products].sort((a, b) => (b.soldCount || 0) - (a.soldCount || 0)).slice(0, 5);
+
+  const vendorItems = (order) => (order.items || []).filter((it) => it.vendorId === user.uid);
+  const vendorSubtotal = (order) =>
+    vendorItems(order).reduce((s, it) => s + (it.price || 0) * (it.quantity || 1) + (it.addonTotal || 0), 0);
 
   const statusColors = {
     pending: 'badge-warning', processing: 'badge-primary',
@@ -80,6 +85,19 @@ export default function VendorDashboard() {
           </Link>
         </div>
       </div>
+
+      {vendor && !vendor.verified && (
+        <div className="mb-8 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-5 animate-fade-in">
+          <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+          <div className="text-sm text-amber-800">
+            <p className="font-semibold">Your store is under review</p>
+            <p className="mt-1 text-amber-700">
+              An admin has not verified your store yet. You can still add products and prepare your
+              catalog — once approved, your store will be featured on the marketplace.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="mb-8">
@@ -108,7 +126,7 @@ export default function VendorDashboard() {
         <>
           {/* Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <StatCard icon={DollarSign} label="Revenue" value={`$${analytics?.totalRevenue?.toFixed(2) || '0.00'}`} color="success" />
+            <StatCard icon={DollarSign} label="Revenue" value={`₹${analytics?.totalRevenue?.toFixed(2) || '0.00'}`} color="success" />
             <StatCard icon={ShoppingCart} label="Orders" value={analytics?.totalOrders || 0} color="primary" />
             <StatCard icon={Package} label="Products" value={products.length} color="accent" />
             <StatCard icon={Clock} label="Pending" value={analytics?.pendingOrders || 0} color="warning" />
@@ -165,7 +183,7 @@ export default function VendorDashboard() {
                             <td className="py-3">
                               <span className={`badge ${statusColors[order.status] || 'badge-primary'}`}>{order.status || 'pending'}</span>
                             </td>
-                            <td className="py-3 text-right font-semibold">${order.total?.toFixed(2)}</td>
+                            <td className="py-3 text-right font-semibold">₹{vendorSubtotal(order).toFixed(2)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -196,7 +214,7 @@ export default function VendorDashboard() {
                           <p className="text-xs font-medium text-surface-900 truncate">{product.name}</p>
                           <p className="text-xs text-surface-400">{product.soldCount || 0} sold</p>
                         </div>
-                        <span className="text-xs font-semibold text-surface-700">${product.price?.toFixed(2)}</span>
+                        <span className="text-xs font-semibold text-surface-700">₹{product.price?.toFixed(2)}</span>
                       </div>
                     ))}
                   </div>
@@ -242,7 +260,7 @@ export default function VendorDashboard() {
                     <ClipboardList className="h-4 w-4 text-primary-500" /> Manage Orders
                   </Link>
                   <Link to="/products" className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-surface-700 hover:bg-surface-50 transition-colors">
-                    <BarChart3 className="h-4 w-4 text-primary-500" /> View Storefront
+                    <BarChart3 className="h-4 w-4 text-primary-500" /> View Marketplace
                   </Link>
                 </div>
               </div>

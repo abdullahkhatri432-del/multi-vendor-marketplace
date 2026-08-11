@@ -56,6 +56,7 @@ export default function ProductDetailPage() {
   const handleBuyNow = async () => {
     try {
       await intercept('buy_now', { productId: id, quantity, selectedAddons });
+      addItem(product, quantity, selectedAddons);
       navigate('/checkout');
     } catch (err) {
       if (err.message !== 'Authentication cancelled') {
@@ -161,9 +162,9 @@ export default function ProductDetailPage() {
           </div>
 
           <div className="mt-6 flex items-baseline gap-3">
-            <span className="text-3xl font-bold text-surface-900">${product.price?.toFixed(2)}</span>
+            <span className="text-3xl font-bold text-surface-900">₹{product.price?.toFixed(2)}</span>
             {product.originalPrice && product.originalPrice > product.price && (
-              <span className="text-lg text-surface-400 line-through">${product.originalPrice.toFixed(2)}</span>
+              <span className="text-lg text-surface-400 line-through">₹{product.originalPrice.toFixed(2)}</span>
             )}
           </div>
 
@@ -199,13 +200,13 @@ export default function ProductDetailPage() {
           <div className="mt-8">
             <div className="flex items-center gap-2 mb-4">
               <span className="text-sm text-surface-500">Base Price:</span>
-              <span className="text-lg font-bold text-surface-900">${product.price?.toFixed(2)}</span>
+              <span className="text-lg font-bold text-surface-900">₹{product.price?.toFixed(2)}</span>
             </div>
             {selectedAddons.length > 0 && (
               <div className="flex items-center gap-2 mb-4">
                 <span className="text-sm text-surface-500">Add-ons:</span>
                 <span className="text-lg font-bold text-primary-600">
-                  +${selectedAddons.reduce((sum, addon) => sum + (addon.price || 0), 0).toFixed(2)}
+                  +₹{selectedAddons.reduce((sum, addon) => sum + (addon.price || 0), 0).toFixed(2)}
                 </span>
               </div>
             )}
@@ -213,7 +214,7 @@ export default function ProductDetailPage() {
               <div className="flex items-center justify-between">
                 <span className="text-base font-medium text-surface-600">Total for {quantity}×:</span>
                 <span className="text-2xl font-bold text-surface-900">
-                  ${totalPrice.toFixed(2)}
+                  ₹{totalPrice.toFixed(2)}
                 </span>
               </div>
             </div>

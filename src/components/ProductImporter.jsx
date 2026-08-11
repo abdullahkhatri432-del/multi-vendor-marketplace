@@ -181,7 +181,7 @@ export default function ProductImporter({ onProductImported }) {
                 </div>
                 <div>
                   <p className="text-xs text-surface-500">Price</p>
-                  <p className="font-bold text-surface-900">${Number(result.price).toFixed(2)}</p>
+                  <p className="font-bold text-surface-900">₹{Number(result.price).toFixed(2)}</p>
                 </div>
               </div>
 

@@ -33,6 +33,17 @@ export default function OrdersPage() {
     cancelled: 'badge-danger',
   };
 
+  const paymentColor = (s) => {
+    if (s === 'verified' || s === 'paid' || s === 'completed') return 'badge-success';
+    if (s === 'pending-verification' || s === 'advance-paid' || (s && s.startsWith('pending'))) return 'badge-warning';
+    return 'badge-primary';
+  };
+
+  const paymentLabel = (s) => {
+    if (!s) return 'Payment pending';
+    return s.replace(/-/g, ' ');
+  };
+
   if (loading) return <LoadingSpinner size="lg" className="py-32" />;
 
   if (orders.length === 0) {
@@ -70,10 +81,13 @@ export default function OrdersPage() {
                 </div>
               </div>
               <div className="flex items-center gap-4">
+                <span className={`badge ${paymentColor(order.paymentStatus)}`}>
+                  {paymentLabel(order.paymentStatus)}
+                </span>
                 <span className={statusColors[order.status] || 'badge-primary'}>
                   {order.status || 'pending'}
                 </span>
-                <span className="text-lg font-bold text-surface-900">${order.total?.toFixed(2)}</span>
+                <span className="text-lg font-bold text-surface-900">₹{order.total?.toFixed(2)}</span>
               </div>
             </div>
 

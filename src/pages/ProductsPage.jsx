@@ -12,7 +12,7 @@ export default function ProductsPage() {
   const [viewMode, setViewMode] = useState('grid');
   const [sortBy, setSortBy] = useState('newest');
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
-  const [priceRange, setPriceRange] = useState([0, 1000]);
+  const [priceRange, setPriceRange] = useState([0, 100000]);
   const [showFilters, setShowFilters] = useState(false);
 
   const query = searchParams.get('q') || '';

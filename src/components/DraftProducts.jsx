@@ -304,7 +304,7 @@ export default function DraftProducts() {
                           />
                         ) : (
                           <span className="text-surface-600 font-mono">
-                            ${(product.scrapedPrice || product.price || 0).toFixed(2)}
+                            ₹{(product.scrapedPrice || product.price || 0).toFixed(2)}
                           </span>
                         )}
                       </td>
@@ -337,7 +337,7 @@ export default function DraftProducts() {
                           />
                         ) : (
                           <span className="font-bold text-surface-900 font-mono">
-                            ${(product.price || 0).toFixed(2)}
+                            ₹{(product.price || 0).toFixed(2)}
                           </span>
                         )}
                       </td>
@@ -345,7 +345,7 @@ export default function DraftProducts() {
                         <span className={`font-semibold font-mono ${
                           profit.profit > 0 ? 'text-emerald-600' : profit.profit < 0 ? 'text-red-600' : 'text-surface-600'
                         }`}>
-                          ${profit.profit} ({profit.margin}%)
+                          ₹{profit.profit} ({profit.margin}%)
                         </span>
                       </td>
                       <td className="py-4">

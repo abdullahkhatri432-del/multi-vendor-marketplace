@@ -92,6 +92,26 @@ export default function Header() {
                         <LayoutDashboard className="h-4 w-4" />
                         Dashboard
                       </Link>
+                      {userRole === 'vendor' && (
+                        <>
+                          <Link
+                            to="/vendor/products"
+                            onClick={() => setProfileOpen(false)}
+                            className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-surface-700 hover:bg-surface-50"
+                          >
+                            <Package className="h-4 w-4" />
+                            My Products
+                          </Link>
+                          <Link
+                            to="/vendor/orders"
+                            onClick={() => setProfileOpen(false)}
+                            className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-surface-700 hover:bg-surface-50"
+                          >
+                            <LayoutDashboard className="h-4 w-4" />
+                            Vendor Orders
+                          </Link>
+                        </>
+                      )}
                       <Link
                         to="/orders"
                         onClick={() => setProfileOpen(false)}

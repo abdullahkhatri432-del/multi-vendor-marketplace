@@ -77,8 +77,7 @@ app.get('/api/test', (req, res) => {
 });
 console.log('[Setup] Test route registered at /api/test at', new Date().toISOString());
 
-app.get('/api/health', async (req, res) => {
-    console.log('>>> HEALTH CHECK HANDLER START <<<');
+app.get('/api/health', async (req, res) => {    console.log('>>> HEALTH CHECK HANDLER START <<<');
     console.log('[Health Check] >>> REQUEST RECEIVED:', req.method, req.url);
     console.log('[Health Check] db:', !!db, db?.projectId, db?.databaseId);
     try {
@@ -117,6 +116,11 @@ app.use((req, res, next) => {
 
 app.use(cors());
 app.use(express.json());
+
+// Import product from URL (scrape + return data; client saves via Firestore SDK).
+// api/package.json scopes api/*.js as CommonJS, so require() it.
+const importProductHandler = require('./api/import-product.js');
+app.post('/api/import-product', importProductHandler);
 
 // 404 handler (LAST)
 app.use((req, res) => {

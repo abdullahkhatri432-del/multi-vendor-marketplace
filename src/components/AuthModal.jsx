@@ -1,17 +1,18 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Loader2, AlertCircle, ArrowRight, Mail, Lock } from 'lucide-react';
+import { X, Loader2, AlertCircle, ArrowRight, Mail, Lock, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAuthSuccess }) {
-  const { loginWithEmail, registerWithEmail } = useAuth();
-  const [mode, setMode] = useState(initialMode); // 'login' | 'register'
+  const { loginWithEmail, registerWithEmail, resetPassword } = useAuth();
+  const [mode, setMode] = useState(initialMode); // 'login' | 'register' | 'forgot'
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [role, setRole] = useState('customer');
+  const [resetSent, setResetSent] = useState(false);
 
   // Reset state when modal opens/closes
   useEffect(() => {
@@ -23,11 +24,17 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
       setPassword('');
       setDisplayName('');
       setRole('customer');
+      setResetSent(false);
     }
   }, [isOpen, initialMode]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (mode === 'forgot') {
+      await handleForgotSubmit(e);
+      return;
+    }
 
     if (!email || !email.includes('@')) {
       setError('Please enter a valid email address');
@@ -67,6 +74,36 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
     onClose();
   };
 
+  const handleForgotSubmit = async (e) => {
+    if (!email || !email.includes('@')) {
+      setError('Please enter a valid email address');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      await resetPassword(email.trim());
+      setResetSent(true);
+    } catch (err) {
+      console.error('Reset error:', err);
+      setError(getErrorMessage(err.code));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const goToForgot = () => {
+    setMode('forgot');
+    setError('');
+    setResetSent(false);
+  };
+
+  const goToLogin = () => {
+    setMode('login');
+    setError('');
+    setResetSent(false);
+  };
+
   const switchMode = () => {
     setMode(mode === 'login' ? 'register' : 'login');
     setError('');
@@ -95,12 +132,14 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
               <Mail className="h-7 w-7 text-white" />
             </div>
             <h2 className="text-2xl font-display font-bold text-surface-900">
-              {mode === 'login' ? 'Welcome back' : 'Create your account'}
+              {mode === 'login' ? 'Welcome back' : mode === 'forgot' ? 'Forgot password' : 'Create your account'}
             </h2>
             <p className="mt-1 text-sm text-surface-500">
               {mode === 'login'
                 ? 'Sign in to continue to Speedersmania'
-                : 'Join Speedersmania and start your journey'}
+                : mode === 'forgot'
+                  ? 'Enter your email and we will send you a reset link'
+                  : 'Join Speedersmania and start your journey'}
             </p>
           </div>
 
@@ -143,6 +182,54 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
             </>
           )}
 
+          {mode === 'forgot' && !resetSent && (
+            <div className="space-y-4">
+              <p className="text-sm text-surface-500">
+                No worries — enter your account email and we will send you a link to reset your password.
+              </p>
+              <div>
+                <label className="block text-sm font-medium text-surface-700 mb-1.5">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => { setEmail(e.target.value); setError(''); }}
+                    placeholder="you@example.com"
+                    className="input-field pl-10"
+                    required
+                    autoComplete="email"
+                  />
+                </div>
+              </div>
+              <button type="submit" disabled={loading} className="btn-primary w-full py-3">
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <ArrowRight className="h-4 w-4 mr-2" />
+                )}
+                Send Reset Link
+              </button>
+            </div>
+          )}
+
+          {mode === 'forgot' && resetSent && (
+            <div className="text-center space-y-4 py-6 animate-scale-in">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 mx-auto">
+                <CheckCircle className="h-8 w-8 text-emerald-600" />
+              </div>
+              <h3 className="text-lg font-display font-bold text-surface-900">Check your email</h3>
+              <p className="text-sm text-surface-500">
+                We sent a password reset link to{' '}
+                <span className="font-semibold text-surface-700">{email}</span>. Please check your
+                inbox (and spam folder).
+              </p>
+            </div>
+          )}
+
+          {mode !== 'forgot' && (
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === 'register' && (
               <div>
@@ -207,17 +294,42 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
               {mode === 'login' ? 'Sign In' : 'Create Account'}
             </button>
           </form>
+          )}
+
+          {mode === 'login' && (
+            <div className="flex justify-end -mt-1">
+              <button
+                type="button"
+                onClick={goToForgot}
+                className="text-xs font-semibold text-primary-600 hover:text-primary-700 transition-colors"
+              >
+                Forgot password?
+              </button>
+            </div>
+          )}
 
           <p className="mt-6 text-center text-sm text-surface-500">
-            {mode === 'login'
-              ? "Don't have an account? "
-              : 'Already have an account? '}
-            <button
-              onClick={switchMode}
-              className="font-semibold text-primary-600 hover:text-primary-700 transition-colors"
-            >
-              {mode === 'login' ? 'Sign up' : 'Sign in'}
-            </button>
+            {mode === 'forgot' ? (
+              <>
+                Remembered your password?{' '}
+                <button
+                  onClick={goToLogin}
+                  className="font-semibold text-primary-600 hover:text-primary-700 transition-colors"
+                >
+                  Sign in
+                </button>
+              </>
+            ) : (
+              <>
+                {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
+                <button
+                  onClick={switchMode}
+                  className="font-semibold text-primary-600 hover:text-primary-700 transition-colors"
+                >
+                  {mode === 'login' ? 'Sign up' : 'Sign in'}
+                </button>
+              </>
+            )}
           </p>
         </div>
       </div>
@@ -246,6 +358,10 @@ function getErrorMessage(code) {
       return 'Too many attempts. Please try again later.';
     case 'auth/network-request-failed':
       return 'Network error. Please check your connection.';
+    case 'auth/invalid-action-code':
+      return 'This reset link is invalid or has expired. Please request a new one.';
+    case 'auth/missing-email':
+      return 'Please enter your email address.';
     case 'auth/operation-not-allowed':
       return 'Email/password sign-in is not enabled. Please contact support.';
     default:

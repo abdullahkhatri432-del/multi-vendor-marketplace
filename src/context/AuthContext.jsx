@@ -5,6 +5,7 @@ import {
   updateProfile,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
@@ -63,6 +64,9 @@ export function AuthProvider({ children }) {
     return userCredential.user;
   };
 
+  // Send password reset email
+  const resetPassword = (email) => sendPasswordResetEmail(auth, email);
+
   // Create user account in Firestore after verification
   const createUserAccount = async (firebaseUser, displayName, role = 'customer') => {
     // Merge instead of skip: onAuthStateChanged may have already auto-created
@@ -106,6 +110,7 @@ export function AuthProvider({ children }) {
     loading,
     registerWithEmail,
     loginWithEmail,
+    resetPassword,
     createUserAccount,
     logout,
     isAuthenticated: !!user,

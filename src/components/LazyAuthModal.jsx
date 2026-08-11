@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Loader2, CheckCircle, AlertCircle, Mail, Lock, User as UserIcon } from 'lucide-react';
+import { X, Loader2, CheckCircle, AlertCircle, Mail, Lock, User as UserIcon, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function LazyAuthModal({
@@ -9,14 +9,15 @@ export default function LazyAuthModal({
   onSuccess,
   triggerAction,
 }) {
-  const { loginWithEmail, registerWithEmail } = useAuth();
-  const [mode, setMode] = useState('login'); // 'login' | 'register'
+  const { loginWithEmail, registerWithEmail, resetPassword } = useAuth();
+  const [mode, setMode] = useState('login'); // 'login' | 'register' | 'forgot'
   const [step, setStep] = useState('form'); // 'form' | 'success'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -27,11 +28,17 @@ export default function LazyAuthModal({
       setError('');
       setLoading(false);
       setMode('login');
+      setResetSent(false);
     }
   }, [isOpen]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (mode === 'forgot') {
+      await handleForgotSubmit(e);
+      return;
+    }
 
     if (!email || !email.includes('@')) {
       setError('Please enter a valid email address');
@@ -76,6 +83,35 @@ export default function LazyAuthModal({
     onClose();
   };
 
+  const handleForgotSubmit = async (e) => {
+    if (!email || !email.includes('@')) {
+      setError('Please enter a valid email address');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      await resetPassword(email.trim());
+      setResetSent(true);
+    } catch (err) {
+      setError(getErrorMessage(err.code));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const goToForgot = () => {
+    setMode('forgot');
+    setError('');
+    setResetSent(false);
+  };
+
+  const goToLogin = () => {
+    setMode('login');
+    setError('');
+    setResetSent(false);
+  };
+
   const switchMode = () => {
     setMode(mode === 'login' ? 'register' : 'login');
     setError('');
@@ -89,15 +125,67 @@ export default function LazyAuthModal({
           <Mail className="h-7 w-7 text-primary-600" />
         </div>
         <h2 className="text-xl font-display font-bold text-surface-900">
-          {mode === 'login' ? 'Sign In' : 'Create Account'}
+          {mode === 'login' ? 'Sign In' : mode === 'forgot' ? 'Forgot Password' : 'Create Account'}
         </h2>
         <p className="mt-2 text-sm text-surface-500">
           {mode === 'login'
             ? 'Sign in to complete your purchase'
-            : 'Create an account to continue'}
+            : mode === 'forgot'
+              ? 'Enter your email and we will send you a reset link'
+              : 'Create an account to continue'}
         </p>
       </div>
 
+      {mode === 'forgot' && !resetSent && (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => { setEmail(e.target.value); setError(''); }}
+              placeholder="Email Address"
+              className="input-field pl-10"
+              required
+              autoComplete="email"
+            />
+          </div>
+
+          {error && (
+            <div className="flex items-center gap-2 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">
+              <AlertCircle className="h-4 w-4 flex-shrink-0" />
+              {error}
+            </div>
+          )}
+
+          <button type="submit" disabled={loading} className="btn-primary w-full disabled:opacity-50">
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                Sending...
+              </>
+            ) : (
+              'Send Reset Link'
+            )}
+          </button>
+        </form>
+      )}
+
+      {mode === 'forgot' && resetSent && (
+        <div className="text-center space-y-4 py-4">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 mx-auto">
+            <CheckCircle className="h-8 w-8 text-emerald-600" />
+          </div>
+          <h3 className="text-lg font-display font-bold text-surface-900">Check your email</h3>
+          <p className="text-sm text-surface-500">
+            We sent a password reset link to{' '}
+            <span className="font-semibold text-surface-700">{email}</span>. Please check your inbox
+            (and spam folder).
+          </p>
+        </div>
+      )}
+
+      {mode !== 'forgot' && (
       <form onSubmit={handleSubmit} className="space-y-4">
         {mode === 'register' && (
           <div className="relative">
@@ -161,17 +249,41 @@ export default function LazyAuthModal({
           )}
         </button>
       </form>
+      )}
+
+      {mode === 'login' && (
+        <div className="flex justify-end -mt-1">
+          <button
+            type="button"
+            onClick={goToForgot}
+            className="text-xs font-semibold text-primary-600 hover:text-primary-700 transition-colors"
+          >
+            Forgot password?
+          </button>
+        </div>
+      )}
 
       <p className="text-center text-sm text-surface-500">
-        {mode === 'login'
-          ? "Don't have an account? "
-          : 'Already have an account? '}
-        <button
-          onClick={switchMode}
-          className="font-semibold text-primary-600 hover:text-primary-700 transition-colors"
-        >
-          {mode === 'login' ? 'Sign up' : 'Sign in'}
-        </button>
+        {mode === 'forgot' ? (
+          <button
+            onClick={goToLogin}
+            className="inline-flex items-center gap-1 font-semibold text-primary-600 hover:text-primary-700 transition-colors"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> Back to sign in
+          </button>
+        ) : (
+          <>
+            {mode === 'login'
+              ? "Don't have an account? "
+              : 'Already have an account? '}
+            <button
+              onClick={switchMode}
+              className="font-semibold text-primary-600 hover:text-primary-700 transition-colors"
+            >
+              {mode === 'login' ? 'Sign up' : 'Sign in'}
+            </button>
+          </>
+        )}
       </p>
     </div>
   );
@@ -229,6 +341,10 @@ function getErrorMessage(code) {
       return 'Too many attempts. Please try again later.';
     case 'auth/network-request-failed':
       return 'Network error. Please check your connection.';
+    case 'auth/invalid-action-code':
+      return 'This reset link is invalid or has expired. Please request a new one.';
+    case 'auth/missing-email':
+      return 'Please enter your email address.';
     default:
       return 'Authentication failed. Please try again.';
   }

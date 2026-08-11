@@ -7,10 +7,14 @@ import LoadingSpinner from '../components/ui/LoadingSpinner';
 import EmptyState from '../components/ui/EmptyState';
 
 export default function VendorOrders() {
-  const { user, isVendor, isAuthenticated } = useAuth();
+  const { user, isVendor, isAuthenticated, loading: authLoading } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedOrder, setExpandedOrder] = useState(null);
+
+  const vendorItems = (order) => (order.items || []).filter((it) => it.vendorId === user?.uid);
+  const vendorSubtotal = (order) =>
+    vendorItems(order).reduce((s, it) => s + (it.price || 0) * (it.quantity || 1) + (it.addonTotal || 0), 0);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -43,6 +47,7 @@ export default function VendorOrders() {
     cancelled: 'badge-danger',
   };
 
+  if (authLoading) return <LoadingSpinner size="lg" className="py-32" />;
   if (!isAuthenticated) return <Navigate to="/login" />;
   if (!isVendor) return <Navigate to="/" />;
   if (loading) return <LoadingSpinner size="lg" className="py-32" />;
@@ -75,7 +80,7 @@ export default function VendorOrders() {
                   <span className={`badge ${statusColors[order.status] || 'badge-primary'}`}>
                     {order.status || 'pending'}
                   </span>
-                  <span className="text-lg font-bold text-surface-900">${order.total?.toFixed(2)}</span>
+                  <span className="text-lg font-bold text-surface-900">₹{vendorSubtotal(order).toFixed(2)}</span>
                   {expandedOrder === order.id ? <ChevronUp className="h-5 w-5 text-surface-400" /> : <ChevronDown className="h-5 w-5 text-surface-400" />}
                 </div>
               </button>
@@ -84,15 +89,24 @@ export default function VendorOrders() {
                 <div className="border-t border-surface-100 px-6 py-4 bg-surface-50 animate-slide-down">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <h4 className="text-sm font-semibold text-surface-900 mb-2">Items</h4>
+                      <h4 className="text-sm font-semibold text-surface-900 mb-2">Your Items</h4>
                       <div className="space-y-2">
-                        {order.items?.map((item, i) => (
-                          <div key={i} className="flex items-center justify-between text-sm">
+                        {vendorItems(order).map((item, i) => (
+                          <div key={i} className="flex items-center justify-between text-sm rounded-lg bg-white px-3 py-2">
                             <span className="text-surface-600">{item.name} x{item.quantity}</span>
-                            <span className="font-medium">${(item.price * item.quantity).toFixed(2)}</span>
+                            <span className="font-medium">₹{((item.price * item.quantity) + (item.addonTotal || 0)).toFixed(2)}</span>
                           </div>
                         ))}
                       </div>
+                      <div className="mt-3 pt-3 border-t border-surface-100 flex justify-between text-sm">
+                        <span className="text-surface-500">Your Subtotal</span>
+                        <span className="font-semibold">₹{vendorSubtotal(order).toFixed(2)}</span>
+                      </div>
+                      {(order.items || []).length > vendorItems(order).length && (
+                        <p className="mt-1 text-xs text-surface-400">
+                          This is a multi-vendor order — other sellers' items are not shown here.
+                        </p>
+                      )}
                     </div>
                     <div>
                       <h4 className="text-sm font-semibold text-surface-900 mb-2">Shipping Address</h4>

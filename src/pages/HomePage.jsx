@@ -21,168 +21,9 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { getAllProducts, getAllCategories } from '../config/firestore';
+import { fallbackProducts, fallbackVendors } from '../config/fallbackData';
 import ProductCard from '../components/ui/ProductCard';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
-
-const fallbackProducts = [
-  {
-    id: 'fallback-1',
-    name: 'Premium Wireless Headphones',
-    price: 299.99,
-    originalPrice: 399.99,
-    image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop',
-    rating: 4.8,
-    reviewCount: 324,
-    vendorName: 'AudioTech Pro',
-    badge: 'Best Seller',
-  },
-  {
-    id: 'fallback-2',
-    name: 'Minimalist Leather Watch',
-    price: 189.00,
-    originalPrice: 249.00,
-    image: 'https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=400&h=400&fit=crop',
-    rating: 4.9,
-    reviewCount: 187,
-    vendorName: 'Timeless Co.',
-    badge: 'Trending',
-  },
-  {
-    id: 'fallback-3',
-    name: 'Organic Cotton Hoodie',
-    price: 79.99,
-    originalPrice: 99.99,
-    image: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=400&h=400&fit=crop',
-    rating: 4.7,
-    reviewCount: 456,
-    vendorName: 'EcoWear',
-    badge: 'Eco-Friendly',
-  },
-  {
-    id: 'fallback-4',
-    name: 'Smart Home Hub',
-    price: 149.99,
-    originalPrice: 199.99,
-    image: 'https://images.unsplash.com/photo-1558002038-1055e27e3c84?w=400&h=400&fit=crop',
-    rating: 4.6,
-    reviewCount: 203,
-    vendorName: 'SmartLiving',
-    badge: 'New Arrival',
-  },
-  {
-    id: 'fallback-5',
-    name: 'Professional Camera Lens',
-    price: 899.00,
-    originalPrice: 1199.00,
-    image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=400&h=400&fit=crop',
-    rating: 4.9,
-    reviewCount: 89,
-    vendorName: 'ProOptics',
-    badge: 'Premium',
-  },
-  {
-    id: 'fallback-6',
-    name: 'Ergonomic Office Chair',
-    price: 449.99,
-    originalPrice: 599.99,
-    image: 'https://images.unsplash.com/photo-1589384077800-1c1a1e3b6e4f?w=400&h=400&fit=crop',
-    rating: 4.8,
-    reviewCount: 156,
-    vendorName: 'WorkSpace Pro',
-    badge: 'Top Rated',
-  },
-  {
-    id: 'fallback-7',
-    name: 'Artisan Coffee Set',
-    price: 129.99,
-    originalPrice: 159.99,
-    image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&h=400&fit=crop',
-    rating: 4.7,
-    reviewCount: 278,
-    vendorName: 'BrewMasters',
-    badge: 'Gift Ready',
-  },
-  {
-    id: 'fallback-8',
-    name: 'Yoga Mat Premium',
-    price: 69.99,
-    originalPrice: 89.99,
-    image: 'https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?w=400&h=400&fit=crop',
-    rating: 4.8,
-    reviewCount: 512,
-    vendorName: 'ZenFlow',
-    badge: 'Popular',
-  },
-];
-
-const fallbackVendors = [
-  {
-    id: 'vendor-1',
-    name: 'TechSphere Electronics',
-    logo: 'https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=100&h=100&fit=crop',
-    rating: 4.9,
-    reviewCount: 2847,
-    category: 'Electronics',
-    verified: true,
-    productsCount: 156,
-    badge: 'Top Seller',
-  },
-  {
-    id: 'vendor-2',
-    name: 'Fashion Forward',
-    logo: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=100&h=100&fit=crop',
-    rating: 4.8,
-    reviewCount: 1923,
-    category: 'Fashion',
-    verified: true,
-    productsCount: 234,
-    badge: 'Trending',
-  },
-  {
-    id: 'vendor-3',
-    name: 'Home Essentials Co.',
-    logo: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=100&h=100&fit=crop',
-    rating: 4.9,
-    reviewCount: 3156,
-    category: 'Home & Living',
-    verified: true,
-    productsCount: 189,
-    badge: 'Verified',
-  },
-  {
-    id: 'vendor-4',
-    name: 'FitLife Sports',
-    logo: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=100&h=100&fit=crop',
-    rating: 4.7,
-    reviewCount: 1456,
-    category: 'Sports',
-    verified: true,
-    productsCount: 98,
-    badge: 'Active',
-  },
-  {
-    id: 'vendor-5',
-    name: 'Pure Beauty',
-    logo: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=100&h=100&fit=crop',
-    rating: 4.8,
-    reviewCount: 2134,
-    category: 'Beauty',
-    verified: true,
-    productsCount: 167,
-    badge: 'New',
-  },
-  {
-    id: 'vendor-6',
-    name: 'BookWorm Paradise',
-    logo: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=100&h=100&fit=crop',
-    rating: 4.9,
-    reviewCount: 4567,
-    category: 'Books',
-    verified: true,
-    productsCount: 523,
-    badge: 'Largest Collection',
-  },
-];
 
 const testimonials = [
   {
@@ -281,7 +122,7 @@ export default function HomePage() {
               <Sparkles className="h-4 w-4 animate-bounce" />
               <span className="font-medium">Summer Sale Live!</span>
               <span className="px-2 py-0.5 rounded-full bg-white/20 text-xs font-semibold">Up to 60% Off</span>
-              <span className="px-2 py-0.5 rounded-full bg-white/20 text-xs font-semibold">Free Shipping $50+</span>
+              <span className="px-2 py-0.5 rounded-full bg-white/20 text-xs font-semibold">Free Shipping ₹999+</span>
               <span className="px-2 py-0.5 rounded-full bg-white/20 text-xs font-semibold">Code: SUMMER24</span>
             </div>
             <div className="flex items-center gap-4 text-primary-200">
@@ -448,9 +289,9 @@ export default function HomePage() {
                   </div>
                   <div className="flex items-center gap-3 pt-2 border-t border-surface-100">
                     <div className="flex items-center gap-1">
-                      <span className="text-lg font-bold text-surface-900">${Number(product.price).toFixed(2)}</span>
+                      <span className="text-lg font-bold text-surface-900">₹{Number(product.price).toFixed(2)}</span>
                       {product.originalPrice && product.originalPrice > product.price && (
-                        <span className="text-sm line-through text-surface-400">${Number(product.originalPrice).toFixed(2)}</span>
+                        <span className="text-sm line-through text-surface-400">₹{Number(product.originalPrice).toFixed(2)}</span>
                       )}
                     </div>
                   </div>
@@ -478,7 +319,7 @@ export default function HomePage() {
             <h2 className="text-2xl font-display font-bold text-surface-900">Verified Vendors</h2>
             <p className="mt-1 text-sm text-surface-500">Trusted sellers with exceptional ratings and service</p>
           </div>
-          <Link to="/vendors" className="btn-ghost text-sm">
+          <Link to="/products" className="btn-ghost text-sm">
             View All <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
