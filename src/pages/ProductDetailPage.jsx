@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Star, Truck, Shield, RotateCcw, Heart, ArrowLeft, Minus, Plus, Store, Send } from 'lucide-react';
-import { getProduct, getVendor, getReviewsByProduct, createReview, getWishlist, addToWishlist, removeFromWishlist } from '../config/firestore';
+import { ShoppingCart, Star, Truck, Shield, RotateCcw, Heart, ArrowLeft, Minus, Plus, Store, Send, BadgeCheck, Zap } from 'lucide-react';
+import { getProduct, getVendor, getReviewsByProduct, createReview, getWishlist, addToWishlist, removeFromWishlist, getOrdersByUser } from '../config/firestore';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useCheckoutInterceptor } from '../context/CheckoutInterceptorContext';
+import { trackEvent } from '../config/analytics';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 
 export default function ProductDetailPage() {
@@ -24,6 +25,7 @@ export default function ProductDetailPage() {
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' });
   const [submittingReview, setSubmittingReview] = useState(false);
   const [selectedAddons, setSelectedAddons] = useState([]);
+  const [purchasedProductIds, setPurchasedProductIds] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -41,6 +43,18 @@ export default function ProductDetailPage() {
         if (user) {
           const wishlist = await getWishlist(user.uid);
           setIsInWishlist(wishlist.includes(id));
+          try {
+            const userOrders = await getOrdersByUser(user.uid);
+            const purchased = new Set();
+            userOrders.forEach((o) =>
+              (o.items || []).forEach((it) => {
+                if (it.productId === id) purchased.add(o.id);
+              })
+            );
+            setPurchasedProductIds([...purchased]);
+          } catch (err) {
+            console.error('Failed to load purchase history:', err);
+          }
         }
       } catch (err) { console.error('Failed to fetch product:', err); }
       finally { setLoading(false); }
@@ -48,8 +62,46 @@ export default function ProductDetailPage() {
     fetchData();
   }, [id, user]);
 
+  // Structured data + analytics when the product loads
+  useEffect(() => {
+    if (!product) return;
+    const prev = document.getElementById('product-ld-json');
+    if (prev) prev.remove();
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.id = 'product-ld-json';
+    script.text = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: product.name,
+      image: product.images?.[0] || product.image,
+      description: product.description,
+      sku: product.id,
+      brand: { '@type': 'Organization', name: product.vendorName || 'Speedersmania' },
+      offers: {
+        '@type': 'Offer',
+        priceCurrency: 'INR',
+        price: Number(product.price) || 0,
+        availability: 'https://schema.org/InStock',
+      },
+    });
+    document.head.appendChild(script);
+
+    trackEvent('view_item', {
+      items: [{ item_id: product.id, item_name: product.name, price: product.price, quantity: 1 }],
+      value: product.price || 0,
+    });
+    return () => {
+      document.getElementById('product-ld-json')?.remove();
+    };
+  }, [product]);
+
   const handleAddToCart = () => {
     if (!isAuthenticated) { navigate('/login'); return; }
+    trackEvent('add_to_cart', {
+      items: [{ item_id: id, item_name: product.name, price: product.price, quantity }],
+      value: (product.price || 0) * quantity,
+    });
     addItem(product, quantity, selectedAddons);
   };
 
@@ -99,6 +151,7 @@ export default function ProductDetailPage() {
         userName: user.displayName,
         rating: reviewForm.rating,
         comment: reviewForm.comment,
+        verifiedPurchase: purchasedProductIds.length > 0,
       });
       const revs = await getReviewsByProduct(id);
       setReviews(revs);
@@ -121,6 +174,11 @@ export default function ProductDetailPage() {
   const images = product.images?.length > 0 ? product.images : [product.image || `https://picsum.photos/seed/${product.id}/600/600`];
   const avgRating = reviews.length > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : (product.rating?.toFixed(1) || '4.5');
   const totalPrice = (product.price || 0) * quantity + selectedAddons.reduce((sum, addon) => sum + (addon.price || 0) * quantity, 0);
+  const deliveryDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+  const ratingDist = [5, 4, 3, 2, 1].map((s) => ({
+    star: s,
+    count: reviews.filter((r) => r.rating === s).length,
+  }));
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
@@ -224,11 +282,19 @@ export default function ProductDetailPage() {
             <Link to={`/products?vendor=${product.vendorId}`} className="mt-6 flex items-center gap-3 rounded-2xl border border-surface-100 p-4 hover:border-primary-200 transition-colors">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-50"><Store className="h-6 w-6 text-primary-600" /></div>
               <div>
-                <p className="text-sm font-semibold text-surface-900">{vendor.storeName}</p>
+                <p className="text-sm font-semibold text-surface-900 inline-flex items-center gap-1">
+                  {vendor.storeName}
+                  {vendor.verified && <BadgeCheck className="h-4 w-4 text-primary-600" aria-label="Verified vendor" />}
+                </p>
                 <p className="text-xs text-surface-500">{vendor.totalSales || 0} sales</p>
               </div>
             </Link>
           )}
+
+          <div className="mt-4 flex items-center gap-2 rounded-xl bg-surface-50 px-4 py-3 text-sm text-surface-600">
+            <Zap className="h-4 w-4 text-primary-600" />
+            Estimated delivery by <span className="font-semibold text-surface-800">{deliveryDate}</span> · 2-4 business days
+          </div>
 
           <div className="mt-8 flex flex-col sm:flex-row items-center gap-4">
             <div className="flex items-center rounded-xl border border-surface-200 bg-white">
@@ -268,6 +334,34 @@ export default function ProductDetailPage() {
           )}
         </div>
 
+        {reviews.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="card p-6 flex flex-col items-center justify-center">
+              <p className="text-5xl font-display font-bold text-surface-900">{avgRating}</p>
+              <div className="flex gap-1 mt-2">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className={`h-4 w-4 ${i < Math.round(avgRating) ? 'fill-amber-400 text-amber-400' : 'text-surface-200'}`} />
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-surface-500">{reviews.length} reviews</p>
+            </div>
+            <div className="md:col-span-2 card p-6 space-y-2">
+              {ratingDist.map(({ star, count }) => (
+                <div key={star} className="flex items-center gap-3 text-sm">
+                  <span className="w-8 flex items-center gap-1 font-medium text-surface-700">{star}<Star className="h-3 w-3 fill-amber-400 text-amber-400" /></span>
+                  <div className="flex-1 h-2 rounded-full bg-surface-100 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-amber-400"
+                      style={{ width: `${reviews.length ? (count / reviews.length) * 100 : 0}%` }}
+                    />
+                  </div>
+                  <span className="w-6 text-right text-xs text-surface-400">{count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {showReviewForm && (
           <form onSubmit={handleSubmitReview} className="card p-6 mb-6 animate-scale-in">
             <div className="flex items-center gap-3 mb-4">
@@ -306,7 +400,14 @@ export default function ProductDetailPage() {
                       {review.userName?.charAt(0)?.toUpperCase() || 'U'}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-surface-900">{review.userName || 'Anonymous'}</p>
+                      <p className="text-sm font-medium text-surface-900 inline-flex items-center gap-1.5">
+                        {review.userName || 'Anonymous'}
+                        {review.verifiedPurchase && (
+                          <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+                            <BadgeCheck className="h-3 w-3" /> Verified Purchase
+                          </span>
+                        )}
+                      </p>
                       <p className="text-xs text-surface-400">{review.createdAt?.toDate?.().toLocaleDateString() || 'Recently'}</p>
                     </div>
                   </div>

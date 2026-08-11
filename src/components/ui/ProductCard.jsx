@@ -1,16 +1,30 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, Star, Heart, Bolt } from 'lucide-react';
+import { ShoppingCart, Star, Heart, Bolt, BadgeCheck } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useCheckoutInterceptor } from '../../context/CheckoutInterceptorContext';
+import { getVendorsMap } from '../../config/firestore';
+import { trackEvent } from '../../config/analytics';
 import { useNavigate } from 'react-router-dom';
 
 export default function ProductCard({ product }) {
   const { addItem } = useCart();
   const { intercept } = useCheckoutInterceptor();
   const navigate = useNavigate();
+  const [vendorsMap, setVendorsMap] = useState(null);
   const image = product.images?.[0] || product.image || `https://picsum.photos/seed/${product.id}/400/400`;
 
+  useEffect(() => {
+    getVendorsMap().then(setVendorsMap).catch(() => {});
+  }, []);
+
+  const isVerifiedVendor = !!(vendorsMap && vendorsMap[product.vendorId]?.verified);
+
   const handleAddToCart = () => {
+    trackEvent('add_to_cart', {
+      items: [{ item_id: product.id, item_name: product.name, price: product.price, quantity: 1 }],
+      value: product.price || 0,
+    });
     addItem(product);
   };
 
@@ -34,6 +48,7 @@ export default function ProductCard({ product }) {
           alt={product.name}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
           loading="lazy"
+          decoding="async"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
         <button className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-surface-400 opacity-0 group-hover:opacity-100 transition-all hover:text-red-500 shadow-sm">
@@ -48,8 +63,11 @@ export default function ProductCard({ product }) {
 
       <div className="p-4">
         <Link to={`/products/${product.id}`}>
-          <p className="text-xs font-medium text-primary-600 uppercase tracking-wide mb-1">
+          <p className="text-xs font-medium text-primary-600 uppercase tracking-wide mb-1 inline-flex items-center gap-1">
             {product.vendorName || 'NexusMart'}
+            {isVerifiedVendor && (
+              <BadgeCheck className="h-3.5 w-3.5 text-primary-600" aria-label="Verified vendor" />
+            )}
           </p>
           <h3 className="text-sm font-semibold text-surface-900 line-clamp-2 group-hover:text-primary-600 transition-colors leading-snug">
             {product.name}

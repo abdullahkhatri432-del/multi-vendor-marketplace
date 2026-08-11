@@ -86,3 +86,10 @@
     @apply bg-white/80 backdrop-blur-xl border border-white/20;
   }
 }
+
+/* Print: only show the invoice when printing */
+@media print {
+  body * { visibility: hidden; }
+  .invoice-print, .invoice-print * { visibility: visible; }
+  .invoice-print { position: absolute !important; left: 0; top: 0; width: 100%; max-height: none !important; overflow: visible !important; box-shadow: none !important; }
+}

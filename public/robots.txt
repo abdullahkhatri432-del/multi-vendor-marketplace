@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /checkout
+Disallow: /login
+Disallow: /register
+Disallow: /vendor
+Disallow: /admin
+
+Sitemap: https://speedersmania.vercel.app/sitemap.xml

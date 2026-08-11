@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Package, ChevronRight, Calendar } from 'lucide-react';
+import { Package, ChevronRight, Calendar, FileText, MapPin } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getOrdersByUser } from '../config/firestore';
 import EmptyState from '../components/ui/EmptyState';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
+import OrderStatusTimeline from '../components/ui/OrderStatusTimeline';
+import InvoiceModal from '../components/ui/InvoiceModal';
 
 export default function OrdersPage() {
   const { user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [invoiceOrder, setInvoiceOrder] = useState(null);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -91,10 +94,18 @@ export default function OrdersPage() {
               </div>
             </div>
 
-            <div className="mt-4 pt-4 border-t border-surface-100">
-              <div className="flex flex-wrap gap-3">
+            <div className="mt-5">
+              <OrderStatusTimeline status={order.status} />
+            </div>
+
+            <div className="mt-5 pt-4 border-t border-surface-100">
+              <div className="flex flex-wrap items-start gap-3">
                 {order.items?.map((item, i) => (
-                  <div key={i} className="flex items-center gap-2 rounded-xl bg-surface-50 px-3 py-2">
+                  <Link
+                    key={i}
+                    to={`/products/${item.productId}`}
+                    className="flex items-center gap-2 rounded-xl bg-surface-50 px-3 py-2 hover:bg-surface-100 transition-colors"
+                  >
                     <img
                       src={item.image || `https://picsum.photos/seed/${item.productId}/40/40`}
                       alt=""
@@ -109,13 +120,29 @@ export default function OrdersPage() {
                         </div>
                       )}
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-surface-100">
+              {order.shippingAddress?.city ? (
+                <p className="flex items-center gap-1.5 text-xs text-surface-500">
+                  <MapPin className="h-3.5 w-3.5" />
+                  Ship to: {order.shippingAddress.address}, {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zip}
+                </p>
+              ) : (
+                <span />
+              )}
+              <button onClick={() => setInvoiceOrder(order)} className="btn-secondary text-sm">
+                <FileText className="h-4 w-4" /> Invoice
+              </button>
             </div>
           </div>
         ))}
       </div>
+
+      <InvoiceModal order={invoiceOrder} onClose={() => setInvoiceOrder(null)} />
     </div>
   );
 }

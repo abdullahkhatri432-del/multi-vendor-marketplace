@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Search, User, Menu, X, Store, LayoutDashboard, LogOut, Package, Heart } from 'lucide-react';
+import { ShoppingCart, Search, User, Menu, X, Store, LayoutDashboard, LogOut, Package, Heart, TrendingUp } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
+import { searchProducts } from '../../config/firestore';
+import { trackEvent } from '../../config/analytics';
 import AuthModal from '../AuthModal';
 
 export default function Header() {
@@ -11,17 +13,126 @@ export default function Header() {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searching, setSearching] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState('login');
+  const searchWrapRef = useRef(null);
+
+  // Debounced live search suggestions (min 2 chars)
+  useEffect(() => {
+    const term = searchQuery.trim();
+    if (term.length < 2) {
+      setSuggestions([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    const timer = setTimeout(async () => {
+      try {
+        const results = await searchProducts(term);
+        setSuggestions(results.slice(0, 5));
+      } catch (err) {
+        console.error('Search suggestions failed:', err);
+        setSuggestions([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    const onClick = (e) => {
+      if (searchWrapRef.current && !searchWrapRef.current.contains(e.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, []);
 
   const handleSearch = (e) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/products?q=${encodeURIComponent(searchQuery.trim())}`);
+    const term = searchQuery.trim();
+    if (term) {
+      trackEvent('search', { search_term: term });
+      navigate(`/products?q=${encodeURIComponent(term)}`);
       setSearchQuery('');
+      setShowSuggestions(false);
     }
   };
+
+  const goToProduct = (id) => {
+    setSearchQuery('');
+    setShowSuggestions(false);
+    navigate(`/products/${id}`);
+  };
+
+  const searchForm = (mobile = false) => (
+    <div ref={searchWrapRef} className="relative w-full">
+      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
+      <input
+        type="text"
+        value={searchQuery}
+        onChange={(e) => { setSearchQuery(e.target.value); setShowSuggestions(true); }}
+        onFocus={() => setShowSuggestions(true)}
+        placeholder="Search products, vendors..."
+        className={`input-field pl-10 py-2 text-sm ${mobile ? '' : ''}`}
+        aria-label="Search products"
+        aria-expanded={showSuggestions}
+      />
+      {searchQuery && (
+        <button
+          type="button"
+          onClick={() => { setSearchQuery(''); setSuggestions([]); }}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-surface-400 hover:text-surface-700"
+          aria-label="Clear search"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      )}
+
+      {showSuggestions && searchQuery.trim().length >= 2 && (
+        <div className="absolute left-0 right-0 top-full mt-2 rounded-2xl border border-surface-100 bg-white p-2 shadow-premium z-50 animate-slide-down">
+          {searching ? (
+            <p className="px-3 py-2 text-xs text-surface-400">Searching…</p>
+          ) : suggestions.length > 0 ? (
+            <>
+              {suggestions.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => goToProduct(s.id)}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left hover:bg-surface-50 transition-colors"
+                >
+                  <img src={s.images?.[0] || s.image || `https://picsum.photos/seed/${s.id}/40/40`} alt="" className="h-9 w-9 rounded-lg object-cover" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-surface-900 line-clamp-1">{s.name}</p>
+                    <p className="text-xs text-surface-500">{s.category}</p>
+                  </div>
+                  <span className="text-sm font-semibold text-surface-900">₹{Number(s.price || 0).toFixed(2)}</span>
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={handleSearch}
+                className="mt-1 flex w-full items-center gap-2 rounded-xl bg-primary-50 px-3 py-2 text-sm font-medium text-primary-700 hover:bg-primary-100 transition-colors"
+              >
+                <TrendingUp className="h-4 w-4" />
+                See all results for "{searchQuery.trim()}"
+              </button>
+            </>
+          ) : (
+            <p className="px-3 py-2 text-xs text-surface-400">No products match "{searchQuery.trim()}"</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <header className="sticky top-0 z-50 glass border-b border-surface-200/50">
@@ -35,16 +146,7 @@ export default function Header() {
           </Link>
 
           <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-md">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search products, vendors..."
-                className="input-field pl-10 py-2 text-sm"
-              />
-            </div>
+            {searchForm()}
           </form>
 
           <nav className="hidden md:flex items-center gap-1">
@@ -167,16 +269,7 @@ export default function Header() {
         {mobileOpen && (
           <div className="border-t border-surface-100 py-4 md:hidden animate-slide-down">
             <form onSubmit={handleSearch} className="mb-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search products..."
-                  className="input-field pl-10 py-2 text-sm"
-                />
-              </div>
+              {searchForm(true)}
             </form>
             <div className="flex flex-col gap-1">
               <Link to="/products" onClick={() => setMobileOpen(false)} className="btn-ghost justify-start">Browse Products</Link>

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { SlidersHorizontal, Grid3X3, LayoutList, X } from 'lucide-react';
-import { getAllProducts, searchProducts } from '../config/firestore';
+import { SlidersHorizontal, Grid3X3, LayoutList, X, Star, Store } from 'lucide-react';
+import { getAllProducts, searchProducts, getAllVendors } from '../config/firestore';
 import ProductCard from '../components/ui/ProductCard';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
+import { trackEvent } from '../config/analytics';
 
 export default function ProductsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -12,6 +13,9 @@ export default function ProductsPage() {
   const [viewMode, setViewMode] = useState('grid');
   const [sortBy, setSortBy] = useState('newest');
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
+  const [selectedVendor, setSelectedVendor] = useState(searchParams.get('vendor') || '');
+  const [vendors, setVendors] = useState([]);
+  const [minRating, setMinRating] = useState(0);
   const [priceRange, setPriceRange] = useState([0, 100000]);
   const [showFilters, setShowFilters] = useState(false);
 
@@ -28,6 +32,18 @@ export default function ProductsPage() {
   ];
 
   useEffect(() => {
+    getAllVendors().then(setVendors).catch((err) => console.error('Failed to load vendors:', err));
+  }, []);
+
+  useEffect(() => {
+    if (query) {
+      trackEvent('view_search_results', { search_term: query });
+    } else {
+      trackEvent('view_item_list', { item_list_name: 'products' });
+    }
+  }, [query]);
+
+  useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
       try {
@@ -40,6 +56,12 @@ export default function ProductsPage() {
 
         if (selectedCategory) {
           result = result.filter((p) => p.category === selectedCategory);
+        }
+        if (selectedVendor) {
+          result = result.filter((p) => p.vendorId === selectedVendor);
+        }
+        if (minRating > 0) {
+          result = result.filter((p) => (p.rating || 0) >= minRating);
         }
         result = result.filter((p) => p.price >= priceRange[0] && p.price <= priceRange[1]);
 
@@ -65,26 +87,77 @@ export default function ProductsPage() {
       }
     };
     fetchProducts();
-  }, [query, selectedCategory, sortBy, priceRange]);
+  }, [query, selectedCategory, selectedVendor, minRating, sortBy, priceRange]);
+
+  const updateParams = (updates) => {
+    const next = new URLSearchParams(searchParams);
+    for (const [key, value] of Object.entries(updates)) {
+      if (value) next.set(key, value);
+      else next.delete(key);
+    }
+    setSearchParams(next);
+  };
 
   const handleCategoryChange = (catId) => {
     setSelectedCategory(catId);
-    if (catId) {
-      setSearchParams({ category: catId });
-    } else {
-      setSearchParams({});
-    }
+    updateParams({ category: catId });
   };
+
+  const handleVendorChange = (vendorId) => {
+    setSelectedVendor(vendorId);
+    updateParams({ vendor: vendorId });
+  };
+
+  const clearAllFilters = () => {
+    setSelectedCategory('');
+    setSelectedVendor('');
+    setMinRating(0);
+    setPriceRange([0, 100000]);
+    setSearchParams(query ? { q: query } : {});
+  };
+
+  const hasActiveFilters = selectedCategory || selectedVendor || minRating > 0 || priceRange[0] > 0 || priceRange[1] < 100000;
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-display font-bold text-surface-900">
-          {query ? `Results for "${query}"` : selectedCategory ? categories.find(c => c.id === selectedCategory)?.name : 'All Products'}
+          {query
+            ? `Results for "${query}"`
+            : selectedCategory
+              ? categories.find((c) => c.id === selectedCategory)?.name
+              : 'All Products'}
         </h1>
         <p className="mt-2 text-surface-500">{products.length} products found</p>
       </div>
+
+      {/* Active filter chips */}
+      {hasActiveFilters && (
+        <div className="flex flex-wrap items-center gap-2 mb-6">
+          {selectedCategory && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-50 text-primary-700 text-xs font-medium px-3 py-1.5">
+              {categories.find((c) => c.id === selectedCategory)?.name}
+              <button onClick={() => handleCategoryChange('')} aria-label="Remove category filter"><X className="h-3 w-3" /></button>
+            </span>
+          )}
+          {selectedVendor && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-50 text-primary-700 text-xs font-medium px-3 py-1.5">
+              {vendors.find((v) => v.id === selectedVendor)?.storeName || selectedVendor}
+              <button onClick={() => handleVendorChange('')} aria-label="Remove vendor filter"><X className="h-3 w-3" /></button>
+            </span>
+          )}
+          {minRating > 0 && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-50 text-primary-700 text-xs font-medium px-3 py-1.5">
+              <Star className="h-3 w-3 fill-current" /> {minRating}+
+              <button onClick={() => setMinRating(0)} aria-label="Remove rating filter"><X className="h-3 w-3" /></button>
+            </span>
+          )}
+          <button onClick={clearAllFilters} className="text-xs font-medium text-surface-500 hover:text-danger underline underline-offset-2">
+            Clear all
+          </button>
+        </div>
+      )}
 
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-4 mb-6 pb-4 border-b border-surface-100">
@@ -150,6 +223,54 @@ export default function ProductsPage() {
                     }`}
                   >
                     {cat.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-semibold text-surface-900 mb-3 flex items-center gap-1.5">
+                <Store className="h-4 w-4 text-surface-400" /> Vendor
+              </h4>
+              <div className="space-y-1 max-h-44 overflow-y-auto">
+                <button
+                  onClick={() => handleVendorChange('')}
+                  className={`w-full text-left rounded-xl px-3 py-2 text-sm transition-colors ${
+                    !selectedVendor ? 'bg-primary-50 text-primary-700 font-medium' : 'text-surface-600 hover:bg-surface-50'
+                  }`}
+                >
+                  All Vendors
+                </button>
+                {vendors.map((v) => (
+                  <button
+                    key={v.id}
+                    onClick={() => handleVendorChange(v.id)}
+                    className={`w-full text-left rounded-xl px-3 py-2 text-sm transition-colors ${
+                      selectedVendor === v.id
+                        ? 'bg-primary-50 text-primary-700 font-medium'
+                        : 'text-surface-600 hover:bg-surface-50'
+                    }`}
+                  >
+                    <span className="line-clamp-1">{v.storeName || v.id}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-semibold text-surface-900 mb-3">Minimum Rating</h4>
+              <div className="flex gap-2 flex-wrap">
+                {[0, 3, 4, 4.5].map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => setMinRating(r)}
+                    className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${
+                      minRating === r
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-surface-100 text-surface-600 hover:bg-surface-200'
+                    }`}
+                  >
+                    {r === 0 ? 'Any' : <><Star className="h-3 w-3 inline -mt-0.5 fill-current" /> {r}+</>}
                   </button>
                 ))}
               </div>

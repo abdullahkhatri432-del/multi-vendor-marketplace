@@ -7,6 +7,7 @@ import { useCheckoutInterceptor } from '../context/CheckoutInterceptorContext';
 import { createOrder, incrementProductSold, incrementVendorSales, getCouponByCode, incrementCouponUsage, getOrderByUtr } from '../config/firestore';
 import { getCouponStatus, computeDiscount, normalizeCoupon, normalizeCouponCode } from '../utils/coupons';
 import { isValidUtrFormat, normalizeUtr } from '../utils/paymentMatch';
+import { trackEvent } from '../config/analytics';
 import UpiPayment from '../components/ui/UpiPayment';
 
 export default function CheckoutPage() {
@@ -161,6 +162,22 @@ const isValidUpiRef = (ref) => {
     }
   }, [cart.length, isAuthenticated, navigate]);
 
+  // Funnel event: user reached checkout with a non-empty cart
+  useEffect(() => {
+    if (cart.length > 0) {
+      trackEvent('begin_checkout', {
+        value: cartTotal,
+        items: cart.map((item) => ({
+          item_id: item.id,
+          item_name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+        })),
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Intercept checkout for unauthenticated users
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -266,6 +283,20 @@ paymentMethod,
       setOrderId(newOrderId);
       setOrderComplete(true);
       clearCart();
+
+      trackEvent('purchase', {
+        transaction_id: newOrderId,
+        value: total,
+        items: cart.map((item) => ({
+          item_id: item.id,
+          item_name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          currency: 'INR',
+        })),
+        coupon: coupon?.code || null,
+        payment_method: paymentMethod,
+      });
 } catch (err) {
       console.error('Order failed:', err);
       setError(err?.message && err.message.includes('UTR')

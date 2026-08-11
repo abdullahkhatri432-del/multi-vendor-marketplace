@@ -128,6 +128,23 @@ export const getVerifiedVendors = async () => {
   });
 };
 
+// Cached vendorId -> vendor map so cards can show "Verified" badges without
+// firing one query per product. Refresh per session via clearVendorsCache().
+let vendorsMapCache = null;
+
+export const getVendorsMap = async () => {
+  if (vendorsMapCache) return vendorsMapCache;
+  return withErrorLogging('getVendorsMap', async () => {
+    const snap = await getDocs(vendorsCol());
+    vendorsMapCache = Object.fromEntries(snap.docs.map((d) => [d.id, d.data()]));
+    return vendorsMapCache;
+  });
+};
+
+export const clearVendorsCache = () => {
+  vendorsMapCache = null;
+};
+
 // ===================== PRODUCTS =====================
 export const createProduct = async (data) => {
   return withErrorLogging('createProduct', async () => {

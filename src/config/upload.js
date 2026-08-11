@@ -1,7 +1,8 @@
 // Client-side image compression to base64 data URLs.
 // No external storage (Firebase Storage/GCS) needed, so it's 100% free
 // and works without enabling the Blaze plan. Images are resized + re-encoded
-// as JPEG and stored directly on the product document in Firestore.
+// (WebP when supported, otherwise JPEG) and stored directly on the product
+// document in Firestore.
 const MAX_WIDTH = 600;
 const JPEG_QUALITY = 0.65;
 // Firestore documents are capped at 1 MiB; keep total base64 payload well under it.
@@ -28,6 +29,10 @@ const compressToDataUrl = async (file, maxWidth = MAX_WIDTH, quality = JPEG_QUAL
   canvas.height = Math.max(1, Math.round(img.height * scale));
   const ctx = canvas.getContext('2d');
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+  // Prefer WebP (smaller than JPEG at the same quality); fall back to JPEG.
+  const webp = canvas.toDataURL('image/webp', quality);
+  if (webp.startsWith('data:image/webp')) return webp;
   return canvas.toDataURL('image/jpeg', quality);
 };
 

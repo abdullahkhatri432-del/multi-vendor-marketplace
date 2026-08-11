@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Mail, CheckCircle2, AlertCircle, Send } from 'lucide-react';
 import { subscribeToNewsletter } from '../config/firestore';
+import { trackEvent } from '../config/analytics';
 import LoadingSpinner from './ui/LoadingSpinner';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -36,6 +37,7 @@ export default function Newsletter() {
         setStatus({ type: 'success', message: 'You’re already subscribed — thanks for staying! 🎉' });
       } else {
         setStatus({ type: 'success', message: 'Thanks! You’re subscribed. 🎉' });
+        trackEvent('generate_lead', { value: 1, email: trimmed });
       }
       setEmail('');
     } catch (err) {

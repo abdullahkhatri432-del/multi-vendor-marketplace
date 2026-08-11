@@ -66,24 +66,36 @@ service cloud.firestore {
     // VENDORS COLLECTION
     match /vendors/{vendorId} {
       allow read: if true;
-      allow create: if isOwner(vendorId) && 
-        (!('isVerified' in request.resource.data) || request.resource.data.isVerified == false) || isAdmin();
-      allow update: if isOwner(vendorId) && 
-        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['isVerified', 'commissionRate', 'status'])) || isAdmin();
+      // Vendors may self-register but must NOT be able to set verified status.
+      allow create: if isOwner(vendorId) &&
+        (!('verified' in request.resource.data) || request.resource.data.verified == false) &&
+        (!('isVerified' in request.resource.data) || request.resource.data.isVerified == false) ||
+        isAdmin();
+      allow update: if isOwner(vendorId) &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verified', 'isVerified', 'commissionRate', 'status']) ||
+        isAdmin();
       allow delete: if isAdmin();
     }
 
     // ORDERS COLLECTION
     match /orders/{orderId} {
-      allow read: if isAuthenticated() && 
-        (resource.data.customerId == request.auth.uid || 
-         resource.data.vendorId == request.auth.uid || 
+      allow read: if isAuthenticated() &&
+        (resource.data.customerId == request.auth.uid ||
+         resource.data.vendorId == request.auth.uid ||
          isAdmin());
-      allow create: if isAuthenticated() && 
-        request.resource.data.customerId == request.auth.uid;
+      // Customers may create their own orders, but payment verification fields
+      // are admin-only. paymentStatus on create is restricted so a client cannot
+      // forge an already-verified / completed payment.
+      allow create: if isAuthenticated() &&
+        request.resource.data.customerId == request.auth.uid &&
+        request.resource.data.paymentStatus in ['pending', 'pending-verification', 'advance-paid', 'completed'] &&
+        !('verifiedBy' in request.resource.data) &&
+        !('verifiedAt' in request.resource.data) &&
+        !('verifiedUtr' in request.resource.data) &&
+        !('verifiedAmount' in request.resource.data);
       allow update: if isAuthenticated() && (
-        isAdmin() || 
-        (resource.data.vendorId == request.auth.uid && 
+        isAdmin() ||
+        (resource.data.vendorId == request.auth.uid &&
          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['customerId', 'vendorId', 'total', 'items', 'createdAt']))
       );
     }
@@ -122,8 +134,8 @@ service cloud.firestore {
     match /newsletter_subscribers/{id} {
       allow create: if request.resource.data.email is string &&
         request.resource.data.email.size() <= 254 &&
-        request.resource.data.email.contains('@') &&
-        request.resource.data.email.contains('.') &&
+        request.resource.data.email.matches('.*@.*') &&
+        request.resource.data.email.matches('.*\\..*') &&
         request.resource.data.subscribed == true;
       allow read, update, delete: if isAdmin();
     }
