@@ -29,6 +29,15 @@ const pendingProductsCol = () => col('pending_products');
 const ordersCol = () => col('orders');
 const categoriesCol = () => col('categories');
 const couponsCol = () => col('coupons');
+const utrsCol = () => col('utrs');
+
+const hashText = async (text) => {
+  const data = new TextEncoder().encode(text);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+};
 
 // ===================== DEBUG WRAPPER =====================
 const withErrorLogging = async (operationName, fn) => {
@@ -280,6 +289,57 @@ export const getOrderByUtr = async (utr, customerId) => {
     const snap2 = await getDocs(q2);
     return snap2.empty ? null : { id: snap2.docs[0].id, ...snap2.docs[0].data() };
   });
+};
+
+// Cross-user UTR uniqueness. The doc id is the SHA-256 of the UTR, so only the
+// first claim can `create` it. Returns { ref } on success, { ref, duplicate }
+// if the UTR was already claimed (by anyone), or { ref, reused } when the
+// caller is re-using their own still-pending claim from a failed checkout.
+export const reserveUtr = async (utr, customerId) => {
+  return withErrorLogging('reserveUtr', async () => {
+    const ref = doc(utrsCol(), await hashText(utr));
+    try {
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.customerId === customerId && data.orderId === null) {
+          return { ref, reused: true };
+        }
+        return { ref, duplicate: true };
+      }
+    } catch (err) {
+      // Read denied → the claim exists and belongs to someone else.
+      return { ref, duplicate: true };
+    }
+    await setDoc(ref, {
+      utr,
+      customerId,
+      orderId: null,
+      pending: true,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    return { ref };
+  });
+};
+
+// Link a reserved UTR to the order once checkout succeeds.
+export const completeUtrClaim = async (claimRef, orderId) => {
+  await updateDoc(claimRef, {
+    orderId,
+    pending: false,
+    updatedAt: serverTimestamp(),
+  });
+};
+
+// Release an unused reservation (failed/cancelled checkout). Best-effort.
+export const cancelUtrClaim = async (claimRef) => {
+  if (!claimRef) return;
+  try {
+    await deleteDoc(claimRef);
+  } catch {
+    // Ignore — a completed claim is protected by rules.
+  }
 };
 
 export const updateOrder = async (orderId, data) => {

@@ -4,7 +4,7 @@ import { CreditCard, Lock, CheckCircle, MapPin, AlertCircle, Mail, Smartphone, B
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useCheckoutInterceptor } from '../context/CheckoutInterceptorContext';
-import { createOrder, incrementProductSold, incrementVendorSales, getCouponByCode, incrementCouponUsage, getOrderByUtr } from '../config/firestore';
+import { createOrder, incrementProductSold, incrementVendorSales, getCouponByCode, incrementCouponUsage, reserveUtr, completeUtrClaim, cancelUtrClaim } from '../config/firestore';
 import { getCouponStatus, computeDiscount, normalizeCoupon, normalizeCouponCode } from '../utils/coupons';
 import { isValidUtrFormat, normalizeUtr } from '../utils/paymentMatch';
 import { trackEvent } from '../config/analytics';
@@ -211,7 +211,23 @@ const isValidUpiRef = (ref) => {
   const processCheckout = async () => {
     setProcessing(true);
 
+    let utrReservation = null;
+
     try {
+      // Reserve the UTR up-front (unique across all customers). Throws if the
+      // reference was already claimed by anyone.
+      if (upiRef && paymentMethod !== 'card') {
+        try {
+          const res = await reserveUtr(normalizeUtr(upiRef), user.uid);
+          if (res.duplicate) {
+            throw new Error('This UTR has already been used for another order.');
+          }
+          utrReservation = res.ref;
+        } catch (err) {
+          throw new Error('This UTR has already been used for another order.');
+        }
+      }
+
       const orderData = {
         customerId: user.uid,
         customerName: form.fullName,
@@ -260,14 +276,11 @@ paymentMethod,
         }),
       };
 
-      if (upiRef && paymentMethod !== 'card') {
-        const existing = await getOrderByUtr(normalizeUtr(upiRef), user.uid);
-        if (existing) {
-          throw new Error('This UTR has already been used for another order.');
-        }
-      }
-
       const newOrderId = await createOrder(orderData);
+
+      if (utrReservation) {
+        try { await completeUtrClaim(utrReservation, newOrderId); } catch (err) { console.warn('Could not finalize UTR claim:', err); }
+      }
 
       if (coupon?.id) {
         try { await incrementCouponUsage(coupon.id); } catch (err) { console.warn('Could not increment coupon usage:', err); }
@@ -298,6 +311,10 @@ paymentMethod,
         payment_method: paymentMethod,
       });
 } catch (err) {
+      // Release the UTR reservation so it's not blocked if checkout failed.
+      if (utrReservation) {
+        await cancelUtrClaim(utrReservation);
+      }
       console.error('Order failed:', err);
       setError(err?.message && err.message.includes('UTR')
         ? err.message

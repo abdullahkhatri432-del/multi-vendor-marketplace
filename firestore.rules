@@ -100,6 +100,34 @@ service cloud.firestore {
       );
     }
 
+    // UTR CLAIMS — one doc per UTR hash. `create` is the only path that writes
+    // a fresh claim (doc id = SHA-256 of UTR), so a reference can never be
+    // claimed twice, even across different customers. A customer may only
+    // finalize their own still-pending claim and delete their own orphaned one.
+    match /utrs/{utrId} {
+      allow read: if isAuthenticated() &&
+        (resource.data.customerId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() &&
+        request.resource.data.customerId == request.auth.uid &&
+        request.resource.data.utr is string &&
+        request.resource.data.utr.size() >= 12 &&
+        request.resource.data.orderId == null &&
+        request.resource.data.pending == true;
+      allow update: if isAuthenticated() && (
+        isAdmin() ||
+        (resource.data.customerId == request.auth.uid &&
+         resource.data.pending == true &&
+         resource.data.orderId == null &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['orderId', 'pending', 'updatedAt']) &&
+         request.resource.data.orderId is string &&
+         request.resource.data.pending == false)
+      );
+      allow delete: if isAdmin() ||
+        (isAuthenticated() &&
+         resource.data.customerId == request.auth.uid &&
+         resource.data.orderId == null);
+    }
+
     // REVIEWS COLLECTION
     match /reviews/{reviewId} {
       allow read: if true;
