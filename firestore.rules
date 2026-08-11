@@ -81,7 +81,7 @@ service cloud.firestore {
     match /orders/{orderId} {
       allow read: if isAuthenticated() &&
         (resource.data.customerId == request.auth.uid ||
-         resource.data.vendorId == request.auth.uid ||
+         resource.data.vendorIds.hasAny([request.auth.uid]) ||
          isAdmin());
       // Customers may create their own orders, but payment verification fields
       // are admin-only. paymentStatus on create is restricted so a client cannot
@@ -95,8 +95,8 @@ service cloud.firestore {
         !('verifiedAmount' in request.resource.data);
       allow update: if isAuthenticated() && (
         isAdmin() ||
-        (resource.data.vendorId == request.auth.uid &&
-         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['customerId', 'vendorId', 'total', 'items', 'createdAt']))
+        (resource.data.vendorIds.hasAny([request.auth.uid]) &&
+         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['customerId', 'vendorId', 'total', 'items', 'createdAt', 'paymentStatus', 'paymentReference', 'paymentDetails']))
       );
     }
 

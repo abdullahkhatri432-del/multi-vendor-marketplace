@@ -261,7 +261,7 @@ paymentMethod,
       };
 
       if (upiRef && paymentMethod !== 'card') {
-        const existing = await getOrderByUtr(normalizeUtr(upiRef));
+        const existing = await getOrderByUtr(normalizeUtr(upiRef), user.uid);
         if (existing) {
           throw new Error('This UTR has already been used for another order.');
         }

@@ -254,16 +254,29 @@ export const getOrder = async (orderId) => {
   });
 };
 
-// Find any existing order already using this UTR (blocks reuse of the same reference).
-export const getOrderByUtr = async (utr) => {
+// Find any existing order by this customer already using this UTR (blocks the
+// same customer reusing the same reference). Scoped to the customer's own
+// orders so the query satisfies the Firestore read rules.
+export const getOrderByUtr = async (utr, customerId) => {
   return withErrorLogging('getOrderByUtr', async () => {
-    const q = query(ordersCol(), where('paymentReference', '==', utr), limit(1));
+    if (!customerId) return null;
+    const q = query(
+      ordersCol(),
+      where('customerId', '==', customerId),
+      where('paymentReference', '==', utr),
+      limit(1)
+    );
     const snap = await getDocs(q);
     if (!snap.empty) {
       const d = snap.docs[0];
       return { id: d.id, ...d.data() };
     }
-    const q2 = query(ordersCol(), where('paymentDetails.transactionRef', '==', utr), limit(1));
+    const q2 = query(
+      ordersCol(),
+      where('customerId', '==', customerId),
+      where('paymentDetails.transactionRef', '==', utr),
+      limit(1)
+    );
     const snap2 = await getDocs(q2);
     return snap2.empty ? null : { id: snap2.docs[0].id, ...snap2.docs[0].data() };
   });
@@ -299,19 +312,12 @@ export const getOrdersByUser = async (userId) => {
   });
 };
 
-// Orders where this vendor's products appear (items[].vendorId). New orders store a
-// vendorIds[] array for cheap queries; legacy orders fall back to an in-memory scan.
+// Orders where this vendor's products appear (items[].vendorId). Orders store a
+// vendorIds[] array so this is a cheap, rules-safe array-contains query.
 export const getOrdersByVendor = async (vendorId) => {
   return withErrorLogging('getOrdersByVendor', async () => {
-    let snap = await getDocs(query(ordersCol(), where('vendorIds', 'array-contains', vendorId), orderBy('createdAt', 'desc')));
-    let orders = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    if (orders.length === 0) {
-      const all = await getDocs(ordersCol());
-      orders = all.docs
-        .map((d) => ({ id: d.id, ...d.data() }))
-        .filter((o) => (o.items || []).some((it) => it.vendorId === vendorId));
-    }
-    return orders;
+    const snap = await getDocs(query(ordersCol(), where('vendorIds', 'array-contains', vendorId), orderBy('createdAt', 'desc')));
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   });
 };
 
