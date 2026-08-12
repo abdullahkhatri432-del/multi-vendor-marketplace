@@ -15,10 +15,14 @@ import {
   serverTimestamp,
   increment,
 } from 'firebase/firestore';
+<<<<<<< Updated upstream
 import { db } from './firebase';
 import { PROJECT_ID } from './firebase';
 import { fallbackProducts, fallbackVendors, findFallbackProduct, findFallbackVendor, fallbackCoupons, findFallbackCoupon } from './fallbackData';
 
+=======
+import { db, PROJECT_PATH } from './firebase';
+>>>>>>> Stashed changes
 // Helper to create collection references
 const col = (name) => collection(db, name);
 
@@ -30,6 +34,7 @@ const ordersCol = () => col('orders');
 const categoriesCol = () => col('categories');
 const couponsCol = () => col('coupons');
 const utrsCol = () => col('utrs');
+<<<<<<< Updated upstream
 
 const hashText = async (text) => {
   const data = new TextEncoder().encode(text);
@@ -38,6 +43,8 @@ const hashText = async (text) => {
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 };
+=======
+>>>>>>> Stashed changes
 
 // ===================== DEBUG WRAPPER =====================
 const withErrorLogging = async (operationName, fn) => {
@@ -710,6 +717,7 @@ export const publishPendingProduct = async (productId) => {
   });
 };
 
+<<<<<<< Updated upstream
 // ===================== NEWSLETTER =====================
 const newsletterCol = () => col('newsletter_subscribers');
 
@@ -751,5 +759,176 @@ export const subscribeToNewsletter = async (email) => {
     }
 
     return { subscribed: !alreadySubscribed, alreadySubscribed };
+=======
+// ===================== UTR PAYMENT VERIFICATION =====================
+
+// Hash a UTR before storing so raw numbers aren't kept in plaintext
+export const hashUtr = async (utr) => {
+  const normalized = String(utr || '').trim().toUpperCase();
+  const data = new TextEncoder().encode(normalized);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+};
+
+// Validate a UPI UTR reference number
+export const isValidUtr = (utr) => {
+  const normalized = String(utr || '').trim().toUpperCase();
+  return /^[0-9A-Z]{12,22}$/.test(normalized) && /^[0-9]/.test(normalized);
+};
+
+// Reserve a UTR for an order so it can't be reused (idempotent)
+export const reserveUtr = async (utr, orderId) => {
+  const utrId = await hashUtr(utr);
+  const utrRef = doc(utrsCol(), utrId);
+
+  try {
+    await setDoc(
+      utrRef,
+      {
+        utrHash: utrId,
+        orderId,
+        status: 'reserved',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: false }
+    );
+    return { ok: true, utrId };
+  } catch (error) {
+    return { ok: false, error };
+  }
+};
+
+// Release a reservation (e.g. checkout abandoned)
+export const releaseUtr = async (utr) => {
+  const utrId = await hashUtr(utr);
+  const utrRef = doc(utrsCol(), utrId);
+  const snap = await getDoc(utrRef);
+  if (snap.exists() && snap.data().status === 'reserved') {
+    await deleteDoc(utrRef);
+  }
+};
+
+// Mark a UTR as verified against an order
+export const finalizeUtr = async (utr, orderId) => {
+  const utrId = await hashUtr(utr);
+  await setDoc(
+    doc(utrsCol(), utrId),
+    {
+      utrHash: utrId,
+      orderId,
+      status: 'verified',
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+};
+
+// Check whether a UTR has already been used
+export const isUtrUsed = async (utr) => {
+  const utrId = await hashUtr(utr);
+  const snap = await getDoc(doc(utrsCol(), utrId));
+  return snap.exists();
+};
+
+// ===================== COUPONS =====================
+
+export const getAllCoupons = async () => {
+  return withErrorLogging('getAllCoupons', async () => {
+    const q = query(couponsCol(), orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+  });
+};
+
+export const getCouponByCode = async (code) => {
+  return withErrorLogging('getCouponByCode', async () => {
+    const normalized = String(code || '').trim().toUpperCase();
+    const q = query(couponsCol(), where('code', '==', normalized), limit(1));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) return null;
+    const docSnap = snapshot.docs[0];
+    return { id: docSnap.id, ...docSnap.data() };
+  });
+};
+
+export const createCoupon = async (data) => {
+  return withErrorLogging('createCoupon', async () => {
+    const couponRef = await addDoc(couponsCol(), {
+      ...data,
+      code: String(data.code || '').trim().toUpperCase(),
+      usedCount: 0,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    return couponRef.id;
+  });
+};
+
+export const updateCoupon = async (couponId, data) => {
+  return withErrorLogging('updateCoupon', async () => {
+    await updateDoc(doc(couponsCol(), couponId), {
+      ...data,
+      updatedAt: serverTimestamp(),
+    });
+  });
+};
+
+export const deleteCoupon = async (couponId) => {
+  return withErrorLogging('deleteCoupon', async () => {
+    await deleteDoc(doc(couponsCol(), couponId));
+  });
+};
+
+export const incrementCouponUsage = async (couponId) => {
+  return withErrorLogging('incrementCouponUsage', async () => {
+    await updateDoc(doc(couponsCol(), couponId), {
+      usedCount: increment(1),
+      updatedAt: serverTimestamp(),
+    });
+  });
+};
+
+// ===================== PAYMENT VERIFICATION =====================
+
+// Verify an order's payment against a submitted UTR.
+// If paymentStatus was 'pending'/'pending-verification', this marks it paid.
+export const verifyOrderPayment = async (orderId, utr) => {
+  return withErrorLogging('verifyOrderPayment', async () => {
+    if (!isValidUtr(utr)) {
+      throw new Error('Invalid UTR format. Must be 12-22 alphanumeric characters.');
+    }
+
+    const orderRef = doc(ordersCol(), orderId);
+    const orderSnap = await getDoc(orderRef);
+
+    if (!orderSnap.exists()) {
+      throw new Error('Order not found');
+    }
+
+    const order = orderSnap.data();
+    const allowedStates = ['paid', 'advance-paid', 'pending', 'pending-verification'];
+    if (!allowedStates.includes(order.paymentStatus)) {
+      throw new Error(`Payment cannot be verified for order in "${order.paymentStatus}" state.`);
+    }
+
+    const alreadyUsed = await isUtrUsed(utr);
+    if (alreadyUsed) {
+      throw new Error('This UTR has already been used for a payment.');
+    }
+
+    await reserveUtr(utr, orderId);
+    await finalizeUtr(utr, orderId);
+    await updateDoc(orderRef, {
+      paymentReference: utr,
+      paymentStatus: order.paymentStatus === 'advance-paid' ? 'advance-paid' : 'paid',
+      utrVerified: true,
+      paymentVerifiedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    return { verified: true, orderId };
+>>>>>>> Stashed changes
   });
 };

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+<<<<<<< Updated upstream
 import { CreditCard, Lock, CheckCircle, MapPin, AlertCircle, Mail, Smartphone, Banknote, ShieldCheck, Truck, Ticket, X, Loader2, Trash2, Plus, BookmarkCheck } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -9,16 +10,60 @@ import { getCouponStatus, computeDiscount, normalizeCoupon, normalizeCouponCode 
 import { isValidUtrFormat, normalizeUtr } from '../utils/paymentMatch';
 import { trackEvent } from '../config/analytics';
 import UpiPayment from '../components/ui/UpiPayment';
+=======
+import { CreditCard, Lock, CheckCircle, MapPin, AlertCircle, Phone, Smartphone, Banknote, Copy, Check, Ticket, ArrowRight } from 'lucide-react';
+import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
+import { useCheckoutInterceptor } from '../context/CheckoutInterceptorContext';
+import {
+  createOrder,
+  incrementProductSold,
+  incrementVendorSales,
+  getCouponByCode,
+  incrementCouponUsage,
+  isValidUtr,
+} from '../config/firestore';
+
+const UPI_ID = '8160587811@kotak811';
+const FREE_SHIPPING_THRESHOLD = 999;
+const SHIPPING_FEE = 49;
+const TAX_RATE = 0.08;
+const COD_ADVANCE_RATE = 0.2;
+const COD_MIN_ADVANCE = 499;
+
+const QR_URL = (payload) => `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=12&data=${encodeURIComponent(payload)}`;
+
+const isValidLuhn = (number) => {
+  const digits = String(number).replace(/\D/g, '');
+  if (digits.length < 12) return false;
+  let sum = 0;
+  let double = false;
+  for (let i = digits.length - 1; i >= 0; i--) {
+    let d = parseInt(digits[i], 10);
+    if (double) {
+      d *= 2;
+      if (d > 9) d -= 9;
+    }
+    sum += d;
+    double = !double;
+  }
+  return sum % 10 === 0;
+};
+
+const formatMoney = (value) => `₹${(Math.round(value * 100) / 100).toFixed(2)}`;
+>>>>>>> Stashed changes
 
 export default function CheckoutPage() {
   const { cart, cartTotal, clearCart } = useCart();
   const { user, isAuthenticated } = useAuth();
   const { intercept } = useCheckoutInterceptor();
   const navigate = useNavigate();
+
   const [processing, setProcessing] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
   const [orderId, setOrderId] = useState(null);
   const [needsAuth, setNeedsAuth] = useState(false);
+<<<<<<< Updated upstream
   const [paymentMethod, setPaymentMethod] = useState('upi');
   const [upiRef, setUpiRef] = useState('');
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
@@ -48,20 +93,35 @@ export default function CheckoutPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.uid]);
+=======
+  const [error, setError] = useState('');
+
+  const [paymentMethod, setPaymentMethod] = useState('upi');
+  const [utr, setUtr] = useState('');
+  const [couponCode, setCouponCode] = useState('');
+  const [coupon, setCoupon] = useState(null);
+  const [couponError, setCouponError] = useState('');
+  const [couponApplying, setCouponApplying] = useState(false);
+  const [copied, setCopied] = useState(false);
+>>>>>>> Stashed changes
 
   const [form, setForm] = useState({
     fullName: user?.displayName || '',
-    email: user?.email || '',
+    phone: user?.phoneNumber || '',
     address: '',
     city: '',
     state: '',
     zip: '',
+<<<<<<< Updated upstream
     country: 'IN',
+=======
+>>>>>>> Stashed changes
     cardNumber: '',
     cardExpiry: '',
     cardCvc: '',
   });
 
+<<<<<<< Updated upstream
   const shippingBase = cartTotal > 999 ? 0 : 49;
   const discount = computeDiscount(coupon, cartTotal);
   const subtotalAfterDiscount = cartTotal - discount;
@@ -210,18 +270,31 @@ const isValidUpiRef = (ref) => {
   };
 
   // Check auth when page loads - redirect to login if no cart or if we need to intercept
+=======
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+
+  // Apply coupon discount
+  const subtotalAfterCoupon = coupon
+    ? Math.max(0, cartTotal - (coupon.discountType === 'percent' ? (cartTotal * (coupon.discountValue / 100)) : coupon.discountValue))
+    : cartTotal;
+
+  const shipping = subtotalAfterCoupon > FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
+  const tax = subtotalAfterCoupon * TAX_RATE;
+  const total = subtotalAfterCoupon + shipping + tax;
+  const codAdvance = Math.max(COD_MIN_ADVANCE, Math.round(total * COD_ADVANCE_RATE));
+
+>>>>>>> Stashed changes
   useEffect(() => {
     if (cart.length === 0) {
       navigate('/cart');
       return;
     }
-    
-    // If user is not authenticated, we'll show the login prompt
     if (!isAuthenticated) {
       setNeedsAuth(true);
     }
   }, [cart.length, isAuthenticated, navigate]);
 
+<<<<<<< Updated upstream
   // Funnel event: user reached checkout with a non-empty cart
   useEffect(() => {
     if (cart.length > 0) {
@@ -239,17 +312,54 @@ const isValidUpiRef = (ref) => {
   }, []);
 
   // Intercept checkout for unauthenticated users
+=======
+  const applyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setCouponApplying(true);
+    setCouponError('');
+    try {
+      const found = await getCouponByCode(couponCode);
+      if (!found) {
+        setCouponError('Invalid coupon code.');
+        setCoupon(null);
+        return;
+      }
+      const now = Date.now();
+      if (found.expiresAt && now > new Date(found.expiresAt.seconds * 1000).getTime()) {
+        setCouponError('This coupon has expired.');
+        setCoupon(null);
+        return;
+      }
+      if (found.maxUses && found.usedCount >= found.maxUses) {
+        setCouponError('This coupon has reached its usage limit.');
+        setCoupon(null);
+        return;
+      }
+      if (found.minOrder && cartTotal < found.minOrder) {
+        setCouponError(`Minimum order of ${formatMoney(found.minOrder)} required for this coupon.`);
+        setCoupon(null);
+        return;
+      }
+      setCoupon(found);
+      setCouponCode('');
+    } catch (err) {
+      console.error('Failed to apply coupon:', err);
+      setCouponError('Could not apply coupon. Please try again.');
+    } finally {
+      setCouponApplying(false);
+    }
+  };
+
+>>>>>>> Stashed changes
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
 
     if (!isAuthenticated) {
       try {
-        // This will open the lazy auth modal and wait for resolution
         await intercept('checkout', { form, total });
-        // If we get here, auth succeeded - the page will re-render with user
         return;
       } catch (err) {
-        // User cancelled or auth failed
         if (err.message !== 'Authentication cancelled') {
           setError('Authentication required to complete purchase');
         }
@@ -257,6 +367,7 @@ const isValidUpiRef = (ref) => {
       }
     }
 
+<<<<<<< Updated upstream
     // Validate payment before anything else
     const validationError = validatePayment();
     if (validationError) {
@@ -265,12 +376,45 @@ const isValidUpiRef = (ref) => {
     }
 
     // Proceed with normal checkout for authenticated users
+=======
+    // Validate payment inputs
+    if (paymentMethod === 'upi') {
+      if (!isValidUtr(utr)) {
+        setError('Enter a valid 12-22 digit UPI Transaction Reference (UTR). It appears on your bank statement after payment.');
+        return;
+      }
+    }
+
+    if (paymentMethod === 'card') {
+      if (!isValidLuhn(form.cardNumber)) {
+        setError('Enter a valid card number.');
+        return;
+      }
+      if (!/^\d{2}\/\d{2}$/.test(form.cardExpiry)) {
+        setError('Enter card expiry as MM/YY.');
+        return;
+      }
+      if (!/^\d{3,4}$/.test(form.cardCvc)) {
+        setError('Enter a valid CVC.');
+        return;
+      }
+    }
+
+    if (paymentMethod === 'cod') {
+      if (codAdvance > total) {
+        setError('The COD advance exceeds the order total. Please choose another payment method.');
+        return;
+      }
+    }
+
+>>>>>>> Stashed changes
     await processCheckout();
   };
 
   const processCheckout = async () => {
     setProcessing(true);
 
+<<<<<<< Updated upstream
     let utrReservation = null;
 
     try {
@@ -335,7 +479,50 @@ paymentMethod,
           paymentNote: `₹${codAdvance.toFixed(2)} advance paid (UTR ${normalizeUtr(upiRef)}), ₹${codBalance.toFixed(2)} payable on delivery`,
         }),
       };
+=======
+    const isUpi = paymentMethod === 'upi';
+    const isCod = paymentMethod === 'cod';
+    const paymentStatus = isUpi ? 'pending-verification' : isCod ? 'advance-paid' : 'paid';
+>>>>>>> Stashed changes
 
+    const orderData = {
+      customerId: user.uid,
+      customerName: form.fullName,
+      customerPhone: form.phone,
+      shippingAddress: {
+        address: form.address,
+        city: form.city,
+        state: form.state,
+        zip: form.zip,
+        country: 'IN',
+      },
+      items: cart.map((item) => ({
+        productId: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        vendorId: item.vendorId,
+        vendorName: item.vendorName,
+        addons: item.addons || [],
+        addonTotal: item.addonTotal || 0,
+      })),
+      subtotal: cartTotal,
+      discount: coupon ? cartTotal - subtotalAfterCoupon : 0,
+      couponCode: coupon?.code || null,
+      couponId: coupon?.id || null,
+      shipping,
+      tax,
+      total,
+      paymentMethod,
+      paymentStatus,
+      paymentReference: isUpi ? utr.trim().toUpperCase() : null,
+      cardLast4: paymentMethod === 'card' ? form.cardNumber.replace(/\D/g, '').slice(-4) : null,
+      codAdvance: isCod ? codAdvance : null,
+      codRemaining: isCod ? total - codAdvance : null,
+      currency: 'INR',
+    };
+
+    try {
       const newOrderId = await createOrder(orderData);
 
       if (utrReservation) {
@@ -351,6 +538,10 @@ paymentMethod,
         if (item.vendorId) {
           try { await incrementVendorSales(item.vendorId, item.price * item.quantity); } catch (err) { console.warn('Could not increment vendor sales:', err); }
         }
+      }
+
+      if (coupon?.id) {
+        await incrementCouponUsage(coupon.id);
       }
 
       setOrderId(newOrderId);
@@ -401,18 +592,21 @@ paymentMethod,
     }
   };
 
-  // Error state for display
-  const [error, setError] = useState('');
-
   if (orderComplete) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 text-center animate-scale-in">
         <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 mx-auto mb-6">
           <CheckCircle className="h-10 w-10 text-emerald-600" />
         </div>
-        <h1 className="text-3xl font-display font-bold text-surface-900">Order Confirmed!</h1>
+        <h1 className="text-3xl font-display font-bold text-surface-900">
+          {paymentMethod === 'upi' ? 'Payment Under Verification' : 'Order Confirmed!'}
+        </h1>
         <p className="mt-4 text-surface-500">
-          Thank you for your purchase. Your order <span className="font-semibold text-surface-700">#{orderId?.slice(0, 8)}</span> has been placed successfully.
+          {paymentMethod === 'upi'
+            ? `Your order #${orderId?.slice(0, 8)} is placed. We're verifying your UPI payment (UTR ${utr.trim().toUpperCase()}). Once confirmed, your items will be shipped.`
+            : paymentMethod === 'cod'
+            ? `Your order #${orderId?.slice(0, 8)} is confirmed. Advance of ${formatMoney(codAdvance)} received; pay ${formatMoney(total - codAdvance)} on delivery.`
+            : `Your order #${orderId?.slice(0, 8)} is confirmed. Payment received via card ending in ${form.cardNumber.replace(/\D/g, '').slice(-4)}.`}
         </p>
         {paymentMethod !== 'card' && (
           <div className="mt-4 mx-auto max-w-md rounded-xl bg-amber-50 border border-amber-100 px-4 py-3 text-sm text-amber-700">
@@ -432,7 +626,6 @@ paymentMethod,
     return null;
   }
 
-  // Show auth prompt for unauthenticated users
   if (needsAuth && !isAuthenticated) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 text-center animate-fade-in">
@@ -444,15 +637,18 @@ paymentMethod,
           To securely process your order, please sign in with your email and password.
         </p>
         <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+<<<<<<< Updated upstream
           <button
             onClick={() => handleSubmit({ preventDefault: () => {} })}
             className="btn-primary"
           >
             Sign In to Continue
+=======
+          <button onClick={() => handleSubmit({ preventDefault: () => {} })} className="btn-primary">
+            Continue with Phone Verification
+>>>>>>> Stashed changes
           </button>
-          <button onClick={() => navigate('/cart')} className="btn-secondary">
-            Back to Cart
-          </button>
+          <button onClick={() => navigate('/cart')} className="btn-secondary">Back to Cart</button>
         </div>
         <p className="mt-6 text-sm text-surface-400">
           Or <button onClick={() => navigate('/login')} className="text-primary-600 hover:underline font-medium">sign in with email</button>
@@ -517,12 +713,11 @@ paymentMethod,
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <input name="fullName" value={form.fullName} onChange={handleChange} placeholder="Full Name" className="input-field" required />
-                <input name="email" type="email" value={form.email} onChange={handleChange} placeholder="Email" className="input-field" required />
+                <input name="phone" value={form.phone} onChange={handleChange} placeholder="Phone Number" className="input-field" required />
                 <input name="address" value={form.address} onChange={handleChange} placeholder="Street Address" className="input-field sm:col-span-2" required />
                 <input name="city" value={form.city} onChange={handleChange} placeholder="City" className="input-field" required />
                 <input name="state" value={form.state} onChange={handleChange} placeholder="State" className="input-field" required />
-                <input name="zip" value={form.zip} onChange={handleChange} placeholder="ZIP Code" className="input-field" required />
-                <input name="country" value={form.country} onChange={handleChange} placeholder="Country" className="input-field" required />
+                <input name="zip" value={form.zip} onChange={handleChange} placeholder="PIN Code" className="input-field" required />
               </div>
 
               <div className="mt-4 flex flex-wrap items-center gap-4">
@@ -546,15 +741,16 @@ paymentMethod,
               </div>
             </div>
 
-            {/* Payment Info */}
+            {/* Payment Method */}
             <div className="card p-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50">
-                  <CreditCard className="h-5 w-5 text-primary-600" />
+                  <Banknote className="h-5 w-5 text-primary-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-surface-900">Payment Details</h3>
+                <h3 className="text-lg font-semibold text-surface-900">Payment Method</h3>
               </div>
 
+<<<<<<< Updated upstream
               {/* Payment Method Toggle */}
               <div className="grid grid-cols-3 gap-3 mb-4">
                 <button
@@ -644,6 +840,160 @@ paymentMethod,
                   <div className="flex items-center gap-2 text-xs text-surface-500">
                     <ShieldCheck className="h-4 w-4 text-emerald-600" />
                     Advance is refunded if the order is cancelled before dispatch.
+=======
+              <div className="grid grid-cols-3 gap-3 mb-6">
+                {[
+                  { id: 'upi', label: 'UPI', icon: Smartphone },
+                  { id: 'card', label: 'Card', icon: CreditCard },
+                  { id: 'cod', label: 'COD', icon: Banknote },
+                ].map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setPaymentMethod(id)}
+                    className={`flex flex-col items-center gap-2 rounded-xl border-2 px-3 py-4 text-sm font-medium transition-all ${
+                      paymentMethod === id
+                        ? 'border-primary-600 bg-primary-50 text-primary-700'
+                        : 'border-surface-100 text-surface-500 hover:border-primary-200 hover:bg-surface-50'
+                    }`}
+                  >
+                    <Icon className="h-6 w-6" />
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* UPI */}
+              {paymentMethod === 'upi' && (
+                <div className="space-y-5">
+                  <div className="rounded-xl bg-primary-50 border border-primary-100 p-4 flex flex-col sm:flex-row items-center gap-5">
+                    <img
+                      src={QR_URL(`upi://pay?pa=${UPI_ID}&pn=Speedersmania&am=${total.toFixed(2)}&cu=INR&tn=Order ${cart.length} item(s)`)}
+                      alt="UPI QR Code"
+                      className="h-36 w-36 rounded-xl bg-white p-2 border border-surface-100"
+                    />
+                    <div className="text-center sm:text-left flex-1">
+                      <p className="font-semibold text-surface-900">Pay via any UPI app</p>
+                      <p className="mt-1 text-sm text-surface-500">Scan the QR or pay to this UPI ID:</p>
+                      <div className="mt-2 inline-flex items-center gap-2 rounded-lg bg-white border border-primary-200 px-3 py-2">
+                        <span className="font-mono font-semibold text-primary-700">{UPI_ID}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(UPI_ID);
+                            setCopied(true);
+                            setTimeout(() => setCopied(false), 2000);
+                          }}
+                          className="text-primary-600 hover:text-primary-800"
+                          title="Copy UPI ID"
+                        >
+                          {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                        </button>
+                      </div>
+                      <p className="mt-2 text-xs font-semibold text-primary-700">Amount to pay: {formatMoney(total)}</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-surface-700 mb-1.5">
+                      UPI Transaction Reference (UTR)
+                    </label>
+                    <input
+                      name="utr"
+                      value={utr}
+                      onChange={(e) => setUtr(e.target.value.toUpperCase())}
+                      placeholder="e.g. 412345678901"
+                      className="input-field uppercase"
+                      required={paymentMethod === 'upi'}
+                    />
+                    <p className="mt-1.5 text-xs text-surface-500">
+                      After paying, your bank app shows a 12-digit UTR. Enter it here to complete the order. We'll verify it manually within 24 hours.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Card */}
+              {paymentMethod === 'card' && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <input
+                      name="cardNumber"
+                      value={form.cardNumber}
+                      onChange={(e) => setForm({ ...form, cardNumber: e.target.value.replace(/[^\d]/g, '').slice(0, 16) })}
+                      placeholder="Card Number"
+                      className="input-field sm:col-span-2"
+                      inputMode="numeric"
+                      required={paymentMethod === 'card'}
+                    />
+                    <input
+                      name="cardExpiry"
+                      value={form.cardExpiry}
+                      onChange={(e) => {
+                        let v = e.target.value.replace(/[^\d]/g, '').slice(0, 4);
+                        if (v.length > 2) v = `${v.slice(0, 2)}/${v.slice(2)}`;
+                        setForm({ ...form, cardExpiry: v });
+                      }}
+                      placeholder="MM/YY"
+                      className="input-field"
+                      required={paymentMethod === 'card'}
+                    />
+                    <input
+                      name="cardCvc"
+                      value={form.cardCvc}
+                      onChange={(e) => setForm({ ...form, cardCvc: e.target.value.replace(/[^\d]/g, '').slice(0, 4) })}
+                      placeholder="CVC"
+                      className="input-field"
+                      inputMode="numeric"
+                      required={paymentMethod === 'card'}
+                    />
+                  </div>
+                  <div className="mt-2 flex items-center gap-2 text-xs text-surface-500">
+                    <Lock className="h-3.5 w-3.5" />
+                    Card details are validated and only the last 4 digits are stored.
+                  </div>
+                </div>
+              )}
+
+              {/* COD */}
+              {paymentMethod === 'cod' && (
+                <div className="rounded-xl bg-surface-50 border border-surface-100 p-4 space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-surface-600">Advance (pay now)</span>
+                    <span className="font-semibold text-surface-900">{formatMoney(codAdvance)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-surface-600">Payable on delivery</span>
+                    <span className="font-semibold text-surface-900">{formatMoney(total - codAdvance)}</span>
+                  </div>
+                  <p className="pt-2 text-xs text-surface-500">
+                    Pay the advance via the UPI ID shown, then share the UTR. Balance is collected by our delivery partner.
+                  </p>
+                  <div className="pt-1 inline-flex items-center gap-2 rounded-lg bg-white border border-primary-200 px-3 py-2">
+                    <span className="font-mono font-semibold text-primary-700 text-xs">{UPI_ID}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(UPI_ID);
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                      }}
+                      className="text-primary-600 hover:text-primary-800"
+                      title="Copy UPI ID"
+                    >
+                      {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  <div className="pt-2">
+                    <label className="block text-sm font-medium text-surface-700 mb-1.5">Advance UTR (optional)</label>
+                    <input
+                      name="utr"
+                      value={utr}
+                      onChange={(e) => setUtr(e.target.value.toUpperCase())}
+                      placeholder="e.g. 412345678901"
+                      className="input-field uppercase"
+                    />
+>>>>>>> Stashed changes
                   </div>
                 </div>
               )}
@@ -655,6 +1005,7 @@ paymentMethod,
             <div className="card p-6 sticky top-24">
               <h3 className="text-lg font-semibold text-surface-900 mb-4">Order Summary</h3>
 
+<<<<<<< Updated upstream
               {/* Coupon section */}
               {!coupon ? (
                 <div className="mb-4">
@@ -700,6 +1051,36 @@ paymentMethod,
                   </button>
                 </div>
               )}
+=======
+              {/* Coupon */}
+              <div className="mb-4">
+                <div className="flex gap-2">
+                  <input
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                    placeholder="Coupon code"
+                    className="input-field uppercase"
+                  />
+                  <button
+                    type="button"
+                    onClick={applyCoupon}
+                    disabled={couponApplying}
+                    className="btn-secondary shrink-0 px-4"
+                  >
+                    <Ticket className="h-4 w-4" />
+                  </button>
+                </div>
+                {couponError && <p className="mt-1.5 text-xs text-red-500">{couponError}</p>}
+                {coupon && (
+                  <div className="mt-2 flex items-center justify-between rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-2 text-xs">
+                    <span className="font-semibold text-emerald-700">
+                      {coupon.discountType === 'percent' ? `${coupon.discountValue}% off` : `${formatMoney(coupon.discountValue)} off`} applied
+                    </span>
+                    <button type="button" onClick={() => setCoupon(null)} className="text-emerald-600 hover:text-emerald-800">Remove</button>
+                  </div>
+                )}
+              </div>
+>>>>>>> Stashed changes
 
               <div className="space-y-3 max-h-60 overflow-y-auto scrollbar-hide">
                 {cart.map((item) => (
@@ -711,6 +1092,7 @@ paymentMethod,
                       <p className="text-xs font-medium text-surface-900 line-clamp-1">{item.name}</p>
                       <p className="text-xs text-surface-500">Qty: {item.quantity}</p>
                     </div>
+<<<<<<< Updated upstream
                     <span className="text-xs font-semibold">
                       ₹{(item.price * item.quantity + (item.addonTotal || 0)).toFixed(2)}
                     </span>
@@ -719,11 +1101,15 @@ paymentMethod,
                         +₹{item.addonTotal?.toFixed(2)} add-ons
                       </div>
                     )}
+=======
+                    <span className="text-xs font-semibold">{formatMoney(item.price * item.quantity + (item.addonTotal || 0))}</span>
+>>>>>>> Stashed changes
                   </div>
                 ))}
               </div>
               <div className="mt-4 pt-4 border-t border-surface-100 space-y-2 text-sm">
                 <div className="flex justify-between">
+<<<<<<< Updated upstream
                   <span className="text-surface-500">Item Subtotal</span>
                   <span>₹{cartTotal.toFixed(2)}</span>
                 </div>
@@ -731,19 +1117,52 @@ paymentMethod,
                   <div className="flex justify-between text-emerald-600">
                     <span className="text-surface-500">Coupon Discount ({coupon?.code})</span>
                     <span>-₹{discount.toFixed(2)}</span>
+=======
+                  <span className="text-surface-500">Subtotal</span>
+                  <span>{formatMoney(cartTotal)}</span>
+                </div>
+                {coupon && (
+                  <div className="flex justify-between text-emerald-600">
+                    <span>Coupon ({coupon.code})</span>
+                    <span>-{formatMoney(cartTotal - subtotalAfterCoupon)}</span>
+>>>>>>> Stashed changes
                   </div>
                 )}
                 <div className="flex justify-between">
                   <span className="text-surface-500">Shipping</span>
+<<<<<<< Updated upstream
                   <span>{shipping === 0 ? <span className="text-emerald-600 font-medium">Free</span> : `₹${shipping.toFixed(2)}`}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-surface-500">GST (18%)</span>
                   <span className="text-xs text-surface-400">₹{tax.toFixed(2)}</span>
+=======
+                  <span>{shipping === 0 ? 'Free' : formatMoney(shipping)}</span>
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-surface-500">Tax (8%)</span>
+                  <span>{formatMoney(tax)}</span>
+>>>>>>> Stashed changes
+                </div>
+                {paymentMethod === 'cod' && (
+                  <>
+                    <div className="flex justify-between text-amber-600">
+                      <span>COD advance</span>
+                      <span>-{formatMoney(codAdvance)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-surface-500">On delivery</span>
+                      <span>{formatMoney(total - codAdvance)}</span>
+                    </div>
+                  </>
+                )}
                 <div className="flex justify-between pt-2 border-t border-surface-100">
                   <span className="font-semibold">Total</span>
+<<<<<<< Updated upstream
                   <span className="font-bold">₹{total.toFixed(2)}</span>
+=======
+                  <span className="font-bold">{formatMoney(total)}</span>
+>>>>>>> Stashed changes
                 </div>
                 {(discount > 0 || shipping === 0) && (
                   <div className="flex items-center gap-1.5 rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-700 mt-2">
@@ -753,7 +1172,19 @@ paymentMethod,
                 )}
               </div>
               <button type="submit" disabled={processing} className="btn-primary w-full mt-6">
+<<<<<<< Updated upstream
                 {processing ? 'Processing...' : `Pay ₹${total.toFixed(2)}`}
+=======
+                {processing ? (
+                  'Processing...'
+                ) : paymentMethod === 'upi' ? (
+                  <>Place Order · Pay {formatMoney(total)} <ArrowRight className="h-4 w-4" /></>
+                ) : paymentMethod === 'cod' ? (
+                  <>Place Order · Pay {formatMoney(codAdvance)} Now</>
+                ) : (
+                  `Place Order · Pay ${formatMoney(total)}`
+                )}
+>>>>>>> Stashed changes
               </button>
             </div>
           </div>

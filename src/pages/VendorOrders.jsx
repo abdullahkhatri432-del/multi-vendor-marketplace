@@ -80,7 +80,11 @@ export default function VendorOrders() {
                   <span className={`badge ${statusColors[order.status] || 'badge-primary'}`}>
                     {order.status || 'pending'}
                   </span>
+<<<<<<< Updated upstream
                   <span className="text-lg font-bold text-surface-900">₹{vendorSubtotal(order).toFixed(2)}</span>
+=======
+                  <span className="text-lg font-bold text-surface-900">₹{order.total?.toFixed(2)}</span>
+>>>>>>> Stashed changes
                   {expandedOrder === order.id ? <ChevronUp className="h-5 w-5 text-surface-400" /> : <ChevronDown className="h-5 w-5 text-surface-400" />}
                 </div>
               </button>
@@ -94,7 +98,11 @@ export default function VendorOrders() {
                         {vendorItems(order).map((item, i) => (
                           <div key={i} className="flex items-center justify-between text-sm rounded-lg bg-white px-3 py-2">
                             <span className="text-surface-600">{item.name} x{item.quantity}</span>
+<<<<<<< Updated upstream
                             <span className="font-medium">₹{((item.price * item.quantity) + (item.addonTotal || 0)).toFixed(2)}</span>
+=======
+                            <span className="font-medium">₹{(item.price * item.quantity).toFixed(2)}</span>
+>>>>>>> Stashed changes
                           </div>
                         ))}
                       </div>

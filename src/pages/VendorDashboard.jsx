@@ -183,7 +183,11 @@ export default function VendorDashboard() {
                             <td className="py-3">
                               <span className={`badge ${statusColors[order.status] || 'badge-primary'}`}>{order.status || 'pending'}</span>
                             </td>
+<<<<<<< Updated upstream
                             <td className="py-3 text-right font-semibold">₹{vendorSubtotal(order).toFixed(2)}</td>
+=======
+                            <td className="py-3 text-right font-semibold">₹{order.total?.toFixed(2)}</td>
+>>>>>>> Stashed changes
                           </tr>
                         ))}
                       </tbody>

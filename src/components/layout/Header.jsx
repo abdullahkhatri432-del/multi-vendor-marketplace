@@ -1,6 +1,12 @@
+<<<<<<< Updated upstream
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Search, User, Menu, X, Store, LayoutDashboard, LogOut, Package, Heart, TrendingUp, ChevronDown, Truck, ShieldCheck, RotateCcw, BadgePercent, ChevronRight, Zap } from 'lucide-react';
+=======
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ShoppingCart, Search, User, Menu, X, Store, LayoutDashboard, LogOut, Package, Heart, ChevronDown, Sparkles } from 'lucide-react';
+>>>>>>> Stashed changes
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { searchProducts } from '../../config/firestore';
@@ -29,6 +35,7 @@ export default function Header() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState('login');
   const [scrolled, setScrolled] = useState(false);
+<<<<<<< Updated upstream
   const [catOpen, setCatOpen] = useState(false);
   const searchWrapRef = useRef(null);
   const catRef = useRef(null);
@@ -76,6 +83,13 @@ export default function Header() {
     };
     document.addEventListener('mousedown', onClick);
     return () => document.removeEventListener('mousedown', onClick);
+=======
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+>>>>>>> Stashed changes
   }, []);
 
   const handleSearch = (e) => {
@@ -158,21 +172,61 @@ export default function Header() {
   );
 
   return (
+<<<<<<< Updated upstream
     <header className={`sticky top-0 z-50 glass border-b transition-all duration-300 ${scrolled ? 'border-surface-200/60 shadow-soft' : 'border-surface-200/20 shadow-none'}`}>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between gap-4">
           <Link to="/" className="flex items-center gap-2 shrink-0 group">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary-600 to-accent shadow-glow transition-transform duration-300 group-hover:scale-105">
+=======
+    <header className={`sticky top-0 z-50 transition-all duration-500 ${
+      scrolled 
+        ? 'bg-white/80 backdrop-blur-xl border-b border-surface-100/50 shadow-soft' 
+        : 'bg-transparent border-b border-transparent'
+    }`}>
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex h-16 lg:h-18 items-center justify-between gap-4">
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-2.5 shrink-0 group">
+            <div className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-600 via-primary-500 to-accent shadow-glow transition-all duration-300 group-hover:shadow-glow-lg group-hover:scale-105">
+>>>>>>> Stashed changes
               <Store className="h-5 w-5 text-white" />
+              <div className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-success border-2 border-white animate-pulse" />
             </div>
-            <span className="text-xl font-display font-bold text-gradient hidden sm:block">Speedersmania</span>
+            <div className="hidden sm:block">
+              <span className="text-xl font-display font-bold text-gradient">Speedersmania</span>
+              <div className="flex items-center gap-1 -mt-1">
+                <Sparkles className="h-3 w-3 text-primary-400" />
+                <span className="text-2xs text-surface-400 font-medium">Premium Marketplace</span>
+              </div>
+            </div>
           </Link>
 
+<<<<<<< Updated upstream
           <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-md">
             {searchForm()}
+=======
+          {/* Search Bar */}
+          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-lg mx-8">
+            <div className="relative w-full group">
+              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400 transition-colors group-focus-within:text-primary-500" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search products, vendors..."
+                className="w-full rounded-2xl border border-surface-200/80 bg-surface-50/80 backdrop-blur-sm pl-11 pr-4 py-2.5 text-sm text-surface-900 placeholder-surface-400 transition-all duration-300 focus:border-primary-400 focus:outline-none focus:ring-4 focus:ring-primary-100 focus:bg-white hover:border-surface-300"
+              />
+              <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden lg:inline-flex items-center gap-1 rounded-lg bg-surface-100 px-2 py-0.5 text-2xs text-surface-400 font-mono">
+                ⌘K
+              </kbd>
+            </div>
+>>>>>>> Stashed changes
           </form>
 
+          {/* Navigation */}
           <nav className="hidden md:flex items-center gap-1">
+<<<<<<< Updated upstream
             <div ref={catRef} className="relative">
               <button
                 onClick={() => setCatOpen(!catOpen)}
@@ -220,42 +274,59 @@ export default function Header() {
             </div>
             <Link to="/wishlist" className="btn-ghost text-sm">
               <Heart className="h-4 w-4" />
+=======
+            <Link to="/products" className="btn-ghost text-sm group">
+              <Package className="h-4 w-4 transition-transform group-hover:scale-110" />
+              <span>Browse</span>
             </Link>
-            <Link to="/cart" className="relative btn-ghost text-sm">
-              <ShoppingCart className="h-4 w-4" />
+            <Link to="/wishlist" className="btn-ghost p-2.5 group relative">
+              <Heart className="h-5 w-5 transition-transform group-hover:scale-110 group-hover:text-red-500" />
+>>>>>>> Stashed changes
+            </Link>
+            <Link to="/cart" className="relative btn-ghost p-2.5 group">
+              <ShoppingCart className="h-5 w-5 transition-transform group-hover:scale-110" />
               {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary-600 text-[10px] font-bold text-white">
+                <span className="absolute -top-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-r from-primary-600 to-accent text-2xs font-bold text-white shadow-glow animate-bounce-in">
                   {cartCount > 9 ? '9+' : cartCount}
                 </span>
               )}
             </Link>
 
+            <div className="w-px h-6 bg-surface-200 mx-1" />
+
             {isAuthenticated ? (
               <div className="relative">
                 <button
                   onClick={() => setProfileOpen(!profileOpen)}
-                  className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-surface-700 hover:bg-surface-100 transition-colors"
+                  className="flex items-center gap-2.5 rounded-2xl px-3 py-2 text-sm font-medium text-surface-700 hover:bg-surface-50 transition-all duration-200"
                 >
-                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-primary-400 to-accent text-white text-xs font-bold">
-                    {user?.displayName?.charAt(0)?.toUpperCase() || 'U'}
+                  <div className="relative">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary-400 to-accent text-white text-xs font-bold shadow-sm">
+                      {user?.displayName?.charAt(0)?.toUpperCase() || 'U'}
+                    </div>
+                    <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-success border-2 border-white" />
                   </div>
-                  <span className="hidden lg:block">{user?.displayName?.split(' ')[0] || 'User'}</span>
+                  <span className="hidden lg:block max-w-[100px] truncate">{user?.displayName?.split(' ')[0] || 'User'}</span>
+                  <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${profileOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {profileOpen && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
-                    <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl border border-surface-100 bg-white p-2 shadow-premium z-50 animate-slide-down">
-                      <div className="px-3 py-2 border-b border-surface-100 mb-1">
+                    <div className="absolute right-0 top-full mt-2 w-64 rounded-3xl border border-surface-100 bg-white/95 backdrop-blur-xl p-2 shadow-premium z-50 animate-slide-down">
+                      <div className="px-4 py-3 border-b border-surface-100 mb-1">
                         <p className="text-sm font-semibold text-surface-900">{user?.displayName}</p>
-                        <p className="text-xs text-surface-500">{user?.email}</p>
+                        <p className="text-xs text-surface-500 mt-0.5">{user?.email || user?.phoneNumber}</p>
+                        <span className="inline-flex items-center gap-1 mt-2 rounded-full bg-primary-50 px-2 py-0.5 text-2xs font-semibold text-primary-700 capitalize">
+                          {userRole || 'customer'}
+                        </span>
                       </div>
                       <Link
                         to={userRole === 'admin' ? '/admin' : userRole === 'vendor' ? '/vendor' : '/orders'}
                         onClick={() => setProfileOpen(false)}
-                        className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-surface-700 hover:bg-surface-50"
+                        className="flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-surface-700 hover:bg-surface-50 transition-colors"
                       >
-                        <LayoutDashboard className="h-4 w-4" />
+                        <LayoutDashboard className="h-4 w-4 text-surface-400" />
                         Dashboard
                       </Link>
                       {userRole === 'vendor' && (
@@ -281,14 +352,23 @@ export default function Header() {
                       <Link
                         to="/orders"
                         onClick={() => setProfileOpen(false)}
-                        className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-surface-700 hover:bg-surface-50"
+                        className="flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-surface-700 hover:bg-surface-50 transition-colors"
                       >
-                        <Package className="h-4 w-4" />
+                        <Package className="h-4 w-4 text-surface-400" />
                         My Orders
                       </Link>
+                      <Link
+                        to="/profile"
+                        onClick={() => setProfileOpen(false)}
+                        className="flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-surface-700 hover:bg-surface-50 transition-colors"
+                      >
+                        <User className="h-4 w-4 text-surface-400" />
+                        Profile
+                      </Link>
+                      <div className="h-px bg-surface-100 my-1" />
                       <button
                         onClick={() => { logout(); setProfileOpen(false); navigate('/'); }}
-                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                        className="flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
                       >
                         <LogOut className="h-4 w-4" />
                         Sign Out
@@ -307,7 +387,7 @@ export default function Header() {
                 </button>
                 <button
                   onClick={() => { setAuthModalMode('register'); setAuthModalOpen(true); }}
-                  className="btn-primary text-sm py-2"
+                  className="btn-primary text-sm py-2 px-4"
                 >
                   Get Started
                 </button>
@@ -315,11 +395,12 @@ export default function Header() {
             )}
           </nav>
 
+          {/* Mobile Menu Button */}
           <div className="flex items-center gap-2 md:hidden">
             <Link to="/cart" className="relative btn-ghost p-2">
               <ShoppingCart className="h-5 w-5" />
               {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary-600 text-[9px] font-bold text-white">
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-r from-primary-600 to-accent text-2xs font-bold text-white">
                   {cartCount}
                 </span>
               )}
@@ -330,9 +411,11 @@ export default function Header() {
           </div>
         </div>
 
+        {/* Mobile Menu */}
         {mobileOpen && (
           <div className="border-t border-surface-100 py-4 md:hidden animate-slide-down">
             <form onSubmit={handleSearch} className="mb-4">
+<<<<<<< Updated upstream
               {searchForm(true)}
             </form>
             <div className="flex flex-col gap-1">
@@ -349,16 +432,46 @@ export default function Header() {
                 </Link>
               ))}
               <div className="my-1 border-t border-surface-100" />
+=======
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search products..."
+                  className="input-field pl-10 py-2.5 text-sm"
+                />
+              </div>
+            </form>
+            <div className="flex flex-col gap-1">
+              <Link to="/products" onClick={() => setMobileOpen(false)} className="btn-ghost justify-start">
+                <Package className="h-4 w-4" /> Browse Products
+              </Link>
+              <Link to="/wishlist" onClick={() => setMobileOpen(false)} className="btn-ghost justify-start">
+                <Heart className="h-4 w-4" /> Wishlist
+              </Link>
+>>>>>>> Stashed changes
               {isAuthenticated ? (
                 <>
-                  <Link to={userRole === 'admin' ? '/admin' : userRole === 'vendor' ? '/vendor' : '/orders'} onClick={() => setMobileOpen(false)} className="btn-ghost justify-start">Dashboard</Link>
-                  <Link to="/orders" onClick={() => setMobileOpen(false)} className="btn-ghost justify-start">My Orders</Link>
-                  <button onClick={() => { logout(); setMobileOpen(false); }} className="btn-ghost justify-start text-red-600">Sign Out</button>
+                  <Link to={userRole === 'admin' ? '/admin' : userRole === 'vendor' ? '/vendor' : '/orders'} onClick={() => setMobileOpen(false)} className="btn-ghost justify-start">
+                    <LayoutDashboard className="h-4 w-4" /> Dashboard
+                  </Link>
+                  <Link to="/orders" onClick={() => setMobileOpen(false)} className="btn-ghost justify-start">
+                    <Package className="h-4 w-4" /> My Orders
+                  </Link>
+                  <button onClick={() => { logout(); setMobileOpen(false); }} className="btn-ghost justify-start text-red-600">
+                    <LogOut className="h-4 w-4" /> Sign Out
+                  </button>
                 </>
               ) : (
                 <>
-                  <button onClick={() => { setMobileOpen(false); setAuthModalMode('login'); setAuthModalOpen(true); }} className="btn-ghost justify-start">Sign In</button>
-                  <button onClick={() => { setMobileOpen(false); setAuthModalMode('register'); setAuthModalOpen(true); }} className="btn-primary justify-center">Get Started</button>
+                  <button onClick={() => { setMobileOpen(false); setAuthModalMode('login'); setAuthModalOpen(true); }} className="btn-ghost justify-start">
+                    <User className="h-4 w-4" /> Sign In
+                  </button>
+                  <button onClick={() => { setMobileOpen(false); setAuthModalMode('register'); setAuthModalOpen(true); }} className="btn-primary justify-center mx-4">
+                    Get Started
+                  </button>
                 </>
               )}
             </div>

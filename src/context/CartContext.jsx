@@ -3,7 +3,7 @@ import { useAuth } from './AuthContext';
 
 const CartContext = createContext(null);
 
-const CART_KEY = 'nexusmart_cart';
+const CART_KEY = 'speedersmania_cart';
 
 function cartReducer(state, action) {
   switch (action.type) {

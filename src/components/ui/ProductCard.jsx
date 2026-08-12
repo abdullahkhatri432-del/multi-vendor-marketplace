@@ -1,6 +1,11 @@
+<<<<<<< Updated upstream
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Star, Heart, Bolt, BadgeCheck, Eye } from 'lucide-react';
+=======
+import { Link } from 'react-router-dom';
+import { ShoppingCart, Star, Heart, Bolt, Eye } from 'lucide-react';
+>>>>>>> Stashed changes
 import { useCart } from '../../context/CartContext';
 import { useCheckoutInterceptor } from '../../context/CheckoutInterceptorContext';
 import { getVendorsMap, getWishlist, addToWishlist, removeFromWishlist } from '../../config/firestore';
@@ -17,6 +22,7 @@ export default function ProductCard({ product }) {
   const [wishBusy, setWishBusy] = useState(false);
   const image = product.images?.[0] || product.image || `https://picsum.photos/seed/${product.id}/400/400`;
 
+<<<<<<< Updated upstream
   useEffect(() => {
     getVendorsMap().then(setVendorsMap).catch(() => {});
   }, []);
@@ -38,10 +44,17 @@ export default function ProductCard({ product }) {
       items: [{ item_id: product.id, item_name: product.name, price: product.price, quantity: 1 }],
       value: product.price || 0,
     });
+=======
+  const handleAddToCart = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+>>>>>>> Stashed changes
     addItem(product);
   };
 
-  const handleBuyNow = async () => {
+  const handleBuyNow = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     try {
       await intercept('buy_now', { productId: product.id, quantity: 1 });
       addItem(product);
@@ -53,6 +66,7 @@ export default function ProductCard({ product }) {
     }
   };
 
+<<<<<<< Updated upstream
   const handleWishlist = async () => {
     try {
       await intercept('wishlist', { productId: product.id });
@@ -173,9 +187,105 @@ export default function ProductCard({ product }) {
             >
               <Eye className="h-4 w-4" />
             </Link>
+=======
+  const discount = product.originalPrice && product.originalPrice > product.price
+    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+    : product.discount || 0;
+
+  return (
+    <Link to={`/products/${product.id}`} className="group block">
+      <div className="relative rounded-3xl border border-surface-100/80 bg-white/80 backdrop-blur-sm overflow-hidden shadow-soft transition-all duration-500 hover:shadow-card-hover hover:-translate-y-2 hover:border-primary-100">
+        {/* Image Container */}
+        <div className="relative aspect-square overflow-hidden bg-surface-100">
+          <img
+            src={image}
+            alt={product.name}
+            className="h-full w-full object-cover transition-transform duration-700 ease-out-out-expo group-hover:scale-110"
+            loading="lazy"
+          />
+          
+          {/* Overlay Gradient */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          
+          {/* Discount Badge */}
+          {discount > 0 && (
+            <div className="absolute top-3 left-3 z-10">
+              <span className="inline-flex items-center rounded-xl bg-gradient-to-r from-danger to-red-500 px-2.5 py-1 text-2xs font-bold text-white shadow-lg">
+                -{discount}%
+              </span>
+            </div>
+          )}
+          
+          {/* Quick Actions */}
+          <div className="absolute top-3 right-3 z-10 flex flex-col gap-2 opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all duration-300">
+            <button
+              onClick={handleAddToCart}
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/90 backdrop-blur-sm text-surface-600 shadow-lg hover:bg-primary-600 hover:text-white transition-all duration-200 hover:scale-110"
+              title="Add to Cart"
+            >
+              <ShoppingCart className="h-4 w-4" />
+            </button>
+            <button
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/90 backdrop-blur-sm text-surface-600 shadow-lg hover:bg-red-500 hover:text-white transition-all duration-200 hover:scale-110"
+              title="Add to Wishlist"
+            >
+              <Heart className="h-4 w-4" />
+            </button>
+          </div>
+          
+          {/* Quick View */}
+          <div className="absolute bottom-3 left-3 right-3 opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-300">
+            <button
+              onClick={handleBuyNow}
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg hover:shadow-xl transition-all duration-200"
+            >
+              <Bolt className="h-4 w-4" />
+              Buy Now
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-4">
+          {/* Vendor */}
+          <p className="text-2xs font-semibold text-primary-600 uppercase tracking-wider mb-1.5">
+            {product.vendorName || 'Speedersmania'}
+          </p>
+          
+          {/* Name */}
+          <h3 className="text-sm font-semibold text-surface-900 line-clamp-2 group-hover:text-primary-600 transition-colors duration-200 leading-snug min-h-[2.5rem]">
+            {product.name}
+          </h3>
+
+          {/* Rating */}
+          <div className="flex items-center gap-1.5 mt-2">
+            <div className="flex items-center gap-0.5">
+              {[...Array(5)].map((_, i) => (
+                <Star
+                  key={i}
+                  className={`h-3 w-3 ${
+                    i < Math.round(product.rating || 4.5)
+                      ? 'fill-amber-400 text-amber-400'
+                      : 'text-surface-200'
+                  }`}
+                />
+              ))}
+            </div>
+            <span className="text-2xs text-surface-400">({product.reviewCount || 0})</span>
+          </div>
+
+          {/* Price */}
+          <div className="flex items-end justify-between mt-3 pt-3 border-t border-surface-100">
+            <div className="flex items-baseline gap-2">
+              <span className="text-lg font-bold text-surface-900">₹{product.price?.toFixed(2)}</span>
+              {product.originalPrice && product.originalPrice > product.price && (
+                <span className="text-sm text-surface-400 line-through">₹{product.originalPrice.toFixed(2)}</span>
+              )}
+            </div>
+>>>>>>> Stashed changes
           </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }

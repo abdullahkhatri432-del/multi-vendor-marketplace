@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+<<<<<<< Updated upstream
 import { Trash2, Minus, Plus, ShoppingBag, ArrowRight, Ticket, X, Loader2, AlertCircle, ShieldCheck, Truck, RotateCcw, CheckCircle2 } from 'lucide-react';
+=======
+import { Trash2, Minus, Plus, ShoppingBag, ArrowRight, Shield, Truck, RotateCcw, Tag, Sparkles } from 'lucide-react';
+>>>>>>> Stashed changes
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useCheckoutInterceptor } from '../context/CheckoutInterceptorContext';
@@ -16,6 +20,7 @@ export default function CartPage() {
   const { intercept } = useCheckoutInterceptor();
   const navigate = useNavigate();
 
+<<<<<<< Updated upstream
   const [couponCode, setCouponCode] = useState('');
   const [coupon, setCoupon] = useState(null);
   const [couponLoading, setCouponLoading] = useState(false);
@@ -71,6 +76,11 @@ export default function CartPage() {
     setCouponCode('');
     setCouponError('');
   };
+=======
+  const shipping = cartTotal > 999 ? 0 : 49;
+  const tax = cartTotal * 0.08;
+  const total = cartTotal + shipping + tax;
+>>>>>>> Stashed changes
 
   const handleCheckout = async () => {
     try {
@@ -102,12 +112,24 @@ export default function CartPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+<<<<<<< Updated upstream
       <h1 className="text-3xl font-display font-bold text-surface-900 mb-2">Shopping Cart</h1>
       <p className="text-sm text-surface-500 mb-8">{cart.length} {cart.length === 1 ? 'item' : 'items'} in your cart</p>
+=======
+      <div className="mb-8">
+        <div className="flex items-center gap-2 mb-2">
+          <ShoppingBag className="h-5 w-5 text-primary-600" />
+          <span className="text-sm font-semibold text-primary-600 uppercase tracking-wide">Your Cart</span>
+        </div>
+        <h1 className="text-3xl font-display font-bold text-surface-900">Shopping Cart</h1>
+        <p className="mt-1 text-surface-500">{cart.length} items in your cart</p>
+      </div>
+>>>>>>> Stashed changes
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Cart Items */}
         <div className="lg:col-span-2 space-y-4">
+<<<<<<< Updated upstream
           {/* Free shipping progress */}
           <div className="rounded-2xl border border-primary-100 bg-primary-50/50 px-5 py-4">
             <div className="flex items-center gap-2 text-sm font-medium text-surface-700 mb-2">
@@ -139,6 +161,18 @@ export default function CartPage() {
                   alt={item.name}
                   className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
                 />
+=======
+          {cart.map((item, index) => (
+            <div key={item.id} className="card p-5 flex gap-5 animate-fade-in" style={{ animationDelay: `${index * 0.05}s` }}>
+              <Link to={`/products/${item.id}`} className="shrink-0">
+                <div className="h-28 w-28 overflow-hidden rounded-2xl bg-surface-100">
+                  <img
+                    src={item.image || `https://picsum.photos/seed/${item.id}/120/120`}
+                    alt={item.name}
+                    className="h-full w-full object-cover hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
+>>>>>>> Stashed changes
               </Link>
               <div className="flex-1 min-w-0">
                 <Link to={`/products/${item.id}`} className="text-sm font-semibold text-surface-900 hover:text-primary-600 transition-colors line-clamp-1">
@@ -146,34 +180,50 @@ export default function CartPage() {
                 </Link>
                 <p className="text-xs text-surface-500 mt-0.5">{item.vendorName}</p>
                 {item.addons && item.addons.length > 0 && (
-                  <div className="mt-1 space-y-0.5">
+                  <div className="mt-2 space-y-0.5">
                     {item.addons.map((addon, idx) => (
                       <div key={idx} className="flex items-center justify-between text-xs">
+<<<<<<< Updated upstream
                         <span className="text-surface-500">{addon.title}</span>
                         <span className="text-primary-600">₹{addon.price?.toFixed(2)}</span>
+=======
+                        <span className="text-surface-500 flex items-center gap-1">
+                          <Tag className="h-3 w-3" /> {addon.title}
+                        </span>
+                        <span className="text-primary-600 font-medium">₹{addon.price?.toFixed(2)}</span>
+>>>>>>> Stashed changes
                       </div>
                     ))}
                   </div>
                 )}
                 <div className="mt-3 flex items-center justify-between">
-                  <div className="flex items-center rounded-lg border border-surface-200 bg-white">
+                  <div className="flex items-center rounded-xl border border-surface-200 bg-white/80 backdrop-blur-sm">
                     <button
                       onClick={() => updateQuantity(item.id, item.quantity - 1)}
+<<<<<<< Updated upstream
                       className="flex h-8 w-8 items-center justify-center text-surface-400 hover:text-surface-700 transition-colors"
                       aria-label="Decrease quantity"
+=======
+                      className="flex h-9 w-9 items-center justify-center text-surface-400 hover:text-surface-700 transition-colors rounded-l-xl hover:bg-surface-50"
+>>>>>>> Stashed changes
                     >
-                      <Minus className="h-3 w-3" />
+                      <Minus className="h-3.5 w-3.5" />
                     </button>
-                    <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
+                    <span className="w-10 text-center text-sm font-semibold">{item.quantity}</span>
                     <button
                       onClick={() => updateQuantity(item.id, item.quantity + 1)}
+<<<<<<< Updated upstream
                       className="flex h-8 w-8 items-center justify-center text-surface-400 hover:text-surface-700 transition-colors"
                       aria-label="Increase quantity"
+=======
+                      className="flex h-9 w-9 items-center justify-center text-surface-400 hover:text-surface-700 transition-colors rounded-r-xl hover:bg-surface-50"
+>>>>>>> Stashed changes
                     >
-                      <Plus className="h-3 w-3" />
+                      <Plus className="h-3.5 w-3.5" />
                     </button>
                   </div>
                   <div className="text-right">
+<<<<<<< Updated upstream
                     <span className="text-sm font-bold text-surface-900 block">
                       ₹{(item.price * item.quantity + (item.addonTotal || 0)).toFixed(2)}
                     </span>
@@ -182,20 +232,32 @@ export default function CartPage() {
                         <span className="text-xs text-surface-400">Add-ons:</span>
                         <span className="text-xs text-primary-600">+₹{item.addonTotal?.toFixed(2)}</span>
                       </div>
+=======
+                    <span className="text-lg font-bold text-surface-900 block">
+                      ₹{(item.price * item.quantity + (item.addonTotal || 0)).toFixed(2)}
+                    </span>
+                    {item.addons && item.addons.length > 0 && (
+                      <span className="text-xs text-primary-600">incl. add-ons</span>
+>>>>>>> Stashed changes
                     )}
                   </div>
                 </div>
               </div>
               <button
                 onClick={() => removeItem(item.id)}
+<<<<<<< Updated upstream
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-surface-400 hover:bg-red-50 hover:text-red-500 transition-colors self-start"
                 aria-label={`Remove ${item.name} from cart`}
+=======
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-surface-400 hover:bg-red-50 hover:text-red-500 transition-all duration-200 self-start"
+>>>>>>> Stashed changes
               >
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>
           ))}
 
+<<<<<<< Updated upstream
           <div className="flex items-center justify-between">
             <button onClick={clearCart} className="btn-ghost text-sm text-red-500 hover:bg-red-50">
               <Trash2 className="h-4 w-4" /> Clear Cart
@@ -217,12 +279,22 @@ export default function CartPage() {
                 <span className="text-[11px] font-medium text-surface-600">{label}</span>
               </div>
             ))}
+=======
+          <div className="flex items-center justify-between pt-4">
+            <Link to="/products" className="btn-ghost text-sm text-primary-600">
+              ← Continue Shopping
+            </Link>
+            <button onClick={clearCart} className="btn-ghost text-sm text-red-500 hover:bg-red-50">
+              Clear Cart
+            </button>
+>>>>>>> Stashed changes
           </div>
         </div>
 
         {/* Order Summary */}
         <div className="lg:col-span-1">
           <div className="card p-6 sticky top-24">
+<<<<<<< Updated upstream
             <h3 className="text-lg font-semibold text-surface-900 mb-4">Order Summary</h3>
 
             {/* Coupon section */}
@@ -254,6 +326,14 @@ export default function CartPage() {
                     <AlertCircle className="h-3.5 w-3.5" /> {couponError}
                   </p>
                 )}
+=======
+            <h3 className="text-lg font-semibold text-surface-900 mb-5">Order Summary</h3>
+            
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-surface-500">Subtotal ({cart.length} items)</span>
+                <span className="font-medium text-surface-900">₹{cartTotal.toFixed(2)}</span>
+>>>>>>> Stashed changes
               </div>
             ) : (
               <div className="mb-4 flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5">
@@ -302,6 +382,7 @@ export default function CartPage() {
               )}
               <div className="flex justify-between">
                 <span className="text-surface-500">Shipping</span>
+<<<<<<< Updated upstream
                 <span>{shipping === 0 ? 'Free' : `₹${shipping.toFixed(2)}`}</span>
               </div>
               <div className="flex justify-between">
@@ -311,6 +392,17 @@ export default function CartPage() {
               <div className="flex justify-between pt-2 border-t border-surface-100">
                 <span className="font-semibold">Total</span>
                 <span className="font-bold text-lg">₹{total.toFixed(2)}</span>
+=======
+                <span className="font-medium text-surface-900">{shipping === 0 ? 'Free' : `₹${shipping.toFixed(2)}`}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-surface-500">Tax (8%)</span>
+                <span className="font-medium text-surface-900">₹{tax.toFixed(2)}</span>
+              </div>
+              <div className="pt-3 border-t border-surface-100 flex justify-between">
+                <span className="text-base font-semibold text-surface-900">Total</span>
+                <span className="text-xl font-bold text-surface-900">₹{total.toFixed(2)}</span>
+>>>>>>> Stashed changes
               </div>
               {savings > 0 && (
                 <div className="flex justify-between text-xs text-emerald-600">
@@ -320,6 +412,24 @@ export default function CartPage() {
               )}
             </div>
 
+<<<<<<< Updated upstream
+=======
+            {cartTotal < 999 && (
+              <div className="mt-4 p-3 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200">
+                <p className="text-xs text-amber-700 flex items-center gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  Add ₹{(999 - cartTotal).toFixed(2)} more for free shipping!
+                </p>
+                <div className="mt-2 h-1.5 bg-amber-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min((cartTotal / 999) * 100, 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+>>>>>>> Stashed changes
             <button
               onClick={handleCheckout}
               className="btn-primary w-full mt-6"
@@ -328,6 +438,7 @@ export default function CartPage() {
               <ArrowRight className="h-4 w-4" />
             </button>
 
+<<<<<<< Updated upstream
             <Link to="/products" className="btn-secondary w-full mt-3 text-center">
               Continue Shopping
             </Link>
@@ -335,6 +446,22 @@ export default function CartPage() {
             <div className="mt-4 flex items-center justify-center gap-1.5 text-[11px] text-surface-400">
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
               100% secure & encrypted checkout
+=======
+            {/* Trust Badges */}
+            <div className="mt-6 pt-6 border-t border-surface-100">
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { icon: Shield, label: 'Secure' },
+                  { icon: Truck, label: 'Fast' },
+                  { icon: RotateCcw, label: 'Easy Returns' },
+                ].map(({ icon: Icon, label }) => (
+                  <div key={label} className="flex flex-col items-center gap-1 text-center">
+                    <Icon className="h-4 w-4 text-surface-400" />
+                    <span className="text-2xs text-surface-400">{label}</span>
+                  </div>
+                ))}
+              </div>
+>>>>>>> Stashed changes
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { Heart, ShoppingCart, Trash2 } from 'lucide-react';
+import { Heart, ShoppingCart, Trash2, Sparkles, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { getWishlist, removeFromWishlist, getProduct } from '../config/firestore';
@@ -40,19 +40,27 @@ export default function WishlistPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
       <div className="mb-8">
+        <div className="flex items-center gap-2 mb-2">
+          <Heart className="h-5 w-5 text-primary-600" />
+          <span className="text-sm font-semibold text-primary-600 uppercase tracking-wide">Saved Items</span>
+        </div>
         <h1 className="text-3xl font-display font-bold text-surface-900">My Wishlist</h1>
         <p className="mt-1 text-surface-500">{wishlistProducts.length} items saved</p>
       </div>
 
       {wishlistProducts.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {wishlistProducts.map((product) => (
-            <div key={product.id} className="card overflow-hidden animate-fade-in">
-              <div className="relative aspect-square overflow-hidden bg-surface-100">
-                <img src={product.images?.[0] || product.image || `https://picsum.photos/seed/${product.id}/400/400`} alt={product.name} className="h-full w-full object-cover" />
+          {wishlistProducts.map((product, index) => (
+            <div key={product.id} className="card overflow-hidden animate-fade-in" style={{ animationDelay: `${index * 0.05}s` }}>
+              <div className="relative aspect-square overflow-hidden bg-surface-100 group">
+                <img
+                  src={product.images?.[0] || product.image || `https://picsum.photos/seed/${product.id}/400/400`}
+                  alt={product.name}
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                />
                 <button
                   onClick={() => handleRemove(product.id)}
-                  className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-red-500 shadow-sm hover:bg-red-50 transition-colors"
+                  className="absolute top-3 right-3 flex h-9 w-9 items-center justify-center rounded-xl bg-white/90 backdrop-blur-sm text-red-500 shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-50 hover:scale-110"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -61,11 +69,15 @@ export default function WishlistPage() {
                 <Link to={`/products/${product.id}`}>
                   <p className="text-sm font-semibold text-surface-900 line-clamp-2 hover:text-primary-600 transition-colors">{product.name}</p>
                 </Link>
+<<<<<<< Updated upstream
                 <div className="mt-2 flex items-center justify-between">
+=======
+                <div className="mt-3 flex items-center justify-between">
+>>>>>>> Stashed changes
                   <span className="text-lg font-bold text-surface-900">₹{product.price?.toFixed(2)}</span>
                   <button
                     onClick={() => addItem(product)}
-                    className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary-50 text-primary-600 hover:bg-primary-600 hover:text-white transition-all"
+                    className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-50 text-primary-600 hover:bg-primary-600 hover:text-white transition-all duration-200 hover:scale-110"
                   >
                     <ShoppingCart className="h-4 w-4" />
                   </button>

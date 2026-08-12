@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
+<<<<<<< Updated upstream
 import { Link, useNavigate } from 'react-router-dom';
 import { Package, ChevronRight, Calendar, FileText, MapPin, CreditCard, RotateCcw, ChevronDown, Store, Truck, ShieldCheck, CircleDollarSign } from 'lucide-react';
+=======
+import { Link, Navigate } from 'react-router-dom';
+import { Package, Calendar, ChevronRight, ShoppingBag, Sparkles } from 'lucide-react';
+>>>>>>> Stashed changes
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
@@ -11,10 +16,14 @@ import OrderStatusTimeline from '../components/ui/OrderStatusTimeline';
 import InvoiceModal from '../components/ui/InvoiceModal';
 
 export default function OrdersPage() {
+<<<<<<< Updated upstream
   const { user } = useAuth();
   const { addItem } = useCart();
   const { addToast } = useToast();
   const navigate = useNavigate();
+=======
+  const { user, isAuthenticated } = useAuth();
+>>>>>>> Stashed changes
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [invoiceOrder, setInvoiceOrder] = useState(null);
@@ -36,13 +45,14 @@ export default function OrdersPage() {
   }, [user]);
 
   const statusColors = {
-    pending: 'badge-warning',
-    processing: 'badge-primary',
-    shipped: 'badge-primary',
-    delivered: 'badge-success',
-    cancelled: 'badge-danger',
+    pending: 'bg-amber-50 text-amber-700 ring-amber-200/50',
+    processing: 'bg-primary-50 text-primary-700 ring-primary-200/50',
+    shipped: 'bg-blue-50 text-blue-700 ring-blue-200/50',
+    delivered: 'bg-emerald-50 text-emerald-700 ring-emerald-200/50',
+    cancelled: 'bg-red-50 text-red-700 ring-red-200/50',
   };
 
+<<<<<<< Updated upstream
   const paymentColor = (s) => {
     if (s === 'verified' || s === 'paid' || s === 'completed') return 'badge-success';
     if (s === 'pending-verification' || s === 'advance-paid' || (s && s.startsWith('pending'))) return 'badge-warning';
@@ -106,6 +116,9 @@ export default function OrdersPage() {
     return { label: method ? method.replace(/-/g, ' ') : 'Payment method', icon: CreditCard };
   };
 
+=======
+  if (!isAuthenticated) return <Navigate to="/login" />;
+>>>>>>> Stashed changes
   if (loading) return <LoadingSpinner size="lg" className="py-32" />;
 
   if (orders.length === 0) {
@@ -124,6 +137,7 @@ export default function OrdersPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+<<<<<<< Updated upstream
       <h1 className="text-3xl font-display font-bold text-surface-900 mb-2">My Orders</h1>
       <p className="text-sm text-surface-500 mb-8">Track, download invoices and reorder past purchases</p>
 
@@ -143,6 +157,58 @@ export default function OrdersPage() {
                     <div className="flex items-center gap-2 mt-1 text-xs text-surface-500">
                       <Calendar className="h-3 w-3" />
                       {formatDate(order.createdAt)}
+=======
+      <div className="mb-8">
+        <div className="flex items-center gap-2 mb-2">
+          <Package className="h-5 w-5 text-primary-600" />
+          <span className="text-sm font-semibold text-primary-600 uppercase tracking-wide">Order History</span>
+        </div>
+        <h1 className="text-3xl font-display font-bold text-surface-900">My Orders</h1>
+        <p className="mt-1 text-surface-500">{orders.length} orders placed</p>
+      </div>
+
+      <div className="space-y-4">
+        {orders.map((order, index) => (
+          <div key={order.id} className="card p-6 animate-fade-in" style={{ animationDelay: `${index * 0.05}s` }}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-50 to-accent/20">
+                  <Package className="h-6 w-6 text-primary-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-surface-900">Order #{order.id?.slice(0, 8)}</p>
+                  <div className="flex items-center gap-2 mt-1 text-xs text-surface-500">
+                    <Calendar className="h-3 w-3" />
+                    {order.createdAt?.toDate?.().toLocaleDateString() || 'Processing'}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset ${statusColors[order.status] || statusColors.pending}`}>
+                  {order.status || 'pending'}
+                </span>
+                <span className="text-xl font-bold text-surface-900">₹{order.total?.toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-surface-100">
+              <div className="flex flex-wrap gap-3">
+                {order.items?.map((item, i) => (
+                  <div key={i} className="flex items-center gap-3 rounded-xl bg-surface-50 border border-surface-100 px-3 py-2">
+                    <img
+                      src={item.image || `https://picsum.photos/seed/${item.productId}/40/40`}
+                      alt=""
+                      className="h-10 w-10 rounded-lg object-cover"
+                    />
+                    <div>
+                      <p className="text-xs font-medium text-surface-700 line-clamp-1">{item.name}</p>
+                      <p className="text-2xs text-surface-400">Qty: {item.quantity}</p>
+                      {item.addons && item.addons.length > 0 && (
+                        <div className="text-2xs text-primary-600 mt-0.5">
+                          Add-ons: {item.addons.map(a => a.title).join(', ')}
+                        </div>
+                      )}
+>>>>>>> Stashed changes
                     </div>
                   </div>
                 </div>

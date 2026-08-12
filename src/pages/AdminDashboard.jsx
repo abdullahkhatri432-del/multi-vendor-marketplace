@@ -4,7 +4,11 @@ import {
   Users, Store, Package, ShoppingCart, DollarSign, Shield,
   CheckCircle, XCircle, BarChart3, Trash2, Edit2, Eye,
   Search, Calendar, ChevronDown, TrendingUp, AlertTriangle,
+<<<<<<< Updated upstream
   Tag, Plus, X, RefreshCw, Clock, Star, Banknote, ScanLine, Ticket,
+=======
+  Tag, Plus, X, RefreshCw, Clock, Star, Banknote, Ticket,
+>>>>>>> Stashed changes
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -27,6 +31,7 @@ export default function AdminDashboard() {
   const [products, setProducts] = useState([]);
   const [users, setUsers] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
@@ -36,23 +41,34 @@ export default function AdminDashboard() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [newCategory, setNewCategory] = useState({ name: '', icon: '' });
+<<<<<<< Updated upstream
   const [utrPaste, setUtrPaste] = useState('');
   const [matchResult, setMatchResult] = useState(null);
   const [coupons, setCoupons] = useState([]);
   const [showCouponForm, setShowCouponForm] = useState(false);
   const [newCoupon, setNewCoupon] = useState({
     code: '', type: 'percent', value: '', minOrder: '', maxDiscount: '', usageLimit: '',
+=======
+  const [utrInputs, setUtrInputs] = useState({});
+  const [verifying, setVerifying] = useState({});
+  const [verifyMsg, setVerifyMsg] = useState({});
+  const [showCouponForm, setShowCouponForm] = useState(false);
+  const [newCoupon, setNewCoupon] = useState({
+    code: '', discountType: 'percent', discountValue: 10,
+    minOrder: 0, maxUses: 100, expiresAt: '',
+>>>>>>> Stashed changes
   });
 
   const fetchAllData = async () => {
     try {
-      const [statsData, vendorsData, ordersData, productsData, usersData, catsData] = await Promise.all([
+      const [statsData, vendorsData, ordersData, productsData, usersData, catsData, couponsData] = await Promise.all([
         getPlatformStats(),
         getAllVendors(),
         getAllOrders(),
         getAllProducts(),
         getAllUsers(),
         getAllCategories(),
+        getAllCoupons(),
       ]);
       setStats(statsData);
       setVendors(vendorsData);
@@ -60,7 +76,11 @@ export default function AdminDashboard() {
       setProducts(productsData);
       setUsers(usersData);
       setCategories(catsData);
+<<<<<<< Updated upstream
       try { setCoupons(await getAllCoupons()); } catch (err) { console.error('Failed to fetch coupons:', err); }
+=======
+      setCoupons(couponsData);
+>>>>>>> Stashed changes
     } catch (err) {
       console.error('Failed to fetch admin data:', err);
     }
@@ -152,6 +172,7 @@ export default function AdminDashboard() {
     } catch (err) { console.error('Failed to delete category:', err); }
   };
 
+<<<<<<< Updated upstream
   const handleAddCoupon = async (e) => {
     e.preventDefault();
     if (!newCoupon.code.trim() || !newCoupon.value) return;
@@ -168,6 +189,41 @@ export default function AdminDashboard() {
       setCoupons([{ id, ...data, active: true, usedCount: 0 }, ...coupons]);
       setNewCoupon({ code: '', type: 'percent', value: '', minOrder: '', maxDiscount: '', usageLimit: '' });
       setShowCouponForm(false);
+=======
+  const handleVerifyPayment = async (orderId) => {
+    const utr = (utrInputs[orderId] || '').trim();
+    if (!utr) return;
+    setVerifying((v) => ({ ...v, [orderId]: true }));
+    setVerifyMsg((m) => ({ ...m, [orderId]: '' }));
+    try {
+      await verifyOrderPayment(orderId, utr);
+      setVerifyMsg((m) => ({ ...m, [orderId]: { type: 'success', text: 'Payment verified!' } }));
+      setOrders(orders.map((o) => (o.id === orderId ? { ...o, paymentStatus: 'paid', paymentReference: utr.toUpperCase(), utrVerified: true } : o)));
+      setUtrInputs((u) => ({ ...u, [orderId]: '' }));
+    } catch (err) {
+      console.error('Failed to verify payment:', err);
+      setVerifyMsg((m) => ({ ...m, [orderId]: { type: 'error', text: err.message } }));
+    } finally {
+      setVerifying((v) => ({ ...v, [orderId]: false }));
+    }
+  };
+
+  const handleAddCoupon = async (e) => {
+    e.preventDefault();
+    if (!newCoupon.code.trim()) return;
+    try {
+      const id = await createCoupon({
+        ...newCoupon,
+        expiresAt: newCoupon.expiresAt ? new Date(newCoupon.expiresAt) : null,
+        discountValue: Number(newCoupon.discountValue),
+        minOrder: Number(newCoupon.minOrder) || 0,
+        maxUses: Number(newCoupon.maxUses) || 0,
+      });
+      const { expiresAt, ...rest } = newCoupon;
+      setCoupons((c) => [{ id, ...rest, expiresAt: expiresAt ? new Date(expiresAt) : null, usedCount: 0 }, ...c]);
+      setShowCouponForm(false);
+      setNewCoupon({ code: '', discountType: 'percent', discountValue: 10, minOrder: 0, maxUses: 100, expiresAt: '' });
+>>>>>>> Stashed changes
     } catch (err) { console.error('Failed to add coupon:', err); }
   };
 
@@ -179,7 +235,10 @@ export default function AdminDashboard() {
     } catch (err) { console.error('Failed to delete coupon:', err); }
   };
 
+<<<<<<< Updated upstream
   if (authLoading) return <LoadingSpinner size="lg" className="py-32" />;
+=======
+>>>>>>> Stashed changes
   if (!isAuthenticated) return <Navigate to="/login" />;
   if (!isAdmin) return <Navigate to="/" />;
   if (loading) return <LoadingSpinner size="lg" className="py-32" />;
@@ -190,6 +249,10 @@ export default function AdminDashboard() {
     { id: 'vendors', label: 'Vendors', icon: Store },
     { id: 'orders', label: 'Orders', icon: ShoppingCart },
     { id: 'payments', label: 'Payments', icon: Banknote },
+<<<<<<< Updated upstream
+=======
+    { id: 'coupons', label: 'Coupons', icon: Ticket },
+>>>>>>> Stashed changes
     { id: 'products', label: 'Products', icon: Package },
     { id: 'categories', label: 'Categories', icon: Tag },
     { id: 'coupons', label: 'Coupons', icon: Ticket },
@@ -506,7 +569,14 @@ export default function AdminDashboard() {
                 </div>
                 <div className="flex items-center gap-3">
                   <span className={`badge ${statusColors[order.status] || 'badge-primary'}`}>{order.status || 'pending'}</span>
+<<<<<<< Updated upstream
                   <span className="text-lg font-bold text-surface-900">₹{order.total?.toFixed(2) || '0.00'}</span>
+=======
+                  {order.paymentStatus === 'pending-verification' && (
+                    <span className="badge-warning">UTR pending</span>
+                  )}
+                  <span className="text-lg font-bold text-surface-900">₹{(order.total || 0).toFixed(2)}</span>
+>>>>>>> Stashed changes
                   <ChevronDown className={`h-5 w-5 text-surface-400 transition-transform ${expandedOrder === order.id ? 'rotate-180' : ''}`} />
                 </div>
               </button>
@@ -525,10 +595,21 @@ export default function AdminDashboard() {
                         ))}
                       </div>
                       <div className="mt-3 pt-3 border-t border-surface-100 space-y-1 text-sm">
+<<<<<<< Updated upstream
                         <div className="flex justify-between"><span className="text-surface-500">Subtotal</span><span>₹{order.subtotal?.toFixed(2)}</span></div>
                         <div className="flex justify-between"><span className="text-surface-500">Shipping</span><span>₹{order.shipping?.toFixed(2)}</span></div>
                         <div className="flex justify-between"><span className="text-surface-500">Tax</span><span>₹{order.tax?.toFixed(2)}</span></div>
                         <div className="flex justify-between font-bold pt-1 border-t border-surface-100"><span>Total</span><span>₹{order.total?.toFixed(2)}</span></div>
+=======
+                        {order.discount > 0 && (
+                          <div className="flex justify-between text-emerald-600"><span className="text-surface-500">Coupon {order.couponCode || ''}</span><span>-₹{order.discount.toFixed(2)}</span></div>
+                        )}
+                        <div className="flex justify-between"><span className="text-surface-500">Subtotal</span><span>₹{(order.subtotal || 0).toFixed(2)}</span></div>
+                        <div className="flex justify-between"><span className="text-surface-500">Shipping</span><span>{order.shipping === 0 ? 'Free' : `₹${(order.shipping || 0).toFixed(2)}`}</span></div>
+                        <div className="flex justify-between"><span className="text-surface-500">Tax</span><span>₹{(order.tax || 0).toFixed(2)}</span></div>
+                        <div className="flex justify-between"><span className="text-surface-500">Payment</span><span className="capitalize">{order.paymentMethod || 'card'}{order.paymentReference ? ` · ${order.paymentReference}` : ''}</span></div>
+                        <div className="flex justify-between font-bold pt-1 border-t border-surface-100"><span>Total</span><span>₹{(order.total || 0).toFixed(2)}</span></div>
+>>>>>>> Stashed changes
                       </div>
                     </div>
                     <div>
@@ -642,6 +723,162 @@ export default function AdminDashboard() {
             </div>
           )) : (
             <p className="text-center text-surface-500 py-8 col-span-full">No products found.</p>
+          )}
+        </div>
+      )}
+
+      {/* PAYMENTS TAB */}
+      {activeTab === 'payments' && (
+        <div className="space-y-4">
+          <div className="card p-6 bg-primary-50 border-primary-100">
+            <p className="text-sm text-primary-900">
+              <strong>Verify UPI payments:</strong> enter a UTR shared by the customer to mark their order as paid.
+              UTRs are hashed before storage and matched against orders waiting for verification.
+            </p>
+          </div>
+          {orders.filter((o) => o.paymentStatus === 'pending-verification').length === 0 && orders.filter((o) => o.paymentStatus === 'advance-paid').length === 0 ? (
+            <EmptyState icon={Banknote} title="No payments pending" description="Orders awaiting UTR verification will appear here." />
+          ) : (
+            orders
+              .filter((o) => o.paymentStatus === 'pending-verification' || o.paymentStatus === 'advance-paid')
+              .map((order) => (
+                <div key={order.id} className="card p-6 animate-fade-in">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-surface-900">Order #{order.id?.slice(0, 8)}</p>
+                      <p className="text-xs text-surface-500 mt-0.5">
+                        {order.customerName} &middot; ₹{(order.total || 0).toFixed(2)}
+                        &middot; <span className="badge-warning">{(order.paymentStatus === 'advance-paid' ? 'COD advance paid' : 'UTR pending')}</span>
+                      </p>
+                      {order.paymentReference && (
+                        <p className="text-xs text-surface-500 mt-0.5">UTR: <span className="font-mono font-semibold">{order.paymentReference}</span></p>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-2 w-full sm:w-auto">
+                      <input
+                        value={utrInputs[order.id] || ''}
+                        onChange={(e) => setUtrInputs((u) => ({ ...u, [order.id]: e.target.value.toUpperCase() }))}
+                        placeholder={order.paymentReference || 'Enter UTR'}
+                        className="input-field uppercase text-sm"
+                      />
+                      <button
+                        onClick={() => handleVerifyPayment(order.id)}
+                        disabled={verifying[order.id]}
+                        className="btn-primary text-sm"
+                      >
+                        {verifying[order.id] ? 'Verifying...' : <><CheckCircle className="h-4 w-4" /> Verify Payment</>}
+                      </button>
+                    </div>
+                  </div>
+                  {verifyMsg[order.id] && (
+                    <p className={`mt-3 text-sm ${verifyMsg[order.id].type === 'success' ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {verifyMsg[order.id].text}
+                    </p>
+                  )}
+                </div>
+              ))
+          )}
+        </div>
+      )}
+
+      {/* COUPONS TAB */}
+      {activeTab === 'coupons' && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-surface-500">{coupons.length} coupons</p>
+            <button onClick={() => setShowCouponForm(true)} className="btn-primary text-sm">
+              <Plus className="h-4 w-4" /> Add Coupon
+            </button>
+          </div>
+
+          {showCouponForm && (
+            <div className="card p-6 animate-scale-in">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">New Coupon</h3>
+                <button onClick={() => setShowCouponForm(false)} className="btn-ghost p-2">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <form onSubmit={handleAddCoupon} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <input
+                  value={newCoupon.code}
+                  onChange={(e) => setNewCoupon({ ...newCoupon, code: e.target.value.toUpperCase() })}
+                  placeholder="Code (e.g. SUMMER20)"
+                  className="input-field uppercase"
+                  required
+                />
+                <select
+                  value={newCoupon.discountType}
+                  onChange={(e) => setNewCoupon({ ...newCoupon, discountType: e.target.value })}
+                  className="input-field"
+                >
+                  <option value="percent">Percent off</option>
+                  <option value="flat">Flat amount off</option>
+                </select>
+                <input
+                  type="number"
+                  value={newCoupon.discountValue}
+                  onChange={(e) => setNewCoupon({ ...newCoupon, discountValue: e.target.value })}
+                  placeholder={newCoupon.discountType === 'percent' ? 'Percent' : 'Amount (₹)'}
+                  className="input-field"
+                  min="1"
+                  required
+                />
+                <input
+                  type="date"
+                  value={newCoupon.expiresAt}
+                  onChange={(e) => setNewCoupon({ ...newCoupon, expiresAt: e.target.value })}
+                  className="input-field"
+                />
+                <input
+                  type="number"
+                  value={newCoupon.minOrder}
+                  onChange={(e) => setNewCoupon({ ...newCoupon, minOrder: e.target.value })}
+                  placeholder="Min order (₹, 0 = none)"
+                  className="input-field"
+                />
+                <input
+                  type="number"
+                  value={newCoupon.maxUses}
+                  onChange={(e) => setNewCoupon({ ...newCoupon, maxUses: e.target.value })}
+                  placeholder="Max uses (0 = unlimited)"
+                  className="input-field"
+                />
+                <button type="submit" className="btn-primary">Create</button>
+              </form>
+            </div>
+          )}
+
+          {coupons.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {coupons.map((coupon) => (
+                <div key={coupon.id} className="card p-5 relative group">
+                  <button
+                    onClick={() => handleDeleteCoupon(coupon.id)}
+                    className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 btn-ghost p-1 text-red-500 hover:bg-red-50 transition-all"
+                    title="Delete coupon"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                  <div className="flex items-center gap-2">
+                    <Ticket className="h-5 w-5 text-primary-600" />
+                    <span className="font-mono font-bold text-surface-900">{coupon.code}</span>
+                  </div>
+                  <p className="mt-2 text-sm text-surface-600">
+                    {coupon.discountType === 'percent' ? `${coupon.discountValue}% off` : `₹${coupon.discountValue} off`}
+                  </p>
+                  <div className="mt-3 space-y-1 text-xs text-surface-500">
+                    <p>Used: {coupon.usedCount || 0}{coupon.maxUses ? ` / ${coupon.maxUses}` : ' / unlimited'}</p>
+                    {coupon.minOrder > 0 && <p>Min order: ₹{coupon.minOrder}</p>}
+                    {coupon.expiresAt && (
+                      <p>Expires: {coupon.expiresAt.toDate?.() ? coupon.expiresAt.toDate().toLocaleDateString() : new Date(coupon.expiresAt).toLocaleDateString()}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState icon={Ticket} title="No coupons yet" description="Create discount coupons to promote sales." />
           )}
         </div>
       )}

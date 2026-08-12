@@ -4,8 +4,14 @@ import { X, Loader2, AlertCircle, ArrowRight, Mail, Lock, CheckCircle } from 'lu
 import { useAuth } from '../context/AuthContext';
 
 export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAuthSuccess }) {
+<<<<<<< Updated upstream
   const { loginWithEmail, registerWithEmail, resetPassword } = useAuth();
   const [mode, setMode] = useState(initialMode); // 'login' | 'register' | 'forgot'
+=======
+  const { loginWithPhone, registerWithPhone, verifyPhoneCode, createUserAccount } = useAuth();
+  const [mode, setMode] = useState(initialMode); // 'login' | 'register'
+  const [step, setStep] = useState('phone'); // 'phone' | 'otp'
+>>>>>>> Stashed changes
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
@@ -28,7 +34,95 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
     }
   }, [isOpen, initialMode]);
 
+<<<<<<< Updated upstream
   const handleSubmit = async (e) => {
+=======
+  // Resend timer countdown
+  useEffect(() => {
+    if (resendTimer > 0) {
+      const timer = setInterval(() => setResendTimer((t) => t - 1), 1000);
+      return () => clearInterval(timer);
+    }
+  }, [resendTimer]);
+
+  const formatPhoneInput = (value) => {
+    // Format as +91 XXXXX XXXXX (10 digits total)
+    const digits = value.replace(/\D/g, '');
+    if (digits.length <= 5) return `+91 ${digits}`;
+    if (digits.length <= 10) return `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
+    return `+91 ${digits.slice(0, 5)} ${digits.slice(5, 10)}`;
+  };
+
+  const handlePhoneChange = (e) => {
+    const formatted = formatPhoneInput(e.target.value);
+    setPhoneNumber(formatted);
+    setError('');
+  };
+
+  const handleOtpChange = (e) => {
+    setOtp(e.target.value.replace(/\D/g, '').slice(0, 6));
+  };
+
+  const getFullPhoneNumber = () => {
+    const digits = phoneNumber.replace(/\D/g, '');
+    // Always use +91 for India
+    return `+91${digits}`;
+  };
+
+  const isValidPhone = () => {
+    const digits = phoneNumber.replace(/\D/g, '');
+    return digits.length === 10;
+  };
+
+  const handleSendOtp = async () => {
+    if (!isValidPhone()) {
+      setError('Please enter a valid 10-digit Indian phone number');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      // Ensure recaptcha container exists
+      if (!document.getElementById('auth-recaptcha')) {
+        const div = document.createElement('div');
+        div.id = 'auth-recaptcha';
+        div.style.display = 'none';
+        document.body.appendChild(div);
+      }
+
+      const appVerifier = new RecaptchaVerifier(auth, 'auth-recaptcha', {
+        size: 'invisible',
+      });
+
+      const fullPhone = getFullPhoneNumber();
+      
+      let confirmation;
+      if (mode === 'login') {
+        confirmation = await loginWithPhone(fullPhone, appVerifier);
+      } else {
+        confirmation = await registerWithPhone(fullPhone, appVerifier);
+      }
+      
+      setConfirmationResult(confirmation);
+      setStep('otp');
+      setResendTimer(60);
+    } catch (err) {
+      console.error('OTP send error:', err);
+      setError(getErrorMessage(err.code));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendTimer > 0) return;
+    await handleSendOtp();
+  };
+
+  const handleVerifyOtp = async (e) => {
+>>>>>>> Stashed changes
     e.preventDefault();
 
     if (mode === 'forgot') {
@@ -182,6 +276,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
             </>
           )}
 
+<<<<<<< Updated upstream
           {mode === 'forgot' && !resetSent && (
             <div className="space-y-4">
               <p className="text-sm text-surface-500">
@@ -202,6 +297,45 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
                     required
                     autoComplete="email"
                   />
+=======
+                  {/* Full Name */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-surface-700 mb-1.5">
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      placeholder="John Doe"
+                      className="input-field"
+                      required
+                      autoComplete="name"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Phone Number Form */}
+              <form onSubmit={(e) => { e.preventDefault(); handleSendOtp(); }} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-surface-700 mb-1.5">
+                    Phone Number (+91)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-500 font-medium text-lg">+91</span>
+                    <input
+                      type="tel"
+                      value={phoneNumber}
+                      onChange={handlePhoneChange}
+                      placeholder="Enter 10-digit number"
+                      className="input-field pl-14"
+                      required
+                      autoComplete="tel"
+                      maxLength={15} // +91 + space + 5 + space + 5 = 14 chars
+                    />
+                  </div>
+>>>>>>> Stashed changes
                 </div>
               </div>
               <button type="submit" disabled={loading} className="btn-primary w-full py-3">
@@ -328,9 +462,64 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
                 >
                   {mode === 'login' ? 'Sign up' : 'Sign in'}
                 </button>
+<<<<<<< Updated upstream
               </>
             )}
           </p>
+=======
+              </p>
+            </>
+          )}
+
+          {step === 'otp' && (
+            <form onSubmit={handleVerifyOtp} className="space-y-4">
+              <div className="text-center mb-2">
+                <p className="text-sm text-surface-600">Enter the 6-digit code sent to</p>
+                <p className="font-medium text-surface-900">{getFullPhoneNumber()}</p>
+              </div>
+              <div>
+                <label className="sr-only">OTP Code</label>
+                <input
+                  type="text"
+                  value={otp}
+                  onChange={handleOtpChange}
+                  placeholder="000000"
+                  className="input-field text-center text-2xl tracking-widest font-mono"
+                  maxLength={6}
+                  required
+                  autoComplete="one-time-code"
+                  inputMode="numeric"
+                />
+              </div>
+              {error && (
+                <div className="flex items-center gap-2 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                  {error}
+                </div>
+              )}
+              <button type="submit" disabled={loading} className="btn-primary w-full py-3">
+                {loading ? 'Verifying...' : 'Verify & Continue'}
+              </button>
+              <div className="text-center text-sm text-surface-500">
+                Didn't receive the code?{' '}
+                <button
+                  onClick={handleResendOtp}
+                  disabled={resendTimer > 0 || loading}
+                  className="text-primary-600 hover:underline disabled:text-surface-400 disabled:cursor-not-allowed font-medium"
+                >
+                  {resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend Code'}
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => setStep('phone')}
+                className="w-full text-sm text-primary-600 hover:text-primary-700 transition-colors mt-2"
+              >
+                Change phone number
+              </button>
+            </form>
+          )}
+>>>>>>> Stashed changes
         </div>
       </div>
     </div>,
@@ -340,6 +529,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
 
 function getErrorMessage(code) {
   switch (code) {
+<<<<<<< Updated upstream
     case 'auth/invalid-email':
       return 'Please enter a valid email address.';
     case 'auth/missing-password':
@@ -354,6 +544,20 @@ function getErrorMessage(code) {
       return 'No account found with this email. Please sign up.';
     case 'auth/email-already-in-use':
       return 'An account already exists with this email. Please sign in.';
+=======
+    case 'auth/invalid-phone-number':
+      return 'Invalid phone number format. Please enter a 10-digit Indian number.';
+    case 'auth/missing-phone-number':
+      return 'Please enter a phone number.';
+    case 'auth/quota-exceeded':
+      return 'SMS quota exceeded. Please try again later.';
+    case 'auth/captcha-check-failed':
+      return 'Security check failed. Please try again.';
+    case 'auth/code-expired':
+      return 'The verification code has expired. Please request a new one.';
+    case 'auth/invalid-verification-code':
+      return 'Invalid verification code. Please try again.';
+>>>>>>> Stashed changes
     case 'auth/too-many-requests':
       return 'Too many attempts. Please try again later.';
     case 'auth/network-request-failed':

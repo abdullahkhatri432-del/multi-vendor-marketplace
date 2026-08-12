@@ -1,6 +1,13 @@
+<<<<<<< Updated upstream
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Loader2, CheckCircle, AlertCircle, Mail, Lock, User as UserIcon, ArrowLeft } from 'lucide-react';
+=======
+import { useState, useRef, useEffect } from 'react';
+import { X, Phone, Loader2, CheckCircle, AlertCircle, ArrowRight, Smartphone } from 'lucide-react';
+import { RecaptchaVerifier } from 'firebase/auth';
+import { auth } from '../config/firebase';
+>>>>>>> Stashed changes
 import { useAuth } from '../context/AuthContext';
 
 export default function LazyAuthModal({
@@ -9,12 +16,19 @@ export default function LazyAuthModal({
   onSuccess,
   triggerAction,
 }) {
+<<<<<<< Updated upstream
   const { loginWithEmail, registerWithEmail, resetPassword } = useAuth();
   const [mode, setMode] = useState('login'); // 'login' | 'register' | 'forgot'
   const [step, setStep] = useState('form'); // 'form' | 'success'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+=======
+  const { registerWithPhone, verifyPhoneCode, createUserAccount, loginWithPhone } = useAuth();
+  const [step, setStep] = useState('phone'); // 'phone' | 'otp' | 'success'
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [otp, setOtp] = useState('');
+>>>>>>> Stashed changes
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
@@ -40,12 +54,47 @@ export default function LazyAuthModal({
       return;
     }
 
+<<<<<<< Updated upstream
     if (!email || !email.includes('@')) {
       setError('Please enter a valid email address');
       return;
     }
     if (password.length < 6) {
       setError('Password must be at least 6 characters');
+=======
+  const formatPhoneInput = (value) => {
+    // Format as +91 XXXXX XXXXX (10 digits total)
+    const digits = value.replace(/\D/g, '');
+    if (digits.length <= 5) return `+91 ${digits}`;
+    if (digits.length <= 10) return `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
+    return `+91 ${digits.slice(0, 5)} ${digits.slice(5, 10)}`;
+  };
+
+  const handlePhoneChange = (e) => {
+    const formatted = formatPhoneInput(e.target.value);
+    setPhoneNumber(formatted);
+    setError('');
+  };
+
+  const handleOtpChange = (e) => {
+    setOtp(e.target.value.replace(/\D/g, '').slice(0, 6));
+  };
+
+  const getFullPhoneNumber = () => {
+    const digits = phoneNumber.replace(/\D/g, '');
+    // Always use +91 for India
+    return `+91${digits}`;
+  };
+
+  const isValidPhone = () => {
+    const digits = phoneNumber.replace(/\D/g, '');
+    return digits.length === 10;
+  };
+
+  const handleSendOtp = async () => {
+    if (!isValidPhone()) {
+      setError('Please enter a valid 10-digit Indian phone number');
+>>>>>>> Stashed changes
       return;
     }
 
@@ -65,6 +114,46 @@ export default function LazyAuthModal({
         user = await registerWithEmail(email.trim(), password, displayName.trim(), 'customer');
       }
 
+<<<<<<< Updated upstream
+=======
+      const appVerifier = new RecaptchaVerifier(auth, 'lazy-auth-recaptcha', {
+        size: 'invisible',
+      });
+
+      const confirmation = await registerWithPhone(getFullPhoneNumber(), appVerifier);
+      setConfirmationResult(confirmation);
+      setStep('otp');
+      setResendTimer(60);
+    } catch (err) {
+      console.error('OTP send error:', err);
+      setError(getErrorMessage(err.code));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendTimer > 0) return;
+    setResendTimer(60);
+    await handleSendOtp();
+  };
+
+  const handleVerifyOtp = async () => {
+    if (otp.length !== 6) {
+      setError('Please enter the 6-digit code');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const user = await verifyPhoneCode(confirmationResult, otp);
+
+      // Create user account in Firestore
+      await createUserAccount(user, `User ${user.phoneNumber?.slice(-4) || ''}`, 'customer');
+
+>>>>>>> Stashed changes
       setStep('success');
 
       setTimeout(() => {
@@ -72,6 +161,7 @@ export default function LazyAuthModal({
         onClose();
       }, 1000);
     } catch (err) {
+      console.error('OTP verify error:', err);
       setError(getErrorMessage(err.code));
     } finally {
       setLoading(false);
@@ -136,6 +226,7 @@ export default function LazyAuthModal({
         </p>
       </div>
 
+<<<<<<< Updated upstream
       {mode === 'forgot' && !resetSent && (
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="relative">
@@ -150,6 +241,20 @@ export default function LazyAuthModal({
               autoComplete="email"
             />
           </div>
+=======
+      <div className="relative">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-500 font-medium text-lg">+91</span>
+        <input
+          type="tel"
+          value={phoneNumber}
+          onChange={handlePhoneChange}
+          placeholder="Enter 10-digit number"
+          className="input-field pl-14"
+          disabled={loading}
+          maxLength={14}
+        />
+      </div>
+>>>>>>> Stashed changes
 
           {error && (
             <div className="flex items-center gap-2 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">
@@ -307,7 +412,6 @@ export default function LazyAuthModal({
           <button
             onClick={handleClose}
             className="absolute right-4 top-4 text-surface-400 hover:text-surface-600"
-            aria-label="Close"
           >
             <X className="h-5 w-5" />
           </button>
@@ -323,6 +427,7 @@ export default function LazyAuthModal({
 
 function getErrorMessage(code) {
   switch (code) {
+<<<<<<< Updated upstream
     case 'auth/invalid-email':
       return 'Please enter a valid email address.';
     case 'auth/missing-password':
@@ -337,6 +442,20 @@ function getErrorMessage(code) {
       return 'No account found with this email. Please sign up.';
     case 'auth/email-already-in-use':
       return 'An account already exists with this email. Please sign in.';
+=======
+    case 'auth/invalid-phone-number':
+      return 'Invalid phone number format. Please enter a 10-digit Indian number.';
+    case 'auth/missing-phone-number':
+      return 'Please enter a phone number.';
+    case 'auth/quota-exceeded':
+      return 'SMS quota exceeded. Please try again later.';
+    case 'auth/captcha-check-failed':
+      return 'Security check failed. Please try again.';
+    case 'auth/code-expired':
+      return 'The verification code has expired. Please request a new one.';
+    case 'auth/invalid-verification-code':
+      return 'Invalid verification code. Please try again.';
+>>>>>>> Stashed changes
     case 'auth/too-many-requests':
       return 'Too many attempts. Please try again later.';
     case 'auth/network-request-failed':
