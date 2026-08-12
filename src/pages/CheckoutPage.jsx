@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CreditCard, Lock, CheckCircle, MapPin, AlertCircle, Mail, Smartphone, Banknote, ShieldCheck, Truck, Ticket, X, Loader2 } from 'lucide-react';
+import { CreditCard, Lock, CheckCircle, MapPin, AlertCircle, Mail, Smartphone, Banknote, ShieldCheck, Truck, Ticket, X, Loader2, Trash2, Plus, BookmarkCheck } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useCheckoutInterceptor } from '../context/CheckoutInterceptorContext';
@@ -26,6 +26,28 @@ export default function CheckoutPage() {
   const [coupon, setCoupon] = useState(null);
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState('');
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [selectedAddressId, setSelectedAddressId] = useState('');
+  const [saveAddress, setSaveAddress] = useState(false);
+  const ADDRESS_KEY = `speedersmania_addresses_${user?.uid || 'guest'}`;
+
+  // Load saved addresses on mount / when user changes
+  useEffect(() => {
+    if (!user) return;
+    try {
+      const list = JSON.parse(localStorage.getItem(ADDRESS_KEY) || '[]');
+      setSavedAddresses(list);
+      const lastUsedId = localStorage.getItem(`${ADDRESS_KEY}_last`);
+      const match = list.find((a) => a.id === lastUsedId);
+      if (match) {
+        setForm((f) => ({ ...f, ...match }));
+        setSelectedAddressId(match.id);
+      }
+    } catch {
+      /* ignore */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid]);
 
   const [form, setForm] = useState({
     fullName: user?.displayName || '',
@@ -100,6 +122,44 @@ export default function CheckoutPage() {
     setCoupon(null);
     setCouponCode('');
     setCouponError('');
+  };
+
+  // ===== Saved address book =====
+  const persistAddresses = (list) => {
+    setSavedAddresses(list);
+    localStorage.setItem(ADDRESS_KEY, JSON.stringify(list));
+  };
+
+  const selectAddress = (addr) => {
+    setSelectedAddressId(addr.id);
+    setForm((f) => ({ ...f, ...addr }));
+    localStorage.setItem(`${ADDRESS_KEY}_last`, addr.id);
+  };
+
+  const deleteAddress = (id) => {
+    persistAddresses(savedAddresses.filter((a) => a.id !== id));
+    if (selectedAddressId === id) {
+      setSelectedAddressId('');
+      localStorage.removeItem(`${ADDRESS_KEY}_last`);
+    }
+  };
+
+  const persistCurrentAddress = () => {
+    const entry = {
+      id: Date.now().toString(),
+      fullName: form.fullName,
+      email: form.email,
+      address: form.address,
+      city: form.city,
+      state: form.state,
+      zip: form.zip,
+      country: form.country,
+    };
+    if (!entry.address || !entry.city || !entry.fullName) return;
+    const next = [entry, ...savedAddresses.filter((a) => a.id !== selectedAddressId)].slice(0, 6);
+    persistAddresses(next);
+    setSelectedAddressId(entry.id);
+    localStorage.setItem(`${ADDRESS_KEY}_last`, entry.id);
   };
 
   // ===== Payment validation helpers =====
@@ -297,6 +357,23 @@ paymentMethod,
       setOrderComplete(true);
       clearCart();
 
+      if (saveAddress) {
+        const entry = {
+          id: Date.now().toString(),
+          fullName: form.fullName,
+          email: form.email,
+          address: form.address,
+          city: form.city,
+          state: form.state,
+          zip: form.zip,
+          country: form.country,
+        };
+        const next = [entry, ...savedAddresses.filter((a) => a.id !== selectedAddressId)].slice(0, 6);
+        persistAddresses(next);
+        setSelectedAddressId(entry.id);
+        localStorage.setItem(`${ADDRESS_KEY}_last`, entry.id);
+      }
+
       trackEvent('purchase', {
         transaction_id: newOrderId,
         value: total,
@@ -406,6 +483,38 @@ paymentMethod,
                 </div>
                 <h3 className="text-lg font-semibold text-surface-900">Shipping Address</h3>
               </div>
+
+              {/* Saved addresses */}
+              {savedAddresses.length > 0 && (
+                <div className="mb-5">
+                  <p className="text-xs font-semibold text-surface-500 uppercase tracking-wide mb-2">Saved Addresses</p>
+                  <div className="flex flex-wrap gap-2">
+                    {savedAddresses.map((addr) => (
+                      <button
+                        type="button"
+                        key={addr.id}
+                        onClick={() => selectAddress(addr)}
+                        className={`group flex items-center gap-2 rounded-xl border-2 px-3 py-2 text-left text-xs transition-all ${
+                          selectedAddressId === addr.id
+                            ? 'border-primary-600 bg-primary-50'
+                            : 'border-surface-200 hover:border-surface-300'
+                        }`}
+                      >
+                        <MapPin className={`h-3.5 w-3.5 ${selectedAddressId === addr.id ? 'text-primary-600' : 'text-surface-400'}`} />
+                        <span className="max-w-[160px]">
+                          <span className="block font-medium text-surface-700 line-clamp-1">{addr.fullName}</span>
+                          <span className="block text-surface-400 line-clamp-1">{addr.city}, {addr.state}</span>
+                        </span>
+                        <Trash2
+                          onClick={(e) => { e.stopPropagation(); deleteAddress(addr.id); }}
+                          className="h-3.5 w-3.5 text-surface-300 hover:text-red-500 shrink-0"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <input name="fullName" value={form.fullName} onChange={handleChange} placeholder="Full Name" className="input-field" required />
                 <input name="email" type="email" value={form.email} onChange={handleChange} placeholder="Email" className="input-field" required />
@@ -414,6 +523,26 @@ paymentMethod,
                 <input name="state" value={form.state} onChange={handleChange} placeholder="State" className="input-field" required />
                 <input name="zip" value={form.zip} onChange={handleChange} placeholder="ZIP Code" className="input-field" required />
                 <input name="country" value={form.country} onChange={handleChange} placeholder="Country" className="input-field" required />
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center gap-4">
+                <label className="flex items-center gap-2 text-sm text-surface-600 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={saveAddress}
+                    onChange={(e) => setSaveAddress(e.target.checked)}
+                    className="h-4 w-4 rounded border-surface-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  Save this address for faster checkout
+                </label>
+                <button
+                  type="button"
+                  onClick={persistCurrentAddress}
+                  className="btn-ghost text-sm"
+                  title="Save to your address book"
+                >
+                  <BookmarkCheck className="h-4 w-4" /> Save Now
+                </button>
               </div>
             </div>
 
@@ -595,7 +724,7 @@ paymentMethod,
               </div>
               <div className="mt-4 pt-4 border-t border-surface-100 space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-surface-500">Subtotal</span>
+                  <span className="text-surface-500">Item Subtotal</span>
                   <span>₹{cartTotal.toFixed(2)}</span>
                 </div>
                 {discount > 0 && (
@@ -606,16 +735,22 @@ paymentMethod,
                 )}
                 <div className="flex justify-between">
                   <span className="text-surface-500">Shipping</span>
-                  <span>{shipping === 0 ? 'Free' : `₹${shipping.toFixed(2)}`}</span>
+                  <span>{shipping === 0 ? <span className="text-emerald-600 font-medium">Free</span> : `₹${shipping.toFixed(2)}`}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-surface-500">Tax</span>
-                  <span>₹{tax.toFixed(2)}</span>
+                  <span className="text-surface-500">GST (18%)</span>
+                  <span className="text-xs text-surface-400">₹{tax.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between pt-2 border-t border-surface-100">
                   <span className="font-semibold">Total</span>
                   <span className="font-bold">₹{total.toFixed(2)}</span>
                 </div>
+                {(discount > 0 || shipping === 0) && (
+                  <div className="flex items-center gap-1.5 rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-700 mt-2">
+                    <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+                    You're saving ₹{(discount + (cartTotal - discount > 999 ? 49 : 0)).toFixed(2)} on this order
+                  </div>
+                )}
               </div>
               <button type="submit" disabled={processing} className="btn-primary w-full mt-6">
                 {processing ? 'Processing...' : `Pay ₹${total.toFixed(2)}`}

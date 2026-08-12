@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { SlidersHorizontal, Grid3X3, LayoutList, X, Star, Store } from 'lucide-react';
-import { getAllProducts, searchProducts, getAllVendors } from '../config/firestore';
+import { SlidersHorizontal, Grid3X3, LayoutList, X, Star, Store, Clock } from 'lucide-react';
+import { getAllProducts, searchProducts, getAllVendors, getProduct } from '../config/firestore';
 import ProductCard from '../components/ui/ProductCard';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import { trackEvent } from '../config/analytics';
+
+const RECENT_KEY = 'speedersmania_recently_viewed';
 
 export default function ProductsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -18,8 +20,30 @@ export default function ProductsPage() {
   const [minRating, setMinRating] = useState(0);
   const [priceRange, setPriceRange] = useState([0, 100000]);
   const [showFilters, setShowFilters] = useState(false);
+  const [recentProducts, setRecentProducts] = useState([]);
 
   const query = searchParams.get('q') || '';
+
+  // Load recently viewed products from localStorage
+  useEffect(() => {
+    let ids = [];
+    try {
+      ids = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+    } catch {
+      ids = [];
+    }
+    if (ids.length === 0) return;
+    let cancelled = false;
+    Promise.all(
+      ids
+        .filter((id) => !query || query.trim().length === 0)
+        .slice(0, 4)
+        .map((id) => getProduct(id).catch(() => null))
+    ).then((items) => {
+      if (!cancelled) setRecentProducts(items.filter(Boolean));
+    });
+    return () => { cancelled = true; };
+  }, [query]);
 
   const categories = [
     { id: '', name: 'All Categories' },
@@ -197,6 +221,21 @@ export default function ProductsPage() {
           </div>
         </div>
       </div>
+
+      {/* Recently Viewed */}
+      {recentProducts.length > 0 && (
+        <section className="mb-10">
+          <div className="flex items-center gap-2 mb-4">
+            <Clock className="h-4 w-4 text-primary-600" />
+            <h2 className="text-sm font-semibold text-surface-900 uppercase tracking-wide">Recently Viewed</h2>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {recentProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="flex gap-8">
         {/* Sidebar Filters */}

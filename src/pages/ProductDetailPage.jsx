@@ -1,12 +1,26 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Star, Truck, Shield, RotateCcw, Heart, ArrowLeft, Minus, Plus, Store, Send, BadgeCheck, Zap } from 'lucide-react';
-import { getProduct, getVendor, getReviewsByProduct, createReview, getWishlist, addToWishlist, removeFromWishlist, getOrdersByUser } from '../config/firestore';
+import { ShoppingCart, Star, Truck, Shield, RotateCcw, Heart, ArrowLeft, Minus, Plus, Store, Send, BadgeCheck, Zap, ChevronRight, Check, Package } from 'lucide-react';
+import { getProduct, getVendor, getReviewsByProduct, createReview, getWishlist, addToWishlist, removeFromWishlist, getOrdersByUser, getProductsByCategory } from '../config/firestore';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useCheckoutInterceptor } from '../context/CheckoutInterceptorContext';
 import { trackEvent } from '../config/analytics';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
+import ProductCard from '../components/ui/ProductCard';
+
+const RECENT_KEY = 'speedersmania_recently_viewed';
+const MAX_RECENT = 8;
+
+const trackRecent = (id) => {
+  try {
+    const list = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+    const next = [id, ...list.filter((x) => x !== id)].slice(0, MAX_RECENT);
+    localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+  } catch {
+    /* ignore */
+  }
+};
 
 export default function ProductDetailPage() {
   const { id } = useParams();
@@ -26,6 +40,7 @@ export default function ProductDetailPage() {
   const [submittingReview, setSubmittingReview] = useState(false);
   const [selectedAddons, setSelectedAddons] = useState([]);
   const [purchasedProductIds, setPurchasedProductIds] = useState([]);
+  const [relatedProducts, setRelatedProducts] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -33,9 +48,18 @@ export default function ProductDetailPage() {
         const prod = await getProduct(id);
         if (prod) {
           setProduct(prod);
+          trackRecent(id);
           if (prod.vendorId) {
             const vend = await getVendor(prod.vendorId);
             setVendor(vend);
+          }
+          if (prod.category) {
+            try {
+              const related = await getProductsByCategory(prod.category);
+              setRelatedProducts((related || []).filter((p) => p.id !== id).slice(0, 4));
+            } catch (err) {
+              console.error('Failed to load related products:', err);
+            }
           }
         }
         const revs = await getReviewsByProduct(id);
@@ -182,13 +206,35 @@ export default function ProductDetailPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
-      <button onClick={() => navigate(-1)} className="btn-ghost text-sm mb-6"><ArrowLeft className="h-4 w-4" /> Back</button>
+      <button onClick={() => navigate(-1)} className="btn-ghost text-sm mb-4"><ArrowLeft className="h-4 w-4" /> Back</button>
+
+      {/* Breadcrumbs */}
+      <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-surface-500 mb-6 flex-wrap">
+        <Link to="/" className="hover:text-primary-600 transition-colors">Home</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <Link to="/products" className="hover:text-primary-600 transition-colors">Products</Link>
+        {product.category && (
+          <>
+            <ChevronRight className="h-3.5 w-3.5" />
+            <Link to={`/products?category=${product.category}`} className="hover:text-primary-600 transition-colors capitalize">
+              {product.category}
+            </Link>
+          </>
+        )}
+        <ChevronRight className="h-3.5 w-3.5" />
+        <span className="text-surface-700 font-medium line-clamp-1 max-w-[180px] sm:max-w-xs">{product.name}</span>
+      </nav>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         {/* Image Gallery */}
         <div className="space-y-4">
-          <div className="aspect-square overflow-hidden rounded-3xl bg-surface-100">
+          <div className="relative aspect-square overflow-hidden rounded-3xl bg-surface-100">
             <img src={images[selectedImage]} alt={product.name} className="h-full w-full object-cover" />
+            {product.badge && (
+              <span className="absolute top-4 left-4 rounded-full bg-primary-600/90 px-3 py-1.5 text-xs font-semibold text-white shadow-sm">
+                {product.badge}
+              </span>
+            )}
           </div>
           {images.length > 1 && (
             <div className="flex gap-3">
@@ -217,6 +263,19 @@ export default function ProductDetailPage() {
               ))}
             </div>
             <span className="text-sm text-surface-500">{avgRating} ({reviews.length} reviews)</span>
+            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+              product.stock === 0
+                ? 'bg-red-50 text-red-600'
+                : product.stock > 0 && product.stock <= 10
+                  ? 'bg-amber-50 text-amber-700'
+                  : 'bg-emerald-50 text-emerald-700'
+            }`}>
+              {product.stock === 0
+                ? (<><Package className="h-3 w-3" /> Out of Stock</>)
+                : product.stock > 0 && product.stock <= 10
+                  ? (<><Package className="h-3 w-3" /> Only {product.stock} left</>)
+                  : (<><Check className="h-3 w-3" /> In Stock</>)}
+            </span>
           </div>
 
           <div className="mt-6 flex items-baseline gap-3">
@@ -322,6 +381,23 @@ export default function ProductDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Related Products */}
+      {relatedProducts.length > 0 && (
+        <section className="mt-16">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-display font-bold text-surface-900">You May Also Like</h2>
+            <Link to={`/products?category=${product.category}`} className="btn-ghost text-sm">
+              View All <ChevronRight className="h-4 w-4" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {relatedProducts.map((related) => (
+              <ProductCard key={related.id} product={related} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Reviews Section */}
       <div className="mt-16">
