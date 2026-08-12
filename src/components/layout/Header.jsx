@@ -19,7 +19,16 @@ export default function Header() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState('login');
+  const [scrolled, setScrolled] = useState(false);
   const searchWrapRef = useRef(null);
+
+  // Elevate header once the page is scrolled
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   // Debounced live search suggestions (min 2 chars)
   useEffect(() => {
@@ -135,11 +144,11 @@ export default function Header() {
   );
 
   return (
-    <header className="sticky top-0 z-50 glass border-b border-surface-200/50">
+    <header className={`sticky top-0 z-50 glass border-b transition-all duration-300 ${scrolled ? 'border-surface-200/60 shadow-soft' : 'border-surface-200/20 shadow-none'}`}>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between gap-4">
-          <Link to="/" className="flex items-center gap-2 shrink-0">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary-600 to-accent shadow-glow">
+          <Link to="/" className="flex items-center gap-2 shrink-0 group">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary-600 to-accent shadow-glow transition-transform duration-300 group-hover:scale-105">
               <Store className="h-5 w-5 text-white" />
             </div>
             <span className="text-xl font-display font-bold text-gradient hidden sm:block">Speedersmania</span>
