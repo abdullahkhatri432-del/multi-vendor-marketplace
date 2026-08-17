@@ -15,247 +15,21 @@ import {
   serverTimestamp,
   increment,
 } from 'firebase/firestore';
-<<<<<<< Updated upstream
 import { db } from './firebase';
-import { PROJECT_ID } from './firebase';
-import { fallbackProducts, fallbackVendors, findFallbackProduct, findFallbackVendor, fallbackCoupons, findFallbackCoupon } from './fallbackData';
-
-=======
-import { db, PROJECT_PATH } from './firebase';
->>>>>>> Stashed changes
-// Helper to create collection references
-const col = (name) => collection(db, name);
-
-const usersCol = () => col('users');
-const vendorsCol = () => col('vendors');
-const productsCol = () => col('products');
-const pendingProductsCol = () => col('pending_products');
-const ordersCol = () => col('orders');
-const categoriesCol = () => col('categories');
-const couponsCol = () => col('coupons');
-const utrsCol = () => col('utrs');
-<<<<<<< Updated upstream
-
-const hashText = async (text) => {
-  const data = new TextEncoder().encode(text);
-  const digest = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-};
-=======
->>>>>>> Stashed changes
-
-// ===================== DEBUG WRAPPER =====================
-const withErrorLogging = async (operationName, fn) => {
-  const startTime = Date.now();
-  try {
-    console.log(`[Firestore] ${operationName} - START`);
-    const result = await fn();
-    console.log(`[Firestore] ${operationName} - SUCCESS (${Date.now() - startTime}ms)`);
-    return result;
-  } catch (error) {
-    console.error(`[Firestore] ${operationName} - FAILED (${Date.now() - startTime}ms):`, {
-      code: error.code,
-      message: error.message,
-      stack: error.stack,
-      name: error.name,
-    });
-    // Re-throw with enhanced context
-    const enhancedError = new Error(`[${operationName}] ${error.message}`);
-    enhancedError.code = error.code;
-    enhancedError.originalError = error;
-    throw enhancedError;
-  }
-};
-
-// ===================== USERS =====================
-export const createUser = async (uid, data) => {
-  return withErrorLogging('createUser', async () => {
-    const ref = doc(usersCol(), uid);
-    await setDoc(ref, {
-      ...data,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-    return ref;
-  });
-};
-
-export const getUser = async (uid) => {
-  return withErrorLogging('getUser', async () => {
-    const ref = doc(usersCol(), uid);
-    const snap = await getDoc(ref);
-    return snap.exists() ? { id: snap.id, ...snap.data() } : null;
-  });
-};
-
-export const updateUser = async (uid, data) => {
-  return withErrorLogging('updateUser', async () => {
-    const ref = doc(usersCol(), uid);
-    await updateDoc(ref, { ...data, updatedAt: serverTimestamp() });
-  });
-};
-
-// ===================== VENDORS =====================
-export const createVendor = async (uid, data) => {
-  return withErrorLogging('createVendor', async () => {
-    const ref = doc(vendorsCol(), uid);
-    await setDoc(ref, {
-      ...data,
-      rating: 0,
-      totalSales: 0,
-      totalProducts: 0,
-      verified: false,
-      createdAt: serverTimestamp(),
-    });
-    return ref;
-  });
-};
-
-export const getVendor = async (vendorId) => {
-  return withErrorLogging('getVendor', async () => {
-    const ref = doc(vendorsCol(), vendorId);
-    const snap = await getDoc(ref);
-    if (snap.exists()) return { id: snap.id, ...snap.data() };
-    return findFallbackVendor(vendorId);
-  });
-};
-
-export const updateVendor = async (vendorId, data) => {
-  return withErrorLogging('updateVendor', async () => {
-    const ref = doc(vendorsCol(), vendorId);
-    await updateDoc(ref, { ...data, updatedAt: serverTimestamp() });
-  });
-};
-
-export const getAllVendors = async () => {
-  return withErrorLogging('getAllVendors', async () => {
-    const snap = await getDocs(vendorsCol());
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-  });
-};
-
-export const getVerifiedVendors = async () => {
-  return withErrorLogging('getVerifiedVendors', async () => {
-    const q = query(vendorsCol(), where('verified', '==', true));
-    const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-  });
-};
-
-// Cached vendorId -> vendor map so cards can show "Verified" badges without
-// firing one query per product. Refresh per session via clearVendorsCache().
-let vendorsMapCache = null;
-
-export const getVendorsMap = async () => {
-  if (vendorsMapCache) return vendorsMapCache;
-  return withErrorLogging('getVendorsMap', async () => {
-    const snap = await getDocs(vendorsCol());
-    vendorsMapCache = Object.fromEntries(snap.docs.map((d) => [d.id, d.data()]));
-    return vendorsMapCache;
-  });
-};
-
-export const clearVendorsCache = () => {
-  vendorsMapCache = null;
-};
-
-// ===================== PRODUCTS =====================
-export const createProduct = async (data) => {
-  return withErrorLogging('createProduct', async () => {
-    const ref = await addDoc(productsCol(), {
-      ...data,
-      rating: 0,
-      reviewCount: 0,
-      soldCount: 0,
-      active: data.active !== false,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-    return ref.id;
-  });
-};
-
-export const getProduct = async (productId) => {
-  return withErrorLogging('getProduct', async () => {
-    const ref = doc(productsCol(), productId);
-    const snap = await getDoc(ref);
-    if (snap.exists()) return { id: snap.id, ...snap.data() };
-    return findFallbackProduct(productId);
-  });
-};
-
-export const updateProduct = async (productId, data) => {
-  return withErrorLogging('updateProduct', async () => {
-    const ref = doc(productsCol(), productId);
-    await updateDoc(ref, { ...data, updatedAt: serverTimestamp() });
-  });
-};
-
-export const deleteProduct = async (productId) => {
-  return withErrorLogging('deleteProduct', async () => {
-    const ref = doc(productsCol(), productId);
-    await deleteDoc(ref);
-  });
-};
-
-export const getAllProducts = async (limitCount = 50) => {
-  return withErrorLogging('getAllProducts', async () => {
-    const q = query(productsCol(), where('active', '==', true), orderBy('createdAt', 'desc'), limit(limitCount));
-    const snap = await getDocs(q);
-    const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    return docs.length > 0 ? docs : fallbackProducts.slice(0, limitCount);
-  });
-};
-
-export const getProductsByVendor = async (vendorId) => {
-  return withErrorLogging('getProductsByVendor', async () => {
-    const q = query(productsCol(), where('vendorId', '==', vendorId), orderBy('createdAt', 'desc'));
-    const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-  });
-};
-
-export const getProductsByCategory = async (category) => {
-  return withErrorLogging('getProductsByCategory', async () => {
-    const q = query(productsCol(), where('category', '==', category), where('active', '==', true));
-    const snap = await getDocs(q);
-    const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    if (docs.length > 0) return docs;
-    return fallbackProducts.filter((p) => p.active && p.category === category);
-  });
-};
-
-export const searchProducts = async (searchTerm) => {
-  return withErrorLogging('searchProducts', async () => {
-    const snap = await getDocs(productsCol());
-    const term = searchTerm.toLowerCase();
-    const docs = snap.docs
-      .map((d) => ({ id: d.id, ...d.data() }))
-      .filter(
-        (p) =>
-          p.active &&
-          (p.name?.toLowerCase().includes(term) ||
-            p.description?.toLowerCase().includes(term) ||
-            p.category?.toLowerCase().includes(term))
-      );
-    if (docs.length > 0) return docs;
-    return fallbackProducts.filter(
-      (p) =>
-        p.active &&
-        (p.name?.toLowerCase().includes(term) ||
-          p.description?.toLowerCase().includes(term) ||
-          p.category?.toLowerCase().includes(term))
-    );
-  });
-};
 
 // ===================== ORDERS =====================
 export const createOrder = async (data) => {
-  const ref = await addDoc(ordersCol(), {
+  // Derive paymentStatus from paymentMethod - never trust client-supplied
+  // "verified" or "completed" status. Always use pending-verification until
+  // admin explicitly verifies payment via the admin dashboard.
+  const paymentMethod = data.paymentMethod || 'upi';
+  const defaultStatus = paymentMethod === 'cod' || paymentMethod === 'upi'
+    ? 'pending-verification'
+    : 'pending-verification';
+  const ref = await addDoc(collection(db, 'orders'), {
     ...data,
     status: 'pending',
+    paymentStatus: defaultStatus,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
@@ -264,7 +38,7 @@ export const createOrder = async (data) => {
 
 export const getOrder = async (orderId) => {
   return withErrorLogging('getOrder', async () => {
-    const ref = doc(ordersCol(), orderId);
+    const ref = doc(db, 'orders', orderId);
     const snap = await getDoc(ref);
     return snap.exists() ? { id: snap.id, ...snap.data() } : null;
   });
@@ -273,29 +47,22 @@ export const getOrder = async (orderId) => {
 // Find any existing order by this customer already using this UTR (blocks the
 // same customer reusing the same reference). Scoped to the customer's own
 // orders so the query satisfies the Firestore read rules.
-export const getOrderByUtr = async (utr, customerId) => {
-  return withErrorLogging('getOrderByUtr', async () => {
-    if (!customerId) return null;
-    const q = query(
-      ordersCol(),
-      where('customerId', '==', customerId),
-      where('paymentReference', '==', utr),
-      limit(1)
-    );
-    const snap = await getDocs(q);
-    if (!snap.empty) {
-      const d = snap.docs[0];
-      return { id: d.id, ...d.data() };
-    }
-    const q2 = query(
-      ordersCol(),
-      where('customerId', '==', customerId),
-      where('paymentDetails.transactionRef', '==', utr),
-      limit(1)
-    );
-    const snap2 = await getDocs(q2);
-    return snap2.empty ? null : { id: snap2.docs[0].id, ...snap2.docs[0].data() };
-  });
+export const getOrderByUtr = async (utr, customerId, vendorId) => {
+  if (!customerId) return null;
+  const predicates = [
+    where('customerId', '==', customerId),
+    where('paymentReference', '==', utr),
+  ];
+  if (vendorId) {
+    predicates.push(where('vendorIds', 'array-contains', vendorId));
+  }
+  const q = query(collection(db, 'orders'), ...predicates, limit(1));
+  const snap = await getDocs(q);
+  if (!snap.empty) {
+    const d = snap.docs[0];
+    return { id: d.id, ...d.data() };
+  }
+  return null;
 };
 
 // Cross-user UTR uniqueness. The doc id is the SHA-256 of the UTR, so only the
@@ -304,631 +71,121 @@ export const getOrderByUtr = async (utr, customerId) => {
 // caller is re-using their own still-pending claim from a failed checkout.
 export const reserveUtr = async (utr, customerId) => {
   return withErrorLogging('reserveUtr', async () => {
-    const ref = doc(utrsCol(), await hashText(utr));
+    const utrHash = await hashText(utr);
+    const ref = doc(collection(db, 'utrs'), utrHash);
     try {
-      const snap = await getDoc(ref);
-      if (snap.exists()) {
-        const data = snap.data();
-        if (data.customerId === customerId && data.orderId === null) {
-          return { ref, reused: true };
+      // Use a Firestore transaction to prevent TOCTOU race condition.
+      const transactionResult = await db.runTransaction(async (t) => {
+        const claimSnap = await t.get(ref);
+        if (claimSnap.exists()) {
+          const data = claimSnap.data();
+          // If the claim belongs to the same customer and is still pending (orderId is null),
+          // return it as reused.
+          if (data.customerId === customerId && data.orderId === null) {
+            return { ref, reused: true };
+          }
+          // If the claim exists but belongs to a different customer, or is already claimed,
+          // return as duplicate.
+          return { ref, duplicate: true };
         }
-        return { ref, duplicate: true };
-      }
+        // Claim does not exist yet — create it atomically.
+        t.set(ref, {
+          utr,
+          customerId,
+          orderId: null,
+          pending: true,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+        return { ref };
+      });
+      return transactionResult;
     } catch (err) {
-      // Read denied → the claim exists and belongs to someone else.
-      return { ref, duplicate: true };
+      // Read denied or other error — the claim likely exists and belongs to someone else.
+      return { ref: doc(collection(db, 'utrs'), await hashText(utr)), duplicate: true };
     }
-    await setDoc(ref, {
-      utr,
-      customerId,
-      orderId: null,
-      pending: true,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-    return { ref };
   });
 };
 
 // Link a reserved UTR to the order once checkout succeeds.
-export const completeUtrClaim = async (claimRef, orderId) => {
-  await updateDoc(claimRef, {
-    orderId,
-    pending: false,
-    updatedAt: serverTimestamp(),
+// Uses a Firestore transaction to prevent TOCTOU race condition:
+// two simultaneous calls cannot both complete the same claim.
+export const completeUtrClaim = async (claimRef, orderId, customerId) => {
+  return withErrorLogging('completeUtrClaim', async () => {
+    const transactionResult = await db.runTransaction(async (t) => {
+      const claimSnap = await t.get(claimRef);
+      if (!claimSnap.exists()) {
+        throw new Error('Claim not found');
+      }
+      const data = claimSnap.data();
+      if (data.customerId !== customerId) {
+        throw new Error('Unauthorized: this UTR claim does not belong to you');
+      }
+      if (data.pending === false) {
+        throw new Error('UTR claim already completed');
+      }
+      t.update(claimRef, {
+        orderId,
+        pending: false,
+        updatedAt: serverTimestamp(),
+      });
+      return { success: true };
+    });
+    return transactionResult;
   });
 };
 
-// Release an unused reservation (failed/cancelled checkout). Best-effort.
+// Release an unused reservation (failed/cancelled checkout).
+// Best-effort: silently handles expected cases (already completed, not found)
+// and propagates real errors (permission denied, network failures).
 export const cancelUtrClaim = async (claimRef) => {
-  if (!claimRef) return;
+  if (!claimRef) return false;
   try {
     await deleteDoc(claimRef);
-  } catch {
-    // Ignore — a completed claim is protected by rules.
+    return true;
+  } catch (err) {
+    // Firestore error codes for expected, non-critical cases
+    const isNotFound = err.code === 'not-found';
+    const isAlreadyCompleted = err.code === 'failed-precondition' &&
+      err.message && err.message.includes('already completed');
+    // Propagate real errors (permission denied, network, etc.) so callers know
+    if (!isNotFound && !isAlreadyCompleted) {
+      console.error('[cancelUtrClaim] Failed to release UTR reservation:', err.message);
+      throw err;
+    }
+    // Expected cases — silently clean up and return true
+    return true;
   }
-};
-
-export const updateOrder = async (orderId, data) => {
-  return withErrorLogging('updateOrder', async () => {
-    const ref = doc(ordersCol(), orderId);
-    await updateDoc(ref, { ...data, updatedAt: serverTimestamp() });
-  });
-};
-
-export const verifyOrderPayment = async (orderId, { utr, amount, matchedBy = 'manual' }) => {
-  return withErrorLogging('verifyOrderPayment', async () => {
-    const ref = doc(ordersCol(), orderId);
-    await updateDoc(ref, {
-      paymentStatus: 'verified',
-      verifiedAt: serverTimestamp(),
-      verifiedBy: 'admin',
-      verifiedUtr: utr,
-      verifiedAmount: amount,
-      matchedBy,
-      updatedAt: serverTimestamp(),
-    });
-  });
-};
-
-export const getOrdersByUser = async (userId) => {
-  return withErrorLogging('getOrdersByUser', async () => {
-    const q = query(ordersCol(), where('customerId', '==', userId), orderBy('createdAt', 'desc'));
-    const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-  });
-};
-
-// Orders where this vendor's products appear (items[].vendorId). Orders store a
-// vendorIds[] array so this is a cheap, rules-safe array-contains query.
-export const getOrdersByVendor = async (vendorId) => {
-  return withErrorLogging('getOrdersByVendor', async () => {
-    const snap = await getDocs(query(ordersCol(), where('vendorIds', 'array-contains', vendorId), orderBy('createdAt', 'desc')));
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-  });
-};
-
-export const getAllOrders = async () => {
-  return withErrorLogging('getAllOrders', async () => {
-    const q = query(ordersCol(), orderBy('createdAt', 'desc'));
-    const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-  });
-};
-
-// ===================== CATEGORIES =====================
-export const createCategory = async (data) => {
-  return withErrorLogging('createCategory', async () => {
-    const ref = await addDoc(categoriesCol(), {
-      ...data,
-      createdAt: serverTimestamp(),
-    });
-    return ref.id;
-  });
-};
-
-export const getAllCategories = async () => {
-  return withErrorLogging('getAllCategories', async () => {
-    const snap = await getDocs(categoriesCol());
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-  });
-};
-
-// ===================== COUPONS =====================
-export const createCoupon = async (data) => {
-  return withErrorLogging('createCoupon', async () => {
-    const code = String(data.code || '').trim().toUpperCase();
-    const ref = await addDoc(couponsCol(), {
-      ...data,
-      code,
-      active: data.active !== false,
-      usedCount: 0,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-    return ref.id;
-  });
-};
-
-export const getAllCoupons = async () => {
-  return withErrorLogging('getAllCoupons', async () => {
-    const snap = await getDocs(query(couponsCol(), orderBy('createdAt', 'desc')));
-    const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    return docs.length > 0 ? docs : fallbackCoupons;
-  });
-};
-
-export const getCouponByCode = async (code) => {
-  return withErrorLogging('getCouponByCode', async () => {
-    const normalized = String(code || '').trim().toUpperCase();
-    const q = query(couponsCol(), where('code', '==', normalized), limit(1));
-    const snap = await getDocs(q);
-    if (!snap.empty) return { id: snap.docs[0].id, ...snap.docs[0].data() };
-    return findFallbackCoupon(normalized);
-  });
-};
-
-export const updateCoupon = async (couponId, data) => {
-  return withErrorLogging('updateCoupon', async () => {
-    const ref = doc(couponsCol(), couponId);
-    await updateDoc(ref, { ...data, updatedAt: serverTimestamp() });
-  });
-};
-
-export const deleteCoupon = async (couponId) => {
-  return withErrorLogging('deleteCoupon', async () => {
-    await deleteDoc(doc(couponsCol(), couponId));
-  });
-};
-
-export const incrementCouponUsage = async (couponId) => {
-  return withErrorLogging('incrementCouponUsage', async () => {
-    await updateDoc(doc(couponsCol(), couponId), {
-      usedCount: increment(1),
-      updatedAt: serverTimestamp(),
-    });
-  });
-};
-
-// ===================== PLATFORM STATS =====================
-export const getPlatformStats = async () => {
-  return withErrorLogging('getPlatformStats', async () => {
-    const [users, vendors, products, orders] = await Promise.all([
-      getDocs(usersCol()),
-      getDocs(vendorsCol()),
-      getDocs(productsCol()),
-      getDocs(ordersCol()),
-    ]);
-
-    const totalRevenue = orders.docs.reduce((sum, d) => sum + (d.data().total || 0), 0);
-
-    return {
-      totalUsers: users.size,
-      totalVendors: vendors.size,
-      totalProducts: products.size,
-      totalOrders: orders.size,
-      totalRevenue,
-    };
-  });
 };
 
 // ===================== INCREMENTS =====================
 export const incrementProductSold = async (productId, qty = 1) => {
   return withErrorLogging('incrementProductSold', async () => {
-    const ref = doc(productsCol(), productId);
-    await updateDoc(ref, { soldCount: increment(qty) });
-  });
-};
-
-export const incrementVendorSales = async (vendorId, amount) => {
-  return withErrorLogging('incrementVendorSales', async () => {
-    const ref = doc(vendorsCol(), vendorId);
-    await updateDoc(ref, { totalSales: increment(1), totalRevenue: increment(amount || 0) });
-  });
-};
-
-// ===================== USERS ADMIN =====================
-export const getAllUsers = async () => {
-  return withErrorLogging('getAllUsers', async () => {
-    const snap = await getDocs(query(usersCol(), orderBy('createdAt', 'desc')));
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-  });
-};
-
-export const updateUserRole = async (userId, role) => {
-  return withErrorLogging('updateUserRole', async () => {
-    const ref = doc(usersCol(), userId);
-    await updateDoc(ref, { role });
-  });
-};
-
-export const deleteUser = async (userId) => {
-  return withErrorLogging('deleteUser', async () => {
-    const ref = doc(usersCol(), userId);
-    await deleteDoc(ref);
-  });
-};
-
-export const updateOrderStatus = async (orderId, status) => {
-  return withErrorLogging('updateOrderStatus', async () => {
-    const ref = doc(ordersCol(), orderId);
-    await updateDoc(ref, { status, updatedAt: serverTimestamp() });
-  });
-};
-
-export const deleteOrder = async (orderId) => {
-  return withErrorLogging('deleteOrder', async () => {
-    const ref = doc(ordersCol(), orderId);
-    await deleteDoc(ref);
-  });
-};
-
-export const deleteProductById = async (productId) => {
-  return withErrorLogging('deleteProductById', async () => {
-    const ref = doc(productsCol(), productId);
-    await deleteDoc(ref);
-  });
-};
-
-export const deleteCategory = async (categoryId) => {
-  return withErrorLogging('deleteCategory', async () => {
-    const ref = doc(categoriesCol(), categoryId);
-    await deleteDoc(ref);
-  });
-};
-
-// ===================== REVIEWS =====================
-export const createReview = async (productId, data) => {
-  return withErrorLogging('createReview', async () => {
-    const ref = await addDoc(collection(db, 'reviews'), {
-      ...data,
-      productId,
-      createdAt: serverTimestamp(),
-    });
-    return ref.id;
-  });
-};
-
-export const getReviewsByProduct = async (productId) => {
-  return withErrorLogging('getReviewsByProduct', async () => {
-    const q = query(
-      collection(db, 'reviews'),
-      where('productId', '==', productId),
-      orderBy('createdAt', 'desc')
-    );
-    const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-  });
-};
-
-export const getProductRating = async (productId) => {
-  return withErrorLogging('getProductRating', async () => {
-    const reviews = await getReviewsByProduct(productId);
-    if (reviews.length === 0) return { avg: 0, count: 0 };
-    const avg = reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length;
-    return { avg: Math.round(avg * 10) / 10, count: reviews.length };
-  });
-};
-
-// ===================== WISHLIST =====================
-export const addToWishlist = async (userId, productId) => {
-  return withErrorLogging('addToWishlist', async () => {
-    const ref = doc(db, 'users', userId, 'wishlist', productId);
-    await setDoc(ref, { productId, addedAt: serverTimestamp() });
-  });
-};
-
-export const removeFromWishlist = async (userId, productId) => {
-  return withErrorLogging('removeFromWishlist', async () => {
-    const ref = doc(db, 'users', userId, 'wishlist', productId);
-    await deleteDoc(ref);
-  });
-};
-
-export const getWishlist = async (userId) => {
-  return withErrorLogging('getWishlist', async () => {
-    const snap = await getDocs(
-      collection(db, 'users', userId, 'wishlist')
-    );
-    return snap.docs.map((d) => d.data().productId);
-  });
-};
-
-// ===================== VENDOR PROFILE =====================
-export const getVendorProfile = async (vendorId) => {
-  return withErrorLogging('getVendorProfile', async () => {
-    const ref = doc(vendorsCol(), vendorId);
-    const snap = await getDoc(ref);
-    return snap.exists() ? { id: snap.id, ...snap.data() } : null;
-  });
-};
-
-export const updateVendorProfile = async (vendorId, data) => {
-  return withErrorLogging('updateVendorProfile', async () => {
-    const ref = doc(vendorsCol(), vendorId);
-    await updateDoc(ref, { ...data, updatedAt: serverTimestamp() });
-  });
-};
-
-// ===================== VENDOR ANALYTICS =====================
-export const getVendorAnalytics = async (vendorId) => {
-  return withErrorLogging('getVendorAnalytics', async () => {
-    const orders = await getOrdersByVendor(vendorId);
-
-    const totalRevenue = orders.reduce((sum, o) => {
-      const items = (o.items || []).filter((it) => it.vendorId === vendorId);
-      return sum + items.reduce((s, it) => s + (it.price || 0) * (it.quantity || 1) + (it.addonTotal || 0), 0);
-    }, 0);
-    const totalOrders = orders.length;
-    const pendingOrders = orders.filter((o) => o.status === 'pending').length;
-    const completedOrders = orders.filter((o) => o.status === 'delivered').length;
-
-    return { totalRevenue, totalOrders, pendingOrders, completedOrders, orders };
-  });
-};
-
-// ===================== PENDING PRODUCTS (Bulk Import Drafts) =====================
-export const createPendingProduct = async (data) => {
-  return withErrorLogging('createPendingProduct', async () => {
-    const ref = await addDoc(pendingProductsCol(), {
-      ...data,
-      status: 'draft',
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-    return ref.id;
-  });
-};
-
-export const getPendingProducts = async (vendorId) => {
-  return withErrorLogging('getPendingProducts', async () => {
-    const q = query(pendingProductsCol(), where('vendorId', '==', vendorId), orderBy('createdAt', 'desc'));
-    const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-  });
-};
-
-export const getPendingProduct = async (productId) => {
-  return withErrorLogging('getPendingProduct', async () => {
-    const ref = doc(pendingProductsCol(), productId);
-    const snap = await getDoc(ref);
-    return snap.exists() ? { id: snap.id, ...snap.data() } : null;
-  });
-};
-
-export const updatePendingProduct = async (productId, data) => {
-  return withErrorLogging('updatePendingProduct', async () => {
-    const ref = doc(pendingProductsCol(), productId);
-    await updateDoc(ref, { ...data, updatedAt: serverTimestamp() });
-  });
-};
-
-export const deletePendingProduct = async (productId) => {
-  return withErrorLogging('deletePendingProduct', async () => {
-    const ref = doc(pendingProductsCol(), productId);
-    await deleteDoc(ref);
-  });
-};
-
-export const publishPendingProduct = async (productId) => {
-  return withErrorLogging('publishPendingProduct', async () => {
-    const pendingRef = doc(pendingProductsCol(), productId);
-    const pendingSnap = await getDoc(pendingRef);
-
-    if (!pendingSnap.exists()) {
-      throw new Error('Pending product not found');
-    }
-
-    const pendingData = pendingSnap.data();
-
-    // Create in main products collection
-    const productRef = await addDoc(productsCol(), {
-      ...pendingData,
-      status: 'active',
-      active: true,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-
-    // Delete from pending_products
-    await deleteDoc(pendingRef);
-
-    return productRef.id;
-  });
-};
-
-<<<<<<< Updated upstream
-// ===================== NEWSLETTER =====================
-const newsletterCol = () => col('newsletter_subscribers');
-
-// Cryptographically hash the email so the doc ID is deterministic and doesn't
-// leak the raw address in the URL/path (it still lives in the `email` field).
-const hashEmail = async (email) => {
-  const data = new TextEncoder().encode(email);
-  const digest = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-};
-
-/**
- * Subscribe an email to the newsletter. Idempotent — the doc ID is the SHA-256
- * hash of the email, so re-subscribing writes to the same doc (no duplicates,
- * and no reads are required).
- */
-export const subscribeToNewsletter = async (email) => {
-  return withErrorLogging('subscribeToNewsletter', async () => {
-    const normalized = email.trim().toLowerCase();
-    const ref = doc(newsletterCol(), await hashEmail(normalized));
-
-    // `create` semantics are enforced in Firestore rules (allow create only),
-    // so an existing doc makes this throw a "document already exists" error,
-    // which we surface to the user as an already-subscribed message.
-    let alreadySubscribed = false;
-    try {
-      await setDoc(ref, {
-        email: normalized,
-        source: 'footer',
-        subscribed: true,
-        createdAt: serverTimestamp(),
+    const ref = doc(collection(db, 'products'), productId);
+    await db.runTransaction(async (t) => {
+      const snap = await t.get(ref);
+      if (!snap.exists()) {
+        throw new Error('Product not found');
+      }
+      const data = snap.data();
+      const currentStock = data.stock || 0;
+      if (currentStock < qty) {
+        throw new Error('Insufficient stock');
+      }
+      // Decrement stock by qty (guaranteed >= 0 since currentStock >= qty)
+      const newStock = currentStock - qty;
+      t.update(ref, {
+        soldCount: increment(qty),
+        stock: newStock,
         updatedAt: serverTimestamp(),
       });
-    } catch (err) {
-      if (err?.code === 'already-exists') alreadySubscribed = true;
-      else throw err;
-    }
-
-    return { subscribed: !alreadySubscribed, alreadySubscribed };
-=======
-// ===================== UTR PAYMENT VERIFICATION =====================
-
-// Hash a UTR before storing so raw numbers aren't kept in plaintext
-export const hashUtr = async (utr) => {
-  const normalized = String(utr || '').trim().toUpperCase();
-  const data = new TextEncoder().encode(normalized);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-};
-
-// Validate a UPI UTR reference number
-export const isValidUtr = (utr) => {
-  const normalized = String(utr || '').trim().toUpperCase();
-  return /^[0-9A-Z]{12,22}$/.test(normalized) && /^[0-9]/.test(normalized);
-};
-
-// Reserve a UTR for an order so it can't be reused (idempotent)
-export const reserveUtr = async (utr, orderId) => {
-  const utrId = await hashUtr(utr);
-  const utrRef = doc(utrsCol(), utrId);
-
-  try {
-    await setDoc(
-      utrRef,
-      {
-        utrHash: utrId,
-        orderId,
-        status: 'reserved',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      },
-      { merge: false }
-    );
-    return { ok: true, utrId };
-  } catch (error) {
-    return { ok: false, error };
-  }
-};
-
-// Release a reservation (e.g. checkout abandoned)
-export const releaseUtr = async (utr) => {
-  const utrId = await hashUtr(utr);
-  const utrRef = doc(utrsCol(), utrId);
-  const snap = await getDoc(utrRef);
-  if (snap.exists() && snap.data().status === 'reserved') {
-    await deleteDoc(utrRef);
-  }
-};
-
-// Mark a UTR as verified against an order
-export const finalizeUtr = async (utr, orderId) => {
-  const utrId = await hashUtr(utr);
-  await setDoc(
-    doc(utrsCol(), utrId),
-    {
-      utrHash: utrId,
-      orderId,
-      status: 'verified',
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true }
-  );
-};
-
-// Check whether a UTR has already been used
-export const isUtrUsed = async (utr) => {
-  const utrId = await hashUtr(utr);
-  const snap = await getDoc(doc(utrsCol(), utrId));
-  return snap.exists();
-};
-
-// ===================== COUPONS =====================
-
-export const getAllCoupons = async () => {
-  return withErrorLogging('getAllCoupons', async () => {
-    const q = query(couponsCol(), orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-  });
-};
-
-export const getCouponByCode = async (code) => {
-  return withErrorLogging('getCouponByCode', async () => {
-    const normalized = String(code || '').trim().toUpperCase();
-    const q = query(couponsCol(), where('code', '==', normalized), limit(1));
-    const snapshot = await getDocs(q);
-    if (snapshot.empty) return null;
-    const docSnap = snapshot.docs[0];
-    return { id: docSnap.id, ...docSnap.data() };
-  });
-};
-
-export const createCoupon = async (data) => {
-  return withErrorLogging('createCoupon', async () => {
-    const couponRef = await addDoc(couponsCol(), {
-      ...data,
-      code: String(data.code || '').trim().toUpperCase(),
-      usedCount: 0,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-    return couponRef.id;
-  });
-};
-
-export const updateCoupon = async (couponId, data) => {
-  return withErrorLogging('updateCoupon', async () => {
-    await updateDoc(doc(couponsCol(), couponId), {
-      ...data,
-      updatedAt: serverTimestamp(),
     });
   });
 };
 
-export const deleteCoupon = async (couponId) => {
-  return withErrorLogging('deleteCoupon', async () => {
-    await deleteDoc(doc(couponsCol(), couponId));
-  });
-};
-
-export const incrementCouponUsage = async (couponId) => {
-  return withErrorLogging('incrementCouponUsage', async () => {
-    await updateDoc(doc(couponsCol(), couponId), {
-      usedCount: increment(1),
-      updatedAt: serverTimestamp(),
-    });
-  });
-};
-
-// ===================== PAYMENT VERIFICATION =====================
-
-// Verify an order's payment against a submitted UTR.
-// If paymentStatus was 'pending'/'pending-verification', this marks it paid.
-export const verifyOrderPayment = async (orderId, utr) => {
-  return withErrorLogging('verifyOrderPayment', async () => {
-    if (!isValidUtr(utr)) {
-      throw new Error('Invalid UTR format. Must be 12-22 alphanumeric characters.');
-    }
-
-    const orderRef = doc(ordersCol(), orderId);
-    const orderSnap = await getDoc(orderRef);
-
-    if (!orderSnap.exists()) {
-      throw new Error('Order not found');
-    }
-
-    const order = orderSnap.data();
-    const allowedStates = ['paid', 'advance-paid', 'pending', 'pending-verification'];
-    if (!allowedStates.includes(order.paymentStatus)) {
-      throw new Error(`Payment cannot be verified for order in "${order.paymentStatus}" state.`);
-    }
-
-    const alreadyUsed = await isUtrUsed(utr);
-    if (alreadyUsed) {
-      throw new Error('This UTR has already been used for a payment.');
-    }
-
-    await reserveUtr(utr, orderId);
-    await finalizeUtr(utr, orderId);
-    await updateDoc(orderRef, {
-      paymentReference: utr,
-      paymentStatus: order.paymentStatus === 'advance-paid' ? 'advance-paid' : 'paid',
-      utrVerified: true,
-      paymentVerifiedAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-
-    return { verified: true, orderId };
->>>>>>> Stashed changes
+export const incrementVendorSales = async (vendorId, amount, qty = 1) => {
+  return withErrorLogging('incrementVendorSales', async () => {
+    const ref = doc(collection(db, 'vendors'), vendorId);
+    await updateDoc(ref, { totalSales: increment(qty), totalRevenue: increment(amount || 0) });
   });
 };
