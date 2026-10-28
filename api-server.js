@@ -43,26 +43,12 @@ app.use((req, res, next) => {
   next();
 });
 
-// Health check is read-only: no per-request writes, no secrets in the response.
-app.get('/api/health', async (req, res) => {
-  try {
-    await db.collection('products').limit(1).get();
-    res.json({ status: 'ok', firestore: 'connected', project: PROJECT_ID });
-  } catch (error) {
-    console.error('[api/health] Firestore check failed:', error.message);
-    res.status(503).json({
-      status: 'error',
-      firestore: 'disconnected',
-      error: 'Firestore is not reachable.',
-    });
-  }
-});
-
-// Serverless handlers (CommonJS) mounted as-is.
 const importProductHandler = require('./api/import-product.js');
 const bulkImportHandler = require('./api/bulk-import.js');
 const createOrderHandler = require('./api/create-order.js');
+const healthHandler = require('./api/health.js');
 
+app.get('/api/health', healthHandler);
 app.post('/api/import-product', importProductHandler);
 app.post('/api/bulk-import', bulkImportHandler);
 app.post('/api/create-order', createOrderHandler);

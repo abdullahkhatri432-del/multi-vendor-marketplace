@@ -24,16 +24,16 @@
   ],
   "functions": {
     "api/import-product.js": {
-      "maxDuration": 30,
-      "memory": 1024
+      "maxDuration": 30
     },
     "api/bulk-import.js": {
-      "maxDuration": 60,
-      "memory": 1024
+      "maxDuration": 60
     },
     "api/create-order.js": {
-      "maxDuration": 30,
-      "memory": 1024
+      "maxDuration": 30
+    },
+    "api/health.js": {
+      "maxDuration": 10
     }
   }
 }

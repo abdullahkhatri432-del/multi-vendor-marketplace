@@ -244,7 +244,7 @@ export default function CheckoutPage() {
       // and the payment proof — never prices or totals.
       const idToken = await user.getIdToken();
 
-      const response = await fetch('/api/create-order', {
+      const response = await fetch(CREATE_ORDER_ENDPOINT, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
