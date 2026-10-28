@@ -13,18 +13,6 @@ import ProductsPage from './pages/ProductsPage';
 import CartPage from './pages/CartPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-<<<<<<< Updated upstream
-=======
-import VendorDashboard from './pages/VendorDashboard';
-import VendorProducts from './pages/VendorProducts';
-import VendorOrders from './pages/VendorOrders';
-import VendorsPage from './pages/VendorsPage';
-import VendorStorePage from './pages/VendorStorePage';
-import AdminDashboard from './pages/AdminDashboard';
-import OrdersPage from './pages/OrdersPage';
-import WishlistPage from './pages/WishlistPage';
-import ProfilePage from './pages/ProfilePage';
->>>>>>> Stashed changes
 import TermsPage from './pages/TermsPage';
 import PrivacyPage from './pages/PrivacyPage';
 import NotFoundPage from './pages/NotFoundPage';
@@ -39,6 +27,8 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const OrdersPage = lazy(() => import('./pages/OrdersPage'));
 const WishlistPage = lazy(() => import('./pages/WishlistPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const VendorsPage = lazy(() => import('./pages/VendorsPage'));
+const VendorStorePage = lazy(() => import('./pages/VendorStorePage'));
 
 function PageTracker() {
   const location = useLocation();
@@ -69,25 +59,15 @@ export default function App() {
                 <Route path="/checkout" element={withSuspense(<CheckoutPage />)} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
-<<<<<<< Updated upstream
                 <Route path="/orders" element={withSuspense(<OrdersPage />)} />
                 <Route path="/wishlist" element={withSuspense(<WishlistPage />)} />
                 <Route path="/profile" element={withSuspense(<ProfilePage />)} />
                 <Route path="/vendor" element={withSuspense(<VendorDashboard />)} />
                 <Route path="/vendor/products" element={withSuspense(<VendorProducts />)} />
                 <Route path="/vendor/orders" element={withSuspense(<VendorOrders />)} />
+                <Route path="/vendors" element={withSuspense(<VendorsPage />)} />
+                <Route path="/vendor/:vendorId" element={withSuspense(<VendorStorePage />)} />
                 <Route path="/admin" element={withSuspense(<AdminDashboard />)} />
-=======
-                <Route path="/orders" element={<OrdersPage />} />
-                <Route path="/wishlist" element={<WishlistPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/vendor" element={<VendorDashboard />} />
-                <Route path="/vendor/products" element={<VendorProducts />} />
-                <Route path="/vendor/orders" element={<VendorOrders />} />
-                <Route path="/vendor/:vendorId" element={<VendorStorePage />} />
-                <Route path="/vendors" element={<VendorsPage />} />
-                <Route path="/admin" element={<AdminDashboard />} />
->>>>>>> Stashed changes
                 <Route path="/terms" element={<TermsPage />} />
                 <Route path="/privacy" element={<PrivacyPage />} />
                 <Route path="*" element={<NotFoundPage />} />

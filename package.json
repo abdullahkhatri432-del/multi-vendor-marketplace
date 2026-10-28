@@ -4,9 +4,10 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently \"npm run dev:web\" \"npm run dev:api\"",
+    "dev:web": "vite",
     "dev:api": "node api-server.js",
-    "dev:full": "concurrently \"npm run dev\" \"npm run dev:api\"",
+    "dev:full": "npm run dev",
     "build": "vite build",
     "preview": "vite preview",
     "deploy": "vite build && gh-pages -d dist"

@@ -9,6 +9,40 @@ import EmptyState from '../components/ui/EmptyState';
 import ImportProductModal from '../components/ui/ImportProductModal';
 import { useToast } from '../context/ToastContext';
 
+// Stock editor that only writes to Firestore on blur/Enter instead of on every
+// keystroke (which used to fire one update per digit typed).
+function StockInput({ value, onCommit, disabled }) {
+  const [draft, setDraft] = useState(String(value ?? 0));
+
+  useEffect(() => {
+    setDraft(String(value ?? 0));
+  }, [value]);
+
+  const commit = () => {
+    const parsed = Math.max(0, Math.trunc(Number(draft)) || 0);
+    setDraft(String(parsed));
+    if (parsed !== Number(value || 0)) onCommit(parsed);
+  };
+
+  return (
+    <input
+      type="number"
+      min="0"
+      value={draft}
+      disabled={disabled}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          e.currentTarget.blur();
+        }
+      }}
+      className="w-16 rounded-lg border border-surface-200 px-2 py-1 text-xs text-center focus:outline-none focus:ring-2 focus:ring-primary-100 disabled:opacity-50"
+    />
+  );
+}
+
 export default function VendorProducts() {
   const { user, isVendor, isAuthenticated, loading: authLoading } = useAuth();
   const { addToast } = useToast();
@@ -382,11 +416,9 @@ export default function VendorProducts() {
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-surface-500">Stock:</span>
-                  <input
-                    type="number"
+                  <StockInput
                     value={product.stock || 0}
-                    onChange={(e) => handleUpdateStock(product.id, e.target.value)}
-                    className="w-16 rounded-lg border border-surface-200 px-2 py-1 text-xs text-center focus:outline-none focus:ring-2 focus:ring-primary-100"
+                    onCommit={(newStock) => handleUpdateStock(product.id, newStock)}
                   />
                 </div>
                 <button

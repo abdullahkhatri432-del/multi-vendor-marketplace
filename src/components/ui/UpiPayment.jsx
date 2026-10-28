@@ -2,9 +2,10 @@ import { useEffect, useRef } from 'react';
 import QRCode from 'qrcode';
 import { Copy, Check, Smartphone, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
+import { UPI_CONFIG } from '../../config/payment';
 
-const UPI_ID = '8160587811@kotak811';
-const PAYEE_NAME = 'Speedersmania';
+const UPI_ID = UPI_CONFIG.upiId;
+const PAYEE_NAME = UPI_CONFIG.payeeName;
 
 export const buildUpiUri = (amount) =>
   `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(PAYEE_NAME)}&am=${Number(amount || 0).toFixed(2)}&cu=INR`;

@@ -6,7 +6,9 @@ export default defineConfig(({ command, mode }) => {
 
   return {
     plugins: [react()],
-    base: '/',
+    // Vercel uses '/', GitHub project pages need '/<repo>/'. Override with
+    // VITE_BASE_PATH at build time (the Pages workflow sets it).
+    base: process.env.VITE_BASE_PATH || '/',
     server: isDev
       ? {
           proxy: {

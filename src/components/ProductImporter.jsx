@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { createProduct } from '../config/firestore';
 
 export default function ProductImporter({ onProductImported }) {
   const { user, isAuthenticated, isVendor } = useAuth();
@@ -22,6 +23,7 @@ export default function ProductImporter({ onProductImported }) {
   
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
 
@@ -55,16 +57,14 @@ export default function ProductImporter({ onProductImported }) {
 
     try {
       const apiEndpoint = import.meta.env.VITE_API_ENDPOINT || '/api/import-product';
+      const token = await user.getIdToken();
       const response = await fetch(apiEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          url: url.trim(),
-          vendorId: user.uid,
-          vendorName: user.displayName || 'Vendor',
-        }),
+        body: JSON.stringify({ url: url.trim() }),
       });
 
       const data = await response.json();
@@ -74,8 +74,7 @@ export default function ProductImporter({ onProductImported }) {
       }
 
       setResult(data.product);
-      addToast('Product imported successfully!', 'success');
-      onProductImported?.(data.product);
+      addToast('Product details extracted — review and save.', 'success');
     } catch (err) {
       setError(err.message || 'Failed to import product. Please try again.');
       addToast(err.message || 'Import failed', 'error');
@@ -89,9 +88,37 @@ export default function ProductImporter({ onProductImported }) {
     setResult(null);
   };
 
-  const handleViewProduct = () => {
-    if (result?.id) {
-      navigate(`/vendor/products/${result.id}/edit`);
+  // The scraper only returns a preview; saving is an explicit vendor action.
+  const handleSaveProduct = async () => {
+    if (!result || !user) return;
+    setSaving(true);
+    setError('');
+    try {
+      const createdId = await createProduct({
+        name: result.name,
+        description: result.description || '',
+        price: Math.max(0, Number(result.price) || 0),
+        originalPrice: Math.max(0, Number(result.originalPrice) || Number(result.price) || 0),
+        category: result.category || 'general',
+        images: result.images || [],
+        image: result.image || result.images?.[0] || '',
+        vendorId: user.uid,
+        vendorName: user.displayName || 'Vendor',
+        stock: 0,
+        active: false,
+        importedFrom: result.importedFrom || url.trim(),
+      });
+      addToast('Draft product saved. Add a price and stock to publish it.', 'success');
+      onProductImported?.(createdId);
+      setResult(null);
+      setUrl('');
+      navigate('/vendor/products');
+    } catch (err) {
+      console.error('Save imported product failed:', err);
+      setError(err.message || 'Could not save the product.');
+      addToast('Could not save the product', 'error');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -137,8 +164,8 @@ export default function ProductImporter({ onProductImported }) {
               <p className="text-sm text-emerald-700">{result.name}</p>
             </div>
             <div className="flex gap-2">
-              <button onClick={handleViewProduct} className="btn-primary text-sm">
-                Edit Product
+              <button onClick={handleSaveProduct} disabled={saving} className="btn-primary text-sm disabled:opacity-50">
+                {saving ? 'Saving…' : 'Save to My Products'}
               </button>
               <button onClick={handleImportAnother} className="btn-secondary text-sm">
                 Import Another

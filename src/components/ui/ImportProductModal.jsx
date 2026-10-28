@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { X, Link2, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { createProduct } from '../../config/firestore';
+import { useAuth } from '../../context/AuthContext';
 
 const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT || '/api/import-product';
 
 export default function ImportProductModal({ show, onClose, vendorId, vendorName, onImported }) {
+  const { user } = useAuth();
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -13,15 +15,23 @@ export default function ImportProductModal({ show, onClose, vendorId, vendorName
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!url.trim()) return;
+    if (!user) {
+      setError('Please sign in again to import products.');
+      return;
+    }
 
     setLoading(true);
     setError('');
     setPreview(null);
 
     try {
+      const token = await user.getIdToken();
       const response = await fetch(API_ENDPOINT, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ url: url.trim() }),
       });
 

@@ -13,3 +13,4 @@ speedersmania-aecd2-firebase-adminsdk-*.json
 
 .vercel
 .env*
+!.env.example

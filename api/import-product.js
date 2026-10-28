@@ -1,8 +1,18 @@
-// Scrapes product info from an e-commerce URL and returns it to the client.
-// The client saves the product via the Firestore SDK (no Firebase Admin / env vars needed).
-// CommonJS (api/package.json sets "type": "commonjs") — matches bulk-import.js.
-const axios = require('axios');
+// Scrapes product info from a public e-commerce URL and returns it to the
+// client. The client saves the product via the Firestore SDK.
+//
+// Protected: requires a Firebase ID token and blocks SSRF (private IPs,
+// metadata endpoints, non-standard ports).
 const cheerio = require('cheerio');
+const {
+  HttpError,
+  authenticate,
+  applyCors,
+  rateLimit,
+  fetchHtml,
+} = require('../lib/http.cjs');
+
+const MAX_TEXT = 1000;
 
 function extractImageUrls($) {
   const images = [];
@@ -90,9 +100,7 @@ function extractCategory($) {
 }
 
 module.exports = async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  applyCors(req, res);
 
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') {
@@ -100,58 +108,45 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const { url } = req.body || {};
-    if (!url) return res.status(400).json({ error: 'URL is required' });
+    rateLimit(req, { limit: 30, windowMs: 60_000, scope: 'import-product' });
+    await authenticate(req);
 
-    const response = await axios.get(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Accept-Encoding': 'gzip, deflate, br',
-      },
-      timeout: 15000,
-      maxRedirects: 5,
-    });
+    const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
+    const url = String(body.url || '').trim();
+    if (!url) throw new HttpError(400, 'URL is required');
 
-    const html = response.data;
+    const html = await fetchHtml(url, { timeout: 15_000 });
     const $ = cheerio.load(html);
 
-    const title = extractTitle($);
+    const title = String(extractTitle($) || 'Imported Product').trim().slice(0, 200);
     let description = extractDescription($);
+    description = (description || $('meta[name="description"]').attr('content') || '')
+      .trim()
+      .slice(0, 4000);
     const price = extractPrice($);
     const images = extractImageUrls($);
-    const category = extractCategory($);
+    const category = String(extractCategory($) || 'general').trim().slice(0, 80);
 
     if (!images.length) images.push('https://picsum.photos/seed/placeholder/400/400');
-    description = description || $('meta[name="description"]').attr('content') || '';
 
     return res.status(200).json({
       success: true,
       product: {
-        name: title.trim(),
-        description: description.trim(),
+        name: title,
+        description,
         price: price || 0,
         originalPrice: price || 0,
         category,
         images,
         image: images[0] || '',
+        importedFrom: url,
       },
     });
-  } catch (error) {
-    console.error('[import-product] Error:', error.message);
-    if (error.code === 'ECONNABORTED') {
-      return res.status(408).json({ error: 'Request timeout. The URL may be taking too long to respond.' });
-    }
-    if (error.response?.status === 404) {
-      return res.status(404).json({ error: 'The provided URL returned a 404. Please check the URL.' });
-    }
-    if (error.response?.status === 403) {
-      return res.status(403).json({ error: 'Access denied when scraping the URL. The site may block scrapers.' });
-    }
-    if (error.code === 'ENOTFOUND' || error.code === 'EAI_AGAIN') {
-      return res.status(400).json({ error: 'Could not resolve the URL. Please enter a valid URL.' });
-    }
-    return res.status(500).json({ error: error.message || 'Failed to import product' });
+  } catch (err) {
+    const status = err instanceof HttpError ? err.status : 500;
+    if (status >= 500) console.error('[import-product] Error:', err?.message);
+    return res.status(status).json({
+      error: status >= 500 ? 'Failed to import product' : err.message,
+    });
   }
 };

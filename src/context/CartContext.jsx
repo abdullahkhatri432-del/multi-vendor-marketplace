@@ -12,22 +12,24 @@ function cartReducer(state, action) {
     case 'ADD_ITEM': {
       const existing = state.find((item) => item.id === action.payload.id);
       if (existing) {
-        return state.map((item) =>
-          item.id === action.payload.id
-            ? { ...item, quantity: item.quantity + (action.payload.quantity || 1) }
-            : item
-        );
+        return state.map((item) => {
+          if (item.id !== action.payload.id) return item;
+          const quantity = item.quantity + (action.payload.quantity || 1);
+          const addonUnit = (item.addons || []).reduce((sum, addon) => sum + (addon.price || 0), 0);
+          return { ...item, quantity, addonTotal: addonUnit * quantity };
+        });
       }
       return [...state, { ...action.payload, quantity: action.payload.quantity || 1 }];
     }
     case 'REMOVE_ITEM':
       return state.filter((item) => item.id !== action.payload);
     case 'UPDATE_QUANTITY':
-      return state.map((item) =>
-        item.id === action.payload.id
-          ? { ...item, quantity: Math.max(1, action.payload.quantity) }
-          : item
-      );
+      return state.map((item) => {
+        if (item.id !== action.payload.id) return item;
+        const quantity = Math.max(1, action.payload.quantity);
+        const addonUnit = (item.addons || []).reduce((sum, addon) => sum + (addon.price || 0), 0);
+        return { ...item, quantity, addonTotal: addonUnit * quantity };
+      });
     case 'CLEAR_CART':
       return [];
     default:
@@ -35,15 +37,31 @@ function cartReducer(state, action) {
   }
 }
 
+// Read the persisted cart without ever throwing (corrupt/old data must not
+// white-screen the app).
+function loadInitialCart() {
+  if (typeof window === 'undefined') return [];
+  try {
+    const stored = localStorage.getItem(CART_KEY);
+    if (!stored) return [];
+    const parsed = JSON.parse(stored);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item) => item && typeof item.id === 'string' && Number.isFinite(Number(item.price)))
+      .map((item) => ({
+        ...item,
+        quantity: Math.max(1, Math.trunc(Number(item.quantity)) || 1),
+        addons: Array.isArray(item.addons) ? item.addons : [],
+        addonTotal: Number(item.addonTotal) || 0,
+      }));
+  } catch {
+    return [];
+  }
+}
+
 export function CartProvider({ children }) {
   const { user } = useAuth();
-  const [cart, dispatch] = useReducer(cartReducer, [], (initial) => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(CART_KEY);
-      return stored ? JSON.parse(stored) : initial;
-    }
-    return initial;
-  });
+  const [cart, dispatch] = useReducer(cartReducer, [], loadInitialCart);
   const [notifyItem, setNotifyItem] = useState(null);
 
   useEffect(() => {

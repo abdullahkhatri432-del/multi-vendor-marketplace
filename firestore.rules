@@ -27,21 +27,30 @@ service cloud.firestore {
       // Allow user creation, but restrict self-assigning 'admin'
       allow create: if isOwner(userId) && 
         (!('role' in request.resource.data) || request.resource.data.role in ['customer', 'vendor']);
-      // Allow user updates, but forbid self-modifying the 'role' field
-      allow update: if isOwner(userId) && 
-        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])) || isAdmin();
+      // Allow user updates, but forbid self-promoting to 'admin'.
+      // (Upgrading customer → vendor during registration is legitimate.)
+      allow update: if (isOwner(userId) &&
+        (!('role' in request.resource.data) || request.resource.data.role in ['customer', 'vendor'])) ||
+        isAdmin();
       allow delete: if isAdmin();
     }
 
     // PRODUCTS COLLECTION
     match /products/{productId} {
       allow read: if true;
-      allow create: if isAuthenticated() && 
-        (request.resource.data.vendorId == request.auth.uid || isAdmin());
-      allow update: if isAuthenticated() && 
+      allow create: if isAuthenticated() &&
+        (request.resource.data.vendorId == request.auth.uid || isAdmin()) &&
+        request.resource.data.name is string &&
+        request.resource.data.price is number &&
+        request.resource.data.price >= 0 &&
+        request.resource.data.stock is number &&
+        request.resource.data.stock >= 0;
+      allow update: if isAuthenticated() &&
         (resource.data.vendorId == request.auth.uid || isAdmin()) &&
-        request.resource.data.vendorId == resource.data.vendorId;
-      allow delete: if isAuthenticated() && 
+        request.resource.data.vendorId == resource.data.vendorId &&
+        (!('price' in request.resource.data) || request.resource.data.price is number) &&
+        (!('stock' in request.resource.data) || request.resource.data.stock is number);
+      allow delete: if isAuthenticated() &&
         (resource.data.vendorId == request.auth.uid || isAdmin());
     }
 
@@ -54,78 +63,60 @@ service cloud.firestore {
     // COUPONS COLLECTION
     match /coupons/{couponId} {
       allow read: if true;
-      allow create, delete: if isAdmin();
-      // Authenticated users may bump usedCount when applying a coupon
-      allow update: if isAuthenticated() && (
-        isAdmin() ||
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usedCount', 'updatedAt']) &&
-         request.resource.data.usedCount == resource.data.usedCount + 1)
-      );
+      // Only admins create/edit/delete. Redemptions are counted server-side by
+      // /api/create-order (Admin SDK bypasses these rules).
+      allow write: if isAdmin();
     }
 
     // VENDORS COLLECTION
     match /vendors/{vendorId} {
       allow read: if true;
-      // Vendors may self-register but must NOT be able to set verified status.
-      allow create: if isOwner(vendorId) &&
+      // Vendors may self-register but must NOT be able to set trust or
+      // financial fields (verification, commission, ranking, aggregates).
+      allow create: if (isOwner(vendorId) &&
         (!('verified' in request.resource.data) || request.resource.data.verified == false) &&
-        (!('isVerified' in request.resource.data) || request.resource.data.isVerified == false) ||
+        (!('isVerified' in request.resource.data) || request.resource.data.isVerified == false) &&
+        (!('commissionRate' in request.resource.data)) &&
+        (!('status' in request.resource.data) || request.resource.data.status in ['pending', 'active']) &&
+        (!('totalSales' in request.resource.data)) &&
+        (!('totalRevenue' in request.resource.data)) &&
+        (!('rating' in request.resource.data)) &&
+        (!('totalProducts' in request.resource.data))) ||
         isAdmin();
-      allow update: if isOwner(vendorId) &&
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verified', 'isVerified', 'commissionRate', 'status']) ||
+      allow update: if (isOwner(vendorId) &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'verified', 'isVerified', 'commissionRate', 'status', 'rating',
+          'reviewCount', 'totalSales', 'totalRevenue', 'totalProducts'
+        ])) ||
         isAdmin();
       allow delete: if isAdmin();
     }
 
     // ORDERS COLLECTION
+    // Orders are created exclusively by /api/create-order using the Admin SDK
+    // (which bypasses these rules). Clients must never write orders directly:
+    // that would let a browser forge prices, stock or payment state.
     match /orders/{orderId} {
       allow read: if isAuthenticated() &&
         (resource.data.customerId == request.auth.uid ||
          resource.data.vendorIds.hasAny([request.auth.uid]) ||
          isAdmin());
-      // Customers may create their own orders, but payment verification fields
-      // are admin-only. paymentStatus on create is restricted so a client cannot
-      // forge an already-verified / completed payment.
-      allow create: if isAuthenticated() &&
-        request.resource.data.customerId == request.auth.uid &&
-        request.resource.data.paymentStatus in ['pending', 'pending-verification', 'advance-paid', 'completed'] &&
-        !('verifiedBy' in request.resource.data) &&
-        !('verifiedAt' in request.resource.data) &&
-        !('verifiedUtr' in request.resource.data) &&
-        !('verifiedAmount' in request.resource.data);
-      allow update: if isAuthenticated() && (
-        isAdmin() ||
-        (resource.data.vendorIds.hasAny([request.auth.uid]) &&
-         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['customerId', 'vendorId', 'total', 'items', 'createdAt', 'paymentStatus', 'paymentReference', 'paymentDetails']))
-      );
+      allow create: if false;
+      // Vendors may advance fulfilment status only; admins may edit anything.
+      allow update: if isAdmin() ||
+        (isAuthenticated() &&
+         resource.data.vendorIds.hasAny([request.auth.uid]) &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']) &&
+         request.resource.data.status in ['processing', 'shipped', 'delivered', 'cancelled']);
+      allow delete: if isAdmin();
     }
 
-    // UTR CLAIMS — one doc per UTR hash. `create` is the only path that writes
-    // a fresh claim (doc id = SHA-256 of UTR), so a reference can never be
-    // claimed twice, even across different customers. A customer may only
-    // finalize their own still-pending claim and delete their own orphaned one.
+    // UTR CLAIMS — one doc per UTR hash. Written only by /api/create-order
+    // (Admin SDK). Clients may read their own claims but never write them.
     match /utrs/{utrId} {
       allow read: if isAuthenticated() &&
         (resource.data.customerId == request.auth.uid || isAdmin());
-      allow create: if isAuthenticated() &&
-        request.resource.data.customerId == request.auth.uid &&
-        request.resource.data.utr is string &&
-        request.resource.data.utr.size() >= 12 &&
-        request.resource.data.orderId == null &&
-        request.resource.data.pending == true;
-      allow update: if isAuthenticated() && (
-        isAdmin() ||
-        (resource.data.customerId == request.auth.uid &&
-         resource.data.pending == true &&
-         resource.data.orderId == null &&
-         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['orderId', 'pending', 'updatedAt']) &&
-         request.resource.data.orderId is string &&
-         request.resource.data.pending == false)
-      );
-      allow delete: if isAdmin() ||
-        (isAuthenticated() &&
-         resource.data.customerId == request.auth.uid &&
-         resource.data.orderId == null);
+      allow write: if false;
     }
 
     // REVIEWS COLLECTION
@@ -159,13 +150,18 @@ service cloud.firestore {
     }
 
     // NEWSLETTER SUBSCRIBERS
+    // Sign-up is idempotent: if the email already exists the client can re-assert
+    // `subscribed == true` without changing the email. Admin reads the list.
     match /newsletter_subscribers/{id} {
       allow create: if request.resource.data.email is string &&
         request.resource.data.email.size() <= 254 &&
         request.resource.data.email.matches('.*@.*') &&
         request.resource.data.email.matches('.*\\..*') &&
         request.resource.data.subscribed == true;
-      allow read, update, delete: if isAdmin();
+      allow update: if request.resource.data.email == resource.data.email &&
+        request.resource.data.subscribed == true &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['subscribed', 'updatedAt']);
+      allow read, delete: if isAdmin();
     }
 
     // Fallback deny all

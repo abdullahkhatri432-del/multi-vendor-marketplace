@@ -51,6 +51,10 @@ export default function BulkImport({ onImportComplete }) {
       addToast('Please enter at least one URL', 'error');
       return;
     }
+    if (urlList.length > 20) {
+      addToast('You can import at most 20 URLs at once', 'error');
+      return;
+    }
 
     setLoading(true);
     setProgress({ current: 0, total: urlList.length });
@@ -58,13 +62,15 @@ export default function BulkImport({ onImportComplete }) {
     setShowResults(false);
 
     try {
+      const token = await user.getIdToken();
       const response = await fetch(API_ENDPOINT, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
           urls: urlList,
-          vendorId: user.uid,
-          vendorName: user.displayName || 'Vendor',
           markupPercentage,
         }),
       });
