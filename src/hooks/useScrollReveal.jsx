@@ -1,19 +1,18 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /**
- * useScrollReveal — triggers CSS reveal animations when elements enter the viewport.
- * Respects prefers-reduced-motion (reveals immediately).
+ * useScrollReveal — adds the `is-visible` class when an element scrolls into view.
+ * Returns a ref plus the boolean state. Respects prefers-reduced-motion.
  */
 export function useScrollReveal(options = {}) {
-  const { threshold = 0.12, rootMargin = '-60px', once = true } = options;
+  const { threshold = 0.15, rootMargin = '0px 0px -80px 0px', once = true } = options;
   const ref = useRef(null);
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    const element = ref.current;
-    if (!element) return;
+    const el = ref.current;
+    if (!el) return;
 
-    // Respect reduced motion: reveal immediately without IntersectionObserver.
     if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       setIsVisible(true);
       return;
@@ -23,7 +22,7 @@ export function useScrollReveal(options = {}) {
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsVisible(true);
-          if (once) observer.unobserve(element);
+          if (once) observer.unobserve(entry.target);
         } else if (!once) {
           setIsVisible(false);
         }
@@ -31,7 +30,7 @@ export function useScrollReveal(options = {}) {
       { threshold, rootMargin },
     );
 
-    observer.observe(element);
+    observer.observe(el);
     return () => observer.disconnect();
   }, [threshold, rootMargin, once]);
 

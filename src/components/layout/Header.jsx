@@ -1,6 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Search, User, Menu, X, Store, LayoutDashboard, LogOut, Package, Heart, TrendingUp, ChevronDown, Truck, ShieldCheck, RotateCcw, BadgePercent, ChevronRight, Zap } from 'lucide-react';
+import {
+  ShoppingCart, Search, User, Menu, X, Store, LayoutDashboard, LogOut,
+  Package, Heart, ChevronDown, Truck, ShieldCheck, RotateCcw, BadgePercent,
+  ChevronRight, Zap,
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { searchProducts } from '../../config/firestore';
@@ -33,7 +37,6 @@ export default function Header() {
   const searchWrapRef = useRef(null);
   const catRef = useRef(null);
 
-  // Elevate header once the page is scrolled
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
     onScroll();
@@ -41,7 +44,6 @@ export default function Header() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Debounced live search suggestions (min 2 chars)
   useEffect(() => {
     const term = searchQuery.trim();
     if (term.length < 2) {
@@ -54,8 +56,7 @@ export default function Header() {
       try {
         const results = await searchProducts(term);
         setSuggestions(results.slice(0, 5));
-      } catch (err) {
-        console.error('Search suggestions failed:', err);
+      } catch {
         setSuggestions([]);
       } finally {
         setSearching(false);
@@ -64,7 +65,6 @@ export default function Header() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Close suggestions on outside click
   useEffect(() => {
     const onClick = (e) => {
       if (searchWrapRef.current && !searchWrapRef.current.contains(e.target)) {
@@ -97,14 +97,14 @@ export default function Header() {
 
   const searchForm = (mobile = false) => (
     <div ref={searchWrapRef} className="relative w-full">
-      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
+      <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
       <input
         type="text"
         value={searchQuery}
         onChange={(e) => { setSearchQuery(e.target.value); setShowSuggestions(true); }}
         onFocus={() => setShowSuggestions(true)}
         placeholder="Search products, vendors..."
-        className={`input-field pl-10 py-2 text-sm ${mobile ? '' : ''}`}
+        className={`input-field pl-11 text-sm`}
         aria-label="Search products"
         aria-expanded={showSuggestions}
       />
@@ -112,17 +112,16 @@ export default function Header() {
         <button
           type="button"
           onClick={() => { setSearchQuery(''); setSuggestions([]); }}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-surface-400 hover:text-surface-700"
+          className="absolute right-4 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink"
           aria-label="Clear search"
         >
           <X className="h-4 w-4" />
         </button>
       )}
-
       {showSuggestions && searchQuery.trim().length >= 2 && (
-        <div className="absolute left-0 right-0 top-full mt-2 rounded-2xl border border-surface-100 bg-white p-2 shadow-premium z-50 animate-slide-down">
+        <div className="absolute left-0 right-0 top-full mt-2 rounded-3xl border border-surface-200/60 bg-white shadow-premium z-50 animate-fade-up">
           {searching ? (
-            <p className="px-3 py-2 text-xs text-surface-400">Searching…</p>
+            <p className="px-4 py-3 text-sm text-ink-muted">Searching…</p>
           ) : suggestions.length > 0 ? (
             <>
               {suggestions.map((s) => (
@@ -130,27 +129,33 @@ export default function Header() {
                   key={s.id}
                   type="button"
                   onClick={() => goToProduct(s.id)}
-                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left hover:bg-surface-50 transition-colors"
+                  className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left hover:bg-surface-50 transition-all"
                 >
-                  <img src={s.images?.[0] || s.image || `https://picsum.photos/seed/${s.id}/40/40`} alt="" className="h-9 w-9 rounded-lg object-cover" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-surface-900 line-clamp-1">{s.name}</p>
-                    <p className="text-xs text-surface-500">{s.category}</p>
+                  <div className="flex-shrink-0 h-10 w-10 rounded-xl overflow-hidden bg-surface-100">
+                    <img
+                      src={s.images?.[0] || s.image || `https://picsum.photos/seed/${s.id}/80/80`}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
                   </div>
-                  <span className="text-sm font-semibold text-surface-900">₹{Number(s.price || 0).toFixed(2)}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-ink line-clamp-1">{s.name}</p>
+                    <p className="text-xs text-ink-muted">{s.category}</p>
+                  </div>
+                  <span className="text-sm font-semibold text-ink">₹{Number(s.price || 0).toFixed(2)}</span>
                 </button>
               ))}
               <button
                 type="button"
                 onClick={handleSearch}
-                className="mt-1 flex w-full items-center gap-2 rounded-xl bg-primary-50 px-3 py-2 text-sm font-medium text-primary-700 hover:bg-primary-100 transition-colors"
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-primary-50 px-4 py-2.5 text-sm font-medium text-primary-700 hover:bg-primary-100 transition-all"
               >
                 <TrendingUp className="h-4 w-4" />
-                See all results for "{searchQuery.trim()}"
+                See all results for &ldquo;{searchQuery.trim()}&rdquo;
               </button>
             </>
           ) : (
-            <p className="px-3 py-2 text-xs text-surface-400">No products match "{searchQuery.trim()}"</p>
+            <p className="px-4 py-3 text-sm text-ink-muted">No products match &ldquo;{searchQuery.trim()}&rdquo;</p>
           )}
         </div>
       )}
@@ -158,38 +163,57 @@ export default function Header() {
   );
 
   return (
-    <header className={`sticky top-0 z-50 glass border-b transition-all duration-300 ${scrolled ? 'border-surface-200/60 shadow-soft' : 'border-surface-200/20 shadow-none'}`}>
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between gap-4">
-          <Link to="/" className="flex items-center gap-2 shrink-0 group">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary-600 to-accent shadow-glow transition-transform duration-300 group-hover:scale-105">
+    <header
+      className={`sticky top-0 z-50 border-b transition-all duration-500 ease-smooth ${
+        scrolled
+          ? 'border-surface-200/50 shadow-card bg-white/80 backdrop-blur-2xl'
+          : 'border-transparent bg-transparent shadow-none'
+      }`}
+    >
+      {/* Scroll-shifted glow band */}
+      <div
+        className={`absolute top-0 left-1/2 -translate-x-1/2 h-[2px] w-full z-[60] bg-gradient-to-r from-transparent via-primary-600 to-transparent opacity-0 transition-opacity duration-500 ${
+          scrolled ? 'opacity-100' : ''
+        }`}
+      />
+
+      <div className="relative mx-auto max-w-7xl px-5 sm:px-8 lg:px-12 z-10">
+        <div className="flex h-18 items-center justify-between gap-4">
+          <Link to="/" className="flex items-center gap-2 shrink-0 group relative">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-600 to-accent shadow-glow transition-transform duration-500 group-hover:rotate-12 group-hover:scale-105">
               <Store className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xl font-display font-bold text-gradient hidden sm:block">Speedersmania</span>
+            <span className="text-lg font-display font-bold tracking-tightest hidden sm:block">
+              <span className="text-gradient">Speedersmania</span>
+            </span>
+            {/* Decorative underline on hover */}
+            <span className="absolute -bottom-1.5 left-0 h-[2px] w-0 bg-primary-600 transition-all duration-500 group-hover:w-full" />
           </Link>
 
-          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-md">
+          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-xl">
             {searchForm()}
           </form>
 
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden md:flex items-center gap-3">
             <div ref={catRef} className="relative">
               <button
                 onClick={() => setCatOpen(!catOpen)}
-                className={`btn-ghost text-sm ${catOpen ? 'bg-surface-100' : ''}`}
+                className="btn-ghost text-sm relative"
               >
-                <Package className="h-4 w-4" />
-                <span>Browse</span>
-                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${catOpen ? 'rotate-180' : ''}`} />
+                <div className="flex items-center gap-2">
+                  <Package className="h-4 w-4" />
+                  <span>Browse</span>
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-300 ${catOpen ? 'rotate-180' : ''}`} />
+                </div>
               </button>
               {catOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setCatOpen(false)} />
-                  <div className="absolute left-0 top-full mt-2 w-64 rounded-2xl border border-surface-100 bg-white p-2 shadow-premium z-50 animate-slide-down">
+                  <div className="absolute left-0 top-full mt-3 w-72 rounded-3xl border border-surface-200/60 bg-white shadow-premium z-50 animate-fade-up">
                     <Link
                       to="/products"
                       onClick={() => setCatOpen(false)}
-                      className="flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-semibold text-primary-700 hover:bg-primary-50"
+                      className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold text-primary-700 hover:bg-primary-50 hover:text-primary-800 transition-all"
                     >
                       All Products
                       <ChevronRight className="h-4 w-4" />
@@ -197,27 +221,27 @@ export default function Header() {
                     <Link
                       to="/vendors"
                       onClick={() => setCatOpen(false)}
-                      className="flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-semibold text-surface-700 hover:bg-surface-50"
+                      className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold text-ink-soft hover:bg-surface-50 hover:text-ink transition-all"
                     >
                       All Vendors
                       <ChevronRight className="h-4 w-4" />
                     </Link>
-                    <div className="my-1 border-t border-surface-100" />
+                    <div className="my-2 border-t border-surface-100/40" />
                     {CATEGORIES.map((cat) => (
                       <Link
                         key={cat.id}
                         to={`/products?category=${cat.id}`}
                         onClick={() => setCatOpen(false)}
-                        className="flex items-center justify-between rounded-xl px-3 py-2 text-sm text-surface-700 hover:bg-surface-50"
+                        className="flex items-center justify-between rounded-xl px-4 py-2.5 text-sm text-ink-soft hover:bg-surface-50 hover:text-ink transition-all"
                       >
                         {cat.name}
-                        <ChevronRight className="h-3.5 w-3.5 text-surface-300" />
+                        <ChevronRight className="h-3.5 w-3.5 text-ink-muted" />
                       </Link>
                     ))}
-                    <div className="my-1 border-t border-surface-100" />
+                    <div className="my-2 border-t border-surface-100/40" />
                     <button
                       onClick={() => { setCatOpen(false); navigate('/products?sort=price-low'); }}
-                      className="flex w-full items-center gap-2 rounded-xl bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700 hover:bg-amber-100"
+                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-50 px-4 py-2.5 text-sm font-medium text-primary-700 hover:bg-primary-100 transition-all"
                     >
                       <BadgePercent className="h-4 w-4" />
                       Deals under ₹999
@@ -226,42 +250,43 @@ export default function Header() {
                 </>
               )}
             </div>
-            <Link to="/wishlist" className="btn-ghost text-sm">
-              <Heart className="h-4 w-4" />
+            <Link to="/wishlist" className="btn-ghost p-2 relative">
+              <Heart className="h-5 w-5" />
             </Link>
-            <Link to="/cart" className="relative btn-ghost text-sm">
-              <ShoppingCart className="h-4 w-4" />
-              {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary-600 text-[10px] font-bold text-white">
-                  {cartCount > 9 ? '9+' : cartCount}
-                </span>
-              )}
+            <Link to="/cart" className="relative btn-ghost p-2">
+              <div className="relative">
+                <ShoppingCart className="h-5 w-5" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary-600 text-[10px] font-bold text-white shadow-glow">
+                    {cartCount > 9 ? '9+' : cartCount}
+                  </span>
+                )}
+              </div>
             </Link>
 
             {isAuthenticated ? (
               <div className="relative">
                 <button
                   onClick={() => setProfileOpen(!profileOpen)}
-                  className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-surface-700 hover:bg-surface-100 transition-colors"
+                  className="flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium text-ink-soft hover:bg-surface-100 transition-all"
                 >
-                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-primary-400 to-accent text-white text-xs font-bold">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-primary-400 to-accent text-white text-xs font-bold shadow-glow">
                     {user?.displayName?.charAt(0)?.toUpperCase() || 'U'}
                   </div>
                   <span className="hidden lg:block">{user?.displayName?.split(' ')[0] || 'User'}</span>
                 </button>
-
                 {profileOpen && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
-                    <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl border border-surface-100 bg-white p-2 shadow-premium z-50 animate-slide-down">
-                      <div className="px-3 py-2 border-b border-surface-100 mb-1">
-                        <p className="text-sm font-semibold text-surface-900">{user?.displayName}</p>
-                        <p className="text-xs text-surface-500">{user?.email}</p>
+                    <div className="absolute right-0 top-full mt-3 w-60 rounded-3xl border border-surface-200/60 bg-white shadow-premium z-50 animate-fade-up">
+                      <div className="px-4 py-3 border-b border-surface-100/40 mb-3">
+                        <p className="text-sm font-semibold text-ink">{user?.displayName}</p>
+                        <p className="text-xs text-ink-muted">{user?.email}</p>
                       </div>
                       <Link
                         to={userRole === 'admin' ? '/admin' : userRole === 'vendor' ? '/vendor' : '/orders'}
                         onClick={() => setProfileOpen(false)}
-                        className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-surface-700 hover:bg-surface-50"
+                        className="flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-ink-soft hover:bg-surface-50 hover:text-ink transition-all"
                       >
                         <LayoutDashboard className="h-4 w-4" />
                         Dashboard
@@ -271,7 +296,7 @@ export default function Header() {
                           <Link
                             to="/vendor/products"
                             onClick={() => setProfileOpen(false)}
-                            className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-surface-700 hover:bg-surface-50"
+                            className="flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-ink-soft hover:bg-surface-50 hover:text-ink transition-all"
                           >
                             <Package className="h-4 w-4" />
                             My Products
@@ -279,7 +304,7 @@ export default function Header() {
                           <Link
                             to="/vendor/orders"
                             onClick={() => setProfileOpen(false)}
-                            className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-surface-700 hover:bg-surface-50"
+                            className="flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-ink-soft hover:bg-surface-50 hover:text-ink transition-all"
                           >
                             <LayoutDashboard className="h-4 w-4" />
                             Vendor Orders
@@ -289,14 +314,14 @@ export default function Header() {
                       <Link
                         to="/orders"
                         onClick={() => setProfileOpen(false)}
-                        className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-surface-700 hover:bg-surface-50"
+                        className="flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-ink-soft hover:bg-surface-50 hover:text-ink transition-all"
                       >
                         <Package className="h-4 w-4" />
                         My Orders
                       </Link>
                       <button
                         onClick={() => { logout(); setProfileOpen(false); navigate('/'); }}
-                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                        className="flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-all"
                       >
                         <LogOut className="h-4 w-4" />
                         Sign Out
@@ -306,16 +331,16 @@ export default function Header() {
                 )}
               </div>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <button
                   onClick={() => { setAuthModalMode('login'); setAuthModalOpen(true); }}
-                  className="btn-ghost text-sm"
+                  className="btn-ghost text-sm font-medium hover:text-primary-700 transition-all"
                 >
                   Sign In
                 </button>
                 <button
                   onClick={() => { setAuthModalMode('register'); setAuthModalOpen(true); }}
-                  className="btn-primary text-sm py-2"
+                  className="btn-accent text-sm py-2.5 px-6"
                 >
                   Get Started
                 </button>
@@ -323,11 +348,11 @@ export default function Header() {
             )}
           </nav>
 
-          <div className="flex items-center gap-2 md:hidden">
+          <div className="flex items-center gap-3 md:hidden">
             <Link to="/cart" className="relative btn-ghost p-2">
               <ShoppingCart className="h-5 w-5" />
               {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary-600 text-[9px] font-bold text-white">
+                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary-600 text-[9px] font-bold text-white shadow-glow">
                   {cartCount}
                 </span>
               )}
@@ -339,66 +364,84 @@ export default function Header() {
         </div>
 
         {mobileOpen && (
-          <div className="border-t border-surface-100 py-4 md:hidden animate-slide-down">
-            <form onSubmit={handleSearch} className="mb-4">
+          <div className="border-t border-surface-100 py-6 md:hidden animate-fade-up bg-white/80 backdrop-blur">
+            <form onSubmit={handleSearch} className="mb-6">
               {searchForm(true)}
             </form>
-            <div className="flex flex-col gap-1">
-              <Link to="/products" onClick={() => setMobileOpen(false)} className="btn-ghost justify-start">Browse Products</Link>
-              <Link to="/vendors" onClick={() => setMobileOpen(false)} className="btn-ghost justify-start">Vendors</Link>
-              <div className="my-1 border-t border-surface-100" />
+            <div className="flex flex-col gap-2">
+              <Link to="/products" onClick={() => setMobileOpen(false)} className="btn-ghost justify-start text-sm font-medium">
+                Browse Products
+              </Link>
+              <Link to="/vendors" onClick={() => setMobileOpen(false)} className="btn-ghost justify-start text-sm font-medium">
+                Vendors
+              </Link>
+              <div className="my-2 border-t border-surface-100/40" />
               {CATEGORIES.map((cat) => (
                 <Link
                   key={cat.id}
                   to={`/products?category=${cat.id}`}
                   onClick={() => setMobileOpen(false)}
-                  className="btn-ghost justify-start text-surface-500"
+                  className="btn-ghost justify-start text-sm text-ink-soft"
                 >
                   {cat.name}
                 </Link>
               ))}
-              <div className="my-1 border-t border-surface-100" />
+              <div className="my-2 border-t border-surface-100/40" />
               {isAuthenticated ? (
                 <>
-                  <Link to={userRole === 'admin' ? '/admin' : userRole === 'vendor' ? '/vendor' : '/orders'} onClick={() => setMobileOpen(false)} className="btn-ghost justify-start">Dashboard</Link>
-                  <Link to="/orders" onClick={() => setMobileOpen(false)} className="btn-ghost justify-start">My Orders</Link>
-                  <button onClick={() => { logout(); setMobileOpen(false); }} className="btn-ghost justify-start text-red-600">Sign Out</button>
+                  <Link to={userRole === 'admin' ? '/admin' : userRole === 'vendor' ? '/vendor' : '/orders'} onClick={() => setMobileOpen(false)} className="btn-ghost justify-start text-sm font-medium">
+                    Dashboard
+                  </Link>
+                  <Link to="/orders" onClick={() => setMobileOpen(false)} className="btn-ghost justify-start text-sm font-medium">
+                    My Orders
+                  </Link>
+                  <button onClick={() => { logout(); setMobileOpen(false); }} className="btn-ghost justify-start text-sm font-medium text-red-600">
+                    Sign Out
+                  </button>
                 </>
               ) : (
                 <>
-                  <button onClick={() => { setMobileOpen(false); setAuthModalMode('login'); setAuthModalOpen(true); }} className="btn-ghost justify-start">Sign In</button>
-                  <button onClick={() => { setMobileOpen(false); setAuthModalMode('register'); setAuthModalOpen(true); }} className="btn-primary justify-center">Get Started</button>
+                  <button onClick={() => { setMobileOpen(false); setAuthModalMode('login'); setAuthModalOpen(true); }} className="btn-ghost justify-start text-sm font-medium">
+                    Sign In
+                  </button>
+                  <button onClick={() => { setMobileOpen(false); setAuthModalMode('register'); setAuthModalOpen(true); }} className="btn-accent justify-center text-sm py-2">
+                    Get Started
+                  </button>
                 </>
               )}
             </div>
           </div>
         )}
-      </div>
 
-      <AuthModal
-        isOpen={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
-        initialMode={authModalMode}
-      />
+        <AuthModal
+          isOpen={authModalOpen}
+          onClose={() => setAuthModalOpen(false)}
+          initialMode={authModalMode}
+        />
 
-      {/* Offers strip */}
-      <div className="border-b border-surface-100 bg-gradient-to-r from-primary-600 via-indigo-600 to-accent">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex items-center gap-3 overflow-x-auto scrollbar-hide py-2 text-[11px] font-medium text-white whitespace-nowrap">
-          <span className="inline-flex items-center gap-1.5"><Zap className="h-3.5 w-3.5" /> Free shipping over ₹999</span>
-          <span className="hidden sm:inline-flex opacity-40">•</span>
-          <span className="hidden sm:inline-flex items-center gap-1.5"><BadgePercent className="h-3.5 w-3.5" /> Use code <span className="rounded bg-white/20 px-1.5 py-0.5 font-bold">WELCOME10</span> for 10% off</span>
-          <span className="hidden md:inline-flex opacity-40">•</span>
-          <span className="hidden md:inline-flex items-center gap-1.5"><Truck className="h-3.5 w-3.5" /> Cash on Delivery available</span>
-        </div>
-      </div>
-
-      {/* Trust bar */}
-      <div className="hidden lg:block border-b border-surface-100 bg-white/70 backdrop-blur">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex items-center justify-center gap-8 py-2 text-[11px] font-medium text-surface-500">
-          <span className="flex items-center gap-1.5"><Truck className="h-3.5 w-3.5 text-primary-600" /> Fast delivery across India</span>
-          <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-primary-600" /> Secure payments · UPI verified</span>
-          <span className="flex items-center gap-1.5"><RotateCcw className="h-3.5 w-3.5 text-primary-600" /> 7-day easy returns</span>
-          <span className="flex items-center gap-1.5"><Store className="h-3.5 w-3.5 text-primary-600" /> 100% genuine products</span>
+        {/* Promo strip */}
+        <div className="mt-6 border-b border-surface-100 bg-gradient-to-r from-primary-600 via-indigo-600 to-accent rounded-3xl overflow-hidden shadow-glow">
+          <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12 flex items-center gap-4 overflow-x-auto scrollbar-hide py-4 text-sm font-medium text-white whitespace-nowrap">
+            <span className="inline-flex items-center gap-2">
+              <Zap className="h-4 w-4" />
+              Free shipping over ₹999
+            </span>
+            <span className="flex items-center gap-2"><div className="h-1 w-1 rounded-full bg-white/30" /></span>
+            <span className="inline-flex items-center gap-2">
+              <BadgePercent className="h-4 w-4" />
+              Use code <span className="rounded bg-white/20 px-2 py-0.5 font-bold text-xs">WELCOME10</span> for 10% off
+            </span>
+            <span className="flex items-center gap-2"><div className="h-1 w-1 rounded-full bg-white/30" /></span>
+            <span className="inline-flex items-center gap-2">
+              <Truck className="h-4 w-4" />
+              Cash on Delivery available
+            </span>
+            <span className="flex items-center gap-2"><div className="h-1 w-1 rounded-full bg-white/30" /></span>
+            <span className="inline-flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4" />
+              Buyer protection guaranteed
+            </span>
+          </div>
         </div>
       </div>
     </header>
