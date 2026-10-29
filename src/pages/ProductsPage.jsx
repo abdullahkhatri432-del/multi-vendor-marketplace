@@ -208,13 +208,19 @@ export default function ProductsPage() {
           <div className="hidden sm:flex items-center rounded-xl border border-surface-200 bg-white p-1">
             <button
               onClick={() => setViewMode('grid')}
-              className={`rounded-lg p-2 transition-colors ${viewMode === 'grid' ? 'bg-primary-50 text-primary-600' : 'text-surface-400'}`}
+              aria-label="Grid view"
+              title="Grid view"
+              aria-pressed={viewMode === 'grid'}
+              className={`rounded-lg p-2 transition-colors ${viewMode === 'grid' ? 'bg-primary-50 text-primary-600' : 'text-surface-400 hover:text-primary-600'}`}
             >
               <Grid3X3 className="h-4 w-4" />
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`rounded-lg p-2 transition-colors ${viewMode === 'list' ? 'bg-primary-50 text-primary-600' : 'text-surface-400'}`}
+              aria-label="List view"
+              title="List view"
+              aria-pressed={viewMode === 'list'}
+              className={`rounded-lg p-2 transition-colors ${viewMode === 'list' ? 'bg-primary-50 text-primary-600' : 'text-surface-400 hover:text-primary-600'}`}
             >
               <LayoutList className="h-4 w-4" />
             </button>
@@ -348,7 +354,7 @@ export default function ProductsPage() {
         {/* Products Grid */}
         <div className="flex-1">
           {loading ? (
-            <div key="loading" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 stagger">
+            <div key="loading" className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 stagger">
               {[...Array(9)].map((_, i) => (
                 <div key={i} className="card overflow-hidden">
                   <div className="aspect-square skeleton" />
@@ -361,9 +367,9 @@ export default function ProductsPage() {
               ))}
             </div>
           ) : products.length > 0 ? (
-            <div key={`${viewMode}-${products.length}`} className={`grid gap-6 stagger ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
+            <div key={`${viewMode}-${products.length}`} className={`grid gap-6 stagger ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3' : 'grid-cols-1'}`}>
               {products.map((product) => (
-                <ProductCard key={product.id} product={product} />
+                <ProductCard key={product.id} product={product} view={viewMode} />
               ))}
             </div>
           ) : (

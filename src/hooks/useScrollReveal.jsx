@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
  * Returns a ref plus the boolean state. Respects prefers-reduced-motion.
  */
 export function useScrollReveal(options = {}) {
-  const { threshold = 0.15, rootMargin = '0px 0px -80px 0px', once = true } = options;
+  const { threshold = 0, rootMargin = '0px 0px -60px 0px', once = true } = options;
   const ref = useRef(null);
   const [isVisible, setIsVisible] = useState(false);
 

@@ -51,9 +51,14 @@ export default function Layout({ children }) {
             observer.unobserve(entry.target);
           });
         },
-        { threshold: 0.06, rootMargin: '0px 0px -6% 0px' }
+        { threshold: 0, rootMargin: '0px 0px -6% 0px' }
       );
     }
+
+    const inView = (el) => {
+      const rect = el.getBoundingClientRect();
+      return rect.top < window.innerHeight * 0.95 && rect.bottom > 0;
+    };
 
     const scan = () => {
       frame = 0;
@@ -61,8 +66,15 @@ export default function Layout({ children }) {
       nodes.forEach((el) => {
         if (seen.has(el) || el.classList.contains('is-visible')) return;
         seen.add(el);
-        if (observer) observer.observe(el);
-        else reveal(el);
+        if (observer) {
+          observer.observe(el);
+          // Late-mounted content (async lists) can sit inside a container taller
+          // than the viewport, where a ratio threshold never fires. Reveal it now
+          // instead of waiting for the next scroll event.
+          if (inView(el)) reveal(el);
+        } else {
+          reveal(el);
+        }
       });
     };
 

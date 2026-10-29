@@ -45,10 +45,10 @@ export default function WishlistPage() {
       </div>
 
       {wishlistProducts.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 stagger">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 stagger">
           {wishlistProducts.map((product) => (
-            <div key={product.id} className="card overflow-hidden shine-sweep">
-              <div className="relative aspect-square overflow-hidden bg-surface-100">
+            <div key={product.id} className="card overflow-hidden shine-sweep flex h-full flex-col">
+              <div className="relative aspect-[4/5] overflow-hidden bg-surface-100">
                 <img src={product.images?.[0] || product.image || `https://picsum.photos/seed/${product.id}/400/400`} alt={product.name} className="h-full w-full object-cover" />
                 <button
                   onClick={() => handleRemove(product.id)}
@@ -57,15 +57,19 @@ export default function WishlistPage() {
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
-              <div className="p-4">
-                <Link to={`/products/${product.id}`}>
-                  <p className="text-sm font-semibold text-surface-900 line-clamp-2 hover:text-primary-600 transition-colors">{product.name}</p>
+              <div className="flex flex-1 flex-col p-4">
+                <Link to={`/products/${product.id}`} className="block min-w-0">
+                  <p className="line-clamp-2 min-h-[2.75em] text-sm font-semibold text-surface-900 hover:text-primary-600 transition-colors">{product.name}</p>
                 </Link>
-                <div className="mt-2 flex items-center justify-between">
-                  <span className="text-lg font-bold text-surface-900">₹{product.price?.toFixed(2)}</span>
+                <div className="mt-auto flex items-center justify-between gap-2 border-t border-surface-200/60 pt-3">
+                  <span className="whitespace-nowrap text-lg font-bold text-surface-900">
+                    ₹{Number(product.price || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                  </span>
                   <button
                     onClick={() => addItem(product)}
-                    className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary-50 text-primary-600 hover:bg-primary-600 hover:text-white transition-all"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600 hover:bg-primary-600 hover:text-white transition-all"
+                    aria-label="Add to cart"
+                    title="Add to cart"
                   >
                     <ShoppingCart className="h-4 w-4" />
                   </button>

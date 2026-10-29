@@ -96,7 +96,7 @@ export function Stagger({
   children,
   as: Tag = 'div',
   className = '',
-  threshold = 0.08,
+  threshold = 0,
   style,
   ...rest
 }) {

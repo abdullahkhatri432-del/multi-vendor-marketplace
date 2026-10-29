@@ -572,9 +572,9 @@ export default function HomePage() {
           </Reveal>
 
           {displayProducts.length > 0 ? (
-            <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {displayProducts.slice(0, 8).map((product, idx) => (
-                <Reveal key={product.id} delay={Math.min((idx % 4) * 90, 270)}>
+                <Reveal key={product.id} delay={Math.min((idx % 4) * 90, 270)} className="h-full">
                   <ProductCard product={product} />
                 </Reveal>
               ))}
