@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Star, Heart, Bolt, BadgeCheck, Eye } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useCheckoutInterceptor } from '../../context/CheckoutInterceptorContext';
 import { useAuth } from '../../context/AuthContext';
 import { trackEvent } from '../../config/analytics';
+import { TiltCard } from './Motion';
 
 export default function ProductCard({ product }) {
   const { addItem } = useCart();
@@ -15,12 +16,20 @@ export default function ProductCard({ product }) {
   const [wishBusy, setWishBusy] = useState(false);
   const image = product.images?.[0] || product.image || `https://picsum.photos/seed/${product.id}/600/600`;
 
+  const price = Number(product.price) || 0;
+  const originalPrice = Number(product.originalPrice) || 0;
+  const rating = Number(product.rating) || 4.5;
+  const reviewCount = Number(product.reviewCount) || 0;
+  const discount = Number(product.discount) || (
+    originalPrice > price ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0
+  );
+
   const isVerifiedVendor = product.verified || product.isVerified || false;
 
   const handleAddToCart = () => {
     trackEvent('add_to_cart', {
-      items: [{ item_id: product.id, item_name: product.name, price: product.price, quantity: 1 }],
-      value: product.price || 0,
+      items: [{ item_id: product.id, item_name: product.name, price, quantity: 1 }],
+      value: price,
     });
     addItem(product);
   };
@@ -57,8 +66,8 @@ export default function ProductCard({ product }) {
   };
 
   return (
-    <TiltCard className="card-flat overflow-hidden group animate-fade-in" intensity={8}>
-      <div className="relative aspect-[4:5] overflow-hidden bg-surface-100">
+    <TiltCard className="card-flat group flex h-full animate-fade-in flex-col overflow-hidden" intensity={8}>
+      <div className="relative aspect-[4/5] overflow-hidden bg-surface-100">
         <Link to={`/products/${product.id}`} aria-label={product.name}>
           <img
             src={image}
@@ -95,9 +104,9 @@ export default function ProductCard({ product }) {
               {product.badge}
             </span>
           )}
-          {product.discount > 0 && (
+          {discount > 0 && (
             <span className="w-fit rounded-full bg-danger px-3 py-1 text-xs font-bold text-white shadow-sm">
-              -{product.discount}%
+              -{discount}%
             </span>
           )}
         </div>
@@ -129,21 +138,23 @@ export default function ProductCard({ product }) {
 
         <div className="mt-2 flex items-center gap-1">
           <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-          <span className="text-xs font-semibold text-ink">{product.rating?.toFixed(1) || '4.5'}</span>
-          <span className="text-xs text-ink-muted">({product.reviewCount || 0})</span>
+          <span className="text-xs font-semibold text-ink">
+            {reviewCount > 0 ? rating.toFixed(1) : 'New'}
+          </span>
+          {reviewCount > 0 && <span className="text-xs text-ink-muted">({reviewCount})</span>}
         </div>
 
         <div className="mt-3 flex items-center justify-between border-t border-surface-200/40 pt-3">
           <div className="flex items-baseline gap-2">
-            <span className="text-xl font-bold text-ink">₹{product.price?.toFixed(2)}</span>
-            {product.originalPrice && product.originalPrice > product.price && (
-              <span className="text-sm text-ink-muted line-through">₹{product.originalPrice.toFixed(2)}</span>
+            <span className="text-xl font-bold text-ink">₹{price.toFixed(2)}</span>
+            {originalPrice > price && (
+              <span className="text-sm text-ink-muted line-through">₹{originalPrice.toFixed(2)}</span>
             )}
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={handleBuyNow}
-              className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 text-white transition-all hover:shadow-[0_0_20px_rgba(245,158,11,0.5)] active:scale-90"
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-accent-dark text-primary-950 transition-all hover:shadow-glow-accent active:scale-90"
               title="Buy Now"
               aria-label="Buy now"
             >

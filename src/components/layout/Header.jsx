@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   ShoppingCart, Search, User, Menu, X, Store, LayoutDashboard, LogOut,
   Package, Heart, ChevronDown, Truck, ShieldCheck, RotateCcw, BadgePercent,
-  ChevronRight, Zap,
+  ChevronRight, Zap, TrendingUp,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
@@ -163,13 +163,41 @@ export default function Header() {
   );
 
   return (
-    <header
-      className={`sticky top-0 z-50 border-b transition-all duration-500 ease-smooth ${
-        scrolled
-          ? 'border-surface-200/50 shadow-card bg-white/80 backdrop-blur-2xl'
-          : 'border-transparent bg-transparent shadow-none'
-      }`}
-    >
+    <>
+      {/* Announcement strip — scrolls away, nav stays pinned */}
+      <div className="bg-ink text-white">
+        <div className="mx-auto flex max-w-7xl items-center gap-6 overflow-x-auto whitespace-nowrap px-5 py-2.5 text-[11px] font-medium sm:px-8 lg:px-12 scrollbar-hide">
+          <span className="inline-flex items-center gap-2">
+            <Zap className="h-3.5 w-3.5 text-accent" />
+            Free shipping over ₹999
+          </span>
+          <span className="h-1 w-1 rounded-full bg-white/25" />
+          <span className="hidden items-center gap-2 sm:inline-flex">
+            <BadgePercent className="h-3.5 w-3.5 text-accent" />
+            Use code
+            <span className="rounded bg-white/15 px-1.5 py-0.5 text-[10px] font-bold">WELCOME10</span>
+            for 10% off
+          </span>
+          <span className="hidden h-1 w-1 rounded-full bg-white/25 sm:block" />
+          <span className="hidden items-center gap-2 md:inline-flex">
+            <Truck className="h-3.5 w-3.5 text-accent" />
+            Cash on delivery available
+          </span>
+          <span className="hidden h-1 w-1 rounded-full bg-white/25 md:block" />
+          <span className="hidden items-center gap-2 lg:inline-flex">
+            <ShieldCheck className="h-3.5 w-3.5 text-accent" />
+            Buyer protection guaranteed
+          </span>
+        </div>
+      </div>
+
+      <header
+        className={`sticky top-0 z-50 border-b transition-all duration-500 ease-smooth ${
+          scrolled
+            ? 'border-surface-200/60 bg-white/85 shadow-card backdrop-blur-2xl'
+            : 'border-transparent bg-white/70 backdrop-blur-xl'
+        }`}
+      >
       {/* Scroll-shifted glow band */}
       <div
         className={`absolute top-0 left-1/2 -translate-x-1/2 h-[2px] w-full z-[60] bg-gradient-to-r from-transparent via-primary-600 to-transparent opacity-0 transition-opacity duration-500 ${
@@ -183,8 +211,8 @@ export default function Header() {
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-600 to-accent shadow-glow transition-transform duration-500 group-hover:rotate-12 group-hover:scale-105">
               <Store className="h-5 w-5 text-white" />
             </div>
-            <span className="text-lg font-display font-bold tracking-tightest hidden sm:block">
-              <span className="text-gradient">Speedersmania</span>
+            <span className="text-lg font-display font-bold tracking-tightest text-ink">
+              Speedersmania
             </span>
             {/* Decorative underline on hover */}
             <span className="absolute -bottom-1.5 left-0 h-[2px] w-0 bg-primary-600 transition-all duration-500 group-hover:w-full" />
@@ -418,32 +446,8 @@ export default function Header() {
           onClose={() => setAuthModalOpen(false)}
           initialMode={authModalMode}
         />
-
-        {/* Promo strip */}
-        <div className="mt-6 border-b border-surface-100 bg-gradient-to-r from-primary-600 via-indigo-600 to-accent rounded-3xl overflow-hidden shadow-glow">
-          <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12 flex items-center gap-4 overflow-x-auto scrollbar-hide py-4 text-sm font-medium text-white whitespace-nowrap">
-            <span className="inline-flex items-center gap-2">
-              <Zap className="h-4 w-4" />
-              Free shipping over ₹999
-            </span>
-            <span className="flex items-center gap-2"><div className="h-1 w-1 rounded-full bg-white/30" /></span>
-            <span className="inline-flex items-center gap-2">
-              <BadgePercent className="h-4 w-4" />
-              Use code <span className="rounded bg-white/20 px-2 py-0.5 font-bold text-xs">WELCOME10</span> for 10% off
-            </span>
-            <span className="flex items-center gap-2"><div className="h-1 w-1 rounded-full bg-white/30" /></span>
-            <span className="inline-flex items-center gap-2">
-              <Truck className="h-4 w-4" />
-              Cash on Delivery available
-            </span>
-            <span className="flex items-center gap-2"><div className="h-1 w-1 rounded-full bg-white/30" /></span>
-            <span className="inline-flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4" />
-              Buyer protection guaranteed
-            </span>
-          </div>
-        </div>
       </div>
     </header>
+    </>
   );
 }

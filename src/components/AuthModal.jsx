@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, Loader2, AlertCircle, ArrowRight, Mail, Lock, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAuthSuccess }) {
+export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAuthSuccess, inline = false }) {
   const { loginWithEmail, registerWithEmail, resetPassword } = useAuth();
   const [mode, setMode] = useState(initialMode); // 'login' | 'register' | 'forgot'
   const [error, setError] = useState('');
@@ -61,7 +61,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
         user = await registerWithEmail(email.trim(), password, displayName.trim(), role);
       }
       onAuthSuccess?.(user);
-      onClose();
+      onClose?.();
     } catch (err) {
       console.error('Auth error:', err);
       setError(getErrorMessage(err.code));
@@ -111,14 +111,12 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
     setPassword('');
   };
 
-  if (!isOpen) return null;
+  if (!isOpen && !inline) return null;
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-md">
-        {/* Modal Content Box */}
-        <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 animate-scale-in max-h-[90vh] overflow-y-auto">
+  const panel = (
+        <div className={inline ? 'w-full' : 'bg-white rounded-2xl shadow-2xl p-6 sm:p-8 animate-scale-in max-h-[90vh] overflow-y-auto'}>
           {/* Close Button */}
+          {!inline && (
           <button
             onClick={handleClose}
             className="absolute right-4 top-4 text-surface-400 hover:text-surface-600 transition-colors"
@@ -126,6 +124,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
           >
             <X className="h-5 w-5" />
           </button>
+          )}
 
           {/* Brand Header */}
           <div className="text-center mb-6">
@@ -298,7 +297,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
           )}
 
           {mode === 'login' && (
-            <div className="flex justify-end -mt-1">
+            <div className="mt-3 flex justify-end">
               <button
                 type="button"
                 onClick={goToForgot}
@@ -333,7 +332,13 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
             )}
           </p>
         </div>
-      </div>
+  );
+
+  if (inline) return panel;
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-fade-in">
+      <div className="relative w-full max-w-md">{panel}</div>
     </div>,
     document.body
   );

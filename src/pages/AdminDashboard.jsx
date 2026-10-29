@@ -67,12 +67,13 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
+    if (authLoading || !isAuthenticated || !isAdmin) return;
     const load = async () => {
       await fetchAllData();
       setLoading(false);
     };
     load();
-  }, []);
+  }, [authLoading, isAuthenticated, isAdmin]);
 
   const handleRefresh = async () => {
     setRefreshing(true);

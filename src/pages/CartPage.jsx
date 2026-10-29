@@ -82,14 +82,18 @@ export default function CartPage() {
 
   if (cart.length === 0) {
     return (
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
-        <EmptyState
-          icon={ShoppingBag}
-          title="Your cart is empty"
-          description="Looks like you haven't added any items to your cart yet. Start shopping to find amazing products!"
-          action={() => navigate('/products')}
-          actionLabel="Browse Products"
-        />
+      <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 lg:px-12">
+        <h1 className="font-display text-display-xs text-ink">Your cart</h1>
+        <p className="mt-2 text-sm text-ink-muted">Nothing here yet — let&rsquo;s change that.</p>
+        <div className="mt-10 rounded-[2rem] border border-surface-200/70 bg-white shadow-soft">
+          <EmptyState
+            icon={ShoppingBag}
+            title="Your cart is empty"
+            description="Looks like you haven't added any items to your cart yet. Start shopping to find amazing products!"
+            action={() => navigate('/products')}
+            actionLabel="Browse Products"
+          />
+        </div>
       </div>
     );
   }

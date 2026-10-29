@@ -23,7 +23,7 @@ export default function Footer() {
         </div>
 
         <div className="relative z-10 grid grid-cols-1 gap-16 sm:grid-cols-2 lg:grid-cols-5">
-          <div className="reveal scale-up">
+          <div className="reveal reveal-scale">
             <Link to="/" className="flex items-center gap-2.5 mb-5 group">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-600 to-accent shadow-glow transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6">
                 <Store className="h-5 w-5 text-white" />
@@ -147,7 +147,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-20 border-t border-surface-200/50 pt-12 flex flex-col sm:flex-row items-center justify-between gap-4 z-10 reveal slide-up">
+        <div className="mt-20 flex flex-col items-center justify-between gap-4 border-t border-surface-200/50 pt-12 sm:flex-row">
           <p className="text-[10px] text-ink-muted">&copy; {new Date().getFullYear()} Speedersmania. All rights reserved.</p>
           <div className="flex items-center gap-6 text-[10px] text-ink-muted">
             <span>Built with React + Firebase</span>

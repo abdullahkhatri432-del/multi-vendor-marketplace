@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { Package, ChevronRight, Calendar, FileText, MapPin, CreditCard, RotateCcw, ChevronDown, Store, Truck, ShieldCheck, CircleDollarSign } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -11,7 +11,7 @@ import OrderStatusTimeline from '../components/ui/OrderStatusTimeline';
 import InvoiceModal from '../components/ui/InvoiceModal';
 
 export default function OrdersPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { addItem } = useCart();
   const { addToast } = useToast();
   const navigate = useNavigate();
@@ -33,6 +33,7 @@ export default function OrdersPage() {
       }
     };
     if (user) fetchOrders();
+    else setLoading(false);
   }, [user]);
 
   const statusColors = {
@@ -106,7 +107,9 @@ export default function OrdersPage() {
     return { label: method ? method.replace(/-/g, ' ') : 'Payment method', icon: CreditCard };
   };
 
-  if (loading) return <LoadingSpinner size="lg" className="py-32" />;
+  if (authLoading || loading) return <LoadingSpinner size="lg" className="py-32" />;
+
+  if (!user) return <Navigate to="/login" replace />;
 
   if (orders.length === 0) {
     return (
