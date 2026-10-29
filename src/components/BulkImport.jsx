@@ -115,7 +115,7 @@ export default function BulkImport({ onImportComplete }) {
   const urlCount = urls.split('\n').filter(u => u.trim().length > 0).length;
 
   return (
-    <div className="card p-6 animate-fade-in">
+    <div className="card p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-display font-bold text-surface-900">Bulk Product Import</h2>
@@ -214,7 +214,7 @@ https://example.com/product-3"
       </form>
 
       {showResults && (
-        <div className="mt-6 space-y-4 animate-fade-in">
+        <div className="mt-6 space-y-4 anim-rise">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-surface-900">Import Results</h3>
             <button

@@ -36,17 +36,17 @@ export default function UpiPayment({ amount, upiRef, onUpiRefChange }) {
   };
 
   return (
-    <div className="mt-4 rounded-2xl border border-primary-200 bg-primary-50/50 p-6">
+    <div className="mt-4 rounded-2xl border border-primary-200 bg-primary-50/50 p-6 anim-rise">
       <div className="flex flex-col items-center text-center">
         <div className="flex items-center gap-2 mb-3">
-          <Smartphone className="h-5 w-5 text-primary-600" />
+          <Smartphone className="h-5 w-5 text-primary-600 breathe" />
           <h4 className="text-sm font-semibold text-surface-900">Pay via UPI</h4>
         </div>
         <p className="text-xs text-surface-500 mb-4">
           Scan with any UPI app (GPay, PhonePe, Paytm) to pay
           <span className="font-semibold text-surface-800"> ₹{Number(amount || 0).toFixed(2)}</span>
         </p>
-        <div className="rounded-2xl bg-white p-4 shadow-soft">
+        <div key={Number(amount || 0)} className="rounded-2xl bg-white p-4 shadow-soft anim-scale">
           <canvas ref={canvasRef} />
           <img
             src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(buildUpiUri(amount))}`}
@@ -59,14 +59,14 @@ export default function UpiPayment({ amount, upiRef, onUpiRefChange }) {
           <button
             type="button"
             onClick={handleCopy}
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-primary-600 shadow-soft transition-colors hover:bg-primary-600 hover:text-white"
+            className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-primary-600 shadow-soft transition-colors hover:bg-primary-600 hover:text-white press"
             title="Copy UPI ID"
           >
-            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            {copied ? <Check className="h-4 w-4 badge-pop" /> : <Copy className="h-4 w-4" />}
           </button>
         </div>
 
-        <div className="mt-5 w-full rounded-xl border border-surface-200 bg-white p-4 text-left">
+        <div className="mt-5 w-full rounded-xl border border-surface-200 bg-white p-4 text-left anim-rise-2">
           <label className="flex items-start gap-2 text-xs font-semibold text-surface-800">
             <ShieldCheck className="h-4 w-4 text-primary-600 shrink-0 mt-0.5" />
             <span>

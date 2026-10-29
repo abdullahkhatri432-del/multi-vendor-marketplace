@@ -53,7 +53,7 @@ export default function Newsletter() {
     <section aria-labelledby="newsletter-title" className="bg-surface-900">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-2">
-          <div>
+          <div className="reveal-left">
             <div className="flex items-center gap-2 mb-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-accent">
                 <Mail className="h-4 w-4 text-white" />
@@ -67,7 +67,7 @@ export default function Newsletter() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} noValidate className="flex w-full flex-col gap-3">
+          <form onSubmit={handleSubmit} noValidate className="flex w-full flex-col gap-3 reveal-right">
             <div className="flex w-full flex-col gap-3 sm:flex-row">
               <label htmlFor="newsletter-email" className="sr-only">
                 Email address
@@ -113,7 +113,7 @@ export default function Newsletter() {
               id="newsletter-status"
               role="status"
               aria-live="polite"
-              className="flex min-h-[1.5rem] items-center text-sm"
+              className="flex min-h-[1.5rem] items-center text-sm anim-rise"
             >
               {status && (
                 <span

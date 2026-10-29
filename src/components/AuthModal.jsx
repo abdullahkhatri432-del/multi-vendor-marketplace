@@ -337,8 +337,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
   if (inline) return panel;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-md">{panel}</div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm anim-rise">
+      <div className="relative w-full max-w-md anim-scale">{panel}</div>
     </div>,
     document.body
   );

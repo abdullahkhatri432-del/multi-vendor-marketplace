@@ -50,7 +50,7 @@ export function ToastProvider({ children }) {
               key={toast.id}
               className={`pointer-events-auto flex items-center gap-3 rounded-2xl border px-5 py-3.5 shadow-premium animate-slide-up min-w-[320px] max-w-[420px] ${styles[toast.type] || styles.info}`}
             >
-              <Icon className={`h-5 w-5 shrink-0 ${iconStyles[toast.type] || iconStyles.info}`} />
+              <Icon className={`h-5 w-5 shrink-0 badge-pop ${iconStyles[toast.type] || iconStyles.info}`} />
               <p className="flex-1 text-sm font-medium">{toast.message}</p>
               <button
                 onClick={() => removeToast(toast.id)}

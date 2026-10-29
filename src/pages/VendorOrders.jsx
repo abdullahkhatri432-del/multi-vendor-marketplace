@@ -53,16 +53,16 @@ export default function VendorOrders() {
   if (loading) return <LoadingSpinner size="lg" className="py-32" />;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
-      <div className="mb-8">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mb-8 reveal">
         <h1 className="text-3xl font-display font-bold text-surface-900">Vendor Orders</h1>
         <p className="mt-1 text-surface-500">Manage and fulfill customer orders</p>
       </div>
 
       {orders.length > 0 ? (
-        <div className="space-y-4">
+        <div className="space-y-4 stagger">
           {orders.map((order) => (
-            <div key={order.id} className="card overflow-hidden animate-fade-in">
+            <div key={order.id} className="card overflow-hidden">
               <button
                 onClick={() => setExpandedOrder(expandedOrder === order.id ? null : order.id)}
                 className="w-full p-6 flex items-center justify-between text-left hover:bg-surface-50 transition-colors"
@@ -86,7 +86,7 @@ export default function VendorOrders() {
               </button>
 
               {expandedOrder === order.id && (
-                <div className="border-t border-surface-100 px-6 py-4 bg-surface-50 animate-slide-down">
+                <div className="border-t border-surface-100 px-6 py-4 bg-surface-50 anim-rise">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <h4 className="text-sm font-semibold text-surface-900 mb-2">Your Items</h4>

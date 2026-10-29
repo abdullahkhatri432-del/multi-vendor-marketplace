@@ -203,8 +203,8 @@ export default function VendorProducts() {
   const outOfStockCount = products.filter((p) => p.stock === 0).length;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 reveal">
         <div>
           <h1 className="text-3xl font-display font-bold text-surface-900">My Products</h1>
           <p className="mt-1 text-surface-500">{products.length} products &middot; {products.filter((p) => p.active).length} active</p>
@@ -252,8 +252,8 @@ export default function VendorProducts() {
 
       {/* Product Form Modal */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl bg-white p-8 shadow-2xl animate-scale-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 anim-rise">
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl bg-white p-8 shadow-2xl anim-scale">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-display font-bold text-surface-900">{editing ? 'Edit Product' : 'Add New Product'}</h2>
               <button onClick={resetForm} className="btn-ghost p-2"><X className="h-5 w-5" /></button>
@@ -397,9 +397,9 @@ export default function VendorProducts() {
 
       {/* Products List */}
       {filteredProducts.length > 0 ? (
-        <div className="space-y-3">
+        <div className="space-y-3 stagger">
           {filteredProducts.map((product) => (
-            <div key={product.id} className="card p-4 flex flex-col sm:flex-row sm:items-center gap-4 animate-fade-in">
+            <div key={product.id} className="card p-4 flex flex-col sm:flex-row sm:items-center gap-4">
               <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-surface-100">
                 <img src={product.images?.[0] || product.image || `https://picsum.photos/seed/${product.id}/64/64`} alt={product.name} className="h-full w-full object-cover" />
               </div>

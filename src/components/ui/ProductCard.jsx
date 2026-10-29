@@ -66,7 +66,7 @@ export default function ProductCard({ product }) {
   };
 
   return (
-    <TiltCard className="card-flat group flex h-full animate-fade-in flex-col overflow-hidden" intensity={8}>
+    <TiltCard className="card-flat group flex h-full flex-col overflow-hidden" intensity={8}>
       <div className="relative aspect-[4/5] overflow-hidden bg-surface-100">
         <Link to={`/products/${product.id}`} aria-label={product.name}>
           <img

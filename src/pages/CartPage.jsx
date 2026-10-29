@@ -102,15 +102,15 @@ export default function CartPage() {
   const progress = Math.min(100, (subtotalAfterDiscount / FREE_SHIPPING_THRESHOLD) * 100);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
-      <h1 className="text-3xl font-display font-bold text-surface-900 mb-2">Shopping Cart</h1>
-      <p className="text-sm text-surface-500 mb-8">{cart.length} {cart.length === 1 ? 'item' : 'items'} in your cart</p>
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+      <h1 className="text-3xl font-display font-bold text-surface-900 mb-2 reveal">Shopping Cart</h1>
+      <p className="text-sm text-surface-500 mb-8 reveal delay-75">{cart.length} {cart.length === 1 ? 'item' : 'items'} in your cart</p>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Cart Items */}
         <div className="lg:col-span-2 space-y-4">
           {/* Free shipping progress */}
-          <div className="rounded-2xl border border-primary-100 bg-primary-50/50 px-5 py-4">
+          <div className="rounded-2xl border border-primary-100 bg-primary-50/50 px-5 py-4 anim-rise">
             <div className="flex items-center gap-2 text-sm font-medium text-surface-700 mb-2">
               {freeShippingRemaining > 0 ? (
                 <>
@@ -132,8 +132,12 @@ export default function CartPage() {
             </div>
           </div>
 
-          {cart.map((item) => (
-            <div key={item.id} className="card p-4 flex gap-4 animate-fade-in hover:border-primary-100">
+          {cart.map((item, index) => (
+            <div
+              key={item.id}
+              className="card p-4 flex gap-4 anim-rise hover:border-primary-100"
+              style={{ animationDelay: `${Math.min(index, 8) * 55}ms` }}
+            >
               <Link to={`/products/${item.id}`} className="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-surface-100">
                 <img
                   src={item.image || `https://picsum.photos/seed/${item.id}/100/100`}
@@ -207,7 +211,7 @@ export default function CartPage() {
           </div>
 
           {/* Trust badges */}
-          <div className="grid grid-cols-3 gap-3 pt-4">
+          <div className="grid grid-cols-3 gap-3 pt-4 stagger">
             {[
               { icon: ShieldCheck, label: 'Secure Payments' },
               { icon: RotateCcw, label: 'Easy Returns' },
@@ -222,7 +226,7 @@ export default function CartPage() {
         </div>
 
         {/* Order Summary */}
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 reveal-right">
           <div className="card p-6 sticky top-24">
             <h3 className="text-lg font-semibold text-surface-900 mb-4">Order Summary</h3>
 
@@ -273,7 +277,7 @@ export default function CartPage() {
               </div>
             )}
 
-            <div className="space-y-3 max-h-60 overflow-y-auto scrollbar-hide">
+            <div className="space-y-3 max-h-60 overflow-y-auto scrollbar-hide stagger">
               {cart.map((item) => (
                 <div key={item.id} className="flex items-center gap-3">
                   <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-surface-100">
@@ -290,7 +294,7 @@ export default function CartPage() {
               ))}
             </div>
 
-            <div className="mt-4 pt-4 border-t border-surface-100 space-y-2 text-sm">
+            <div className="mt-4 pt-4 border-t border-surface-100 space-y-2 text-sm anim-rise">
               <div className="flex justify-between">
                 <span className="text-surface-500">Subtotal</span>
                 <span>₹{cartTotal.toFixed(2)}</span>

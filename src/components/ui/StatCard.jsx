@@ -8,7 +8,7 @@ export default function StatCard({ icon: Icon, label, value, change, color = 'pr
   };
 
   return (
-    <div className="card p-6 animate-fade-in">
+    <div className="card group p-6">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm font-medium text-surface-500">{label}</p>
@@ -19,10 +19,13 @@ export default function StatCard({ icon: Icon, label, value, change, color = 'pr
             </p>
           )}
         </div>
-        <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${colors[color]}`}>
+        <div className={`flex h-12 w-12 items-center justify-center rounded-2xl transition-transform duration-500 ease-smooth group-hover:-rotate-6 group-hover:scale-110 ${colors[color]}`}>
           <Icon className="h-6 w-6" />
         </div>
       </div>
+      <span className="mt-4 block h-1 w-full overflow-hidden rounded-full bg-surface-100">
+        <span className={`block h-full w-2/3 rounded-full bg-gradient-to-r from-primary-500 to-accent transition-transform duration-700 ease-out group-hover:scale-x-125 origin-left`} />
+      </span>
     </div>
   );
 }

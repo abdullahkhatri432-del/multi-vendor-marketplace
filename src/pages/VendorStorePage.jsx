@@ -53,7 +53,7 @@ export default function VendorStorePage() {
   }
 
   return (
-    <div className="animate-fade-in">
+    <div>
       {/* Store Header */}
       <section className="relative overflow-hidden bg-gradient-to-br from-primary-950 via-primary-900 to-accent">
         <div className="absolute inset-0 opacity-30">
@@ -65,7 +65,7 @@ export default function VendorStorePage() {
             <ArrowLeft className="h-4 w-4" /> All Vendors
           </Link>
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-            <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-3xl bg-white/10 backdrop-blur-sm border border-white/20">
+            <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-3xl bg-white/10 backdrop-blur-sm border border-white/20 float-soft">
               {vendor.logo ? (
                 <img
                   src={vendor.logo}
@@ -110,7 +110,7 @@ export default function VendorStorePage() {
       {/* Trust badges */}
       <section className="border-b border-surface-100 bg-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 stagger">
             {[
               { icon: Shield, label: 'Verified Seller', desc: 'Background checked' },
               { icon: Truck, label: 'Fast Delivery', desc: '2-5 business days' },
@@ -149,7 +149,7 @@ export default function VendorStorePage() {
             actionLabel="Browse Marketplace"
           />
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6 stagger">
             {products.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

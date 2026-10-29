@@ -154,7 +154,7 @@ export default function ProductImporter({ onProductImported }) {
       )}
 
       {result ? (
-        <div className="space-y-4 animate-fade-in">
+        <div className="space-y-4 anim-rise">
           <div className="flex items-center gap-3 rounded-xl bg-emerald-50 border border-emerald-100 p-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100">
               <CheckCircle className="h-5 w-5 text-emerald-600" />

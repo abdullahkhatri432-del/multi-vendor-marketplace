@@ -1,11 +1,11 @@
 export default function PrivacyPage() {
   return (
-    <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-12 animate-fade-in">
-      <div className="card p-8 sm:p-12">
+    <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-12">
+      <div className="card p-8 sm:p-12 reveal-scale">
         <h1 className="text-3xl font-display font-bold text-surface-900 mb-2">Privacy Policy</h1>
         <p className="text-sm text-surface-500 mb-8">Last updated: August 8, 2026</p>
 
-        <div className="prose prose-surface max-w-none space-y-6">
+        <div className="prose prose-surface max-w-none space-y-6 stagger">
           <section>
             <h2 className="text-lg font-semibold text-surface-900 mb-3">1. Information We Collect</h2>
             <p className="text-sm text-surface-600 leading-relaxed mb-3">We collect the following types of information:</p>

@@ -16,7 +16,7 @@ import { fallbackProducts, fallbackVendors } from '../config/fallbackData';
 import ProductCard from '../components/ui/ProductCard';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import useStickyScene from '../hooks/useStickyScene';
-import { Reveal, Counter, Marquee } from '../components/ui/Motion';
+import { Reveal, Counter, Marquee, Magnetic, Parallax } from '../components/ui/Motion';
 
 const testimonials = [
   {
@@ -241,19 +241,23 @@ export default function HomePage() {
               </p>
 
               <div className="mt-11 flex flex-wrap justify-center gap-4 lg:justify-start">
-                <Link
-                  to="/products"
-                  className="inline-flex items-center gap-2 rounded-full bg-white px-8 py-4 text-sm font-semibold text-primary-900 shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-glow active:scale-[0.97]"
-                >
-                  Explore marketplace
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-                <Link
-                  to="/register"
-                  className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-8 py-4 text-sm font-semibold text-white backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:bg-white/10"
-                >
-                  Start selling
-                </Link>
+                <Magnetic strength={10}>
+                  <Link
+                    to="/products"
+                    className="inline-flex items-center gap-2 rounded-full bg-white px-8 py-4 text-sm font-semibold text-primary-900 shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-glow active:scale-[0.97]"
+                  >
+                    Explore marketplace
+                    <ArrowRight className="h-4 w-4 icon-nudge" />
+                  </Link>
+                </Magnetic>
+                <Magnetic strength={8}>
+                  <Link
+                    to="/register"
+                    className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-8 py-4 text-sm font-semibold text-white backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:bg-white/10"
+                  >
+                    Start selling
+                  </Link>
+                </Magnetic>
               </div>
 
               <div className="mt-11 flex flex-wrap justify-center gap-x-8 gap-y-4 lg:justify-start">
@@ -272,7 +276,7 @@ export default function HomePage() {
             </div>
 
             {/* Editorial hero card */}
-            <div className="relative hidden lg:block">
+            <Parallax speed={0.05} className="relative hidden lg:block">
               <div className="absolute -inset-6 rounded-[3rem] bg-white/5 blur-2xl" aria-hidden />
               <div className="relative overflow-hidden rounded-[2.5rem] border border-white/15 bg-white/10 p-8 backdrop-blur-2xl shadow-premium">
                 <div className="flex items-center justify-between">
@@ -311,7 +315,7 @@ export default function HomePage() {
                   Verified since 2021
                 </div>
               </div>
-            </div>
+            </Parallax>
           </div>
         </div>
       </section>

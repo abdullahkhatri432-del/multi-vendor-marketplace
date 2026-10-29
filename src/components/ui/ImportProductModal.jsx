@@ -74,8 +74,8 @@ export default function ImportProductModal({ show, onClose, vendorId, vendorName
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-2xl rounded-3xl bg-white p-8 shadow-2xl animate-scale-in max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 anim-rise">
+      <div className="w-full max-w-2xl rounded-3xl bg-white p-8 shadow-2xl anim-scale max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-display font-bold text-surface-900">Import Product from URL</h2>
           <button onClick={onClose} className="btn-ghost p-2">

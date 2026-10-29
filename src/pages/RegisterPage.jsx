@@ -14,7 +14,7 @@ export default function RegisterPage() {
   return (
     <div className="mx-auto grid min-h-[calc(100vh-4.5rem)] max-w-7xl items-center gap-14 px-5 py-12 sm:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-20 lg:px-12 lg:py-20">
       {/* Editorial panel */}
-      <div className="hidden lg:block">
+      <div className="hidden lg:block reveal-left">
         <span className="eyebrow">
           <BadgeCheck className="h-3.5 w-3.5 text-primary-600" />
           Join the marketplace
@@ -26,7 +26,7 @@ export default function RegisterPage() {
           Create an account as a customer to shop verified sellers, or as a vendor to reach millions of buyers.
         </p>
 
-        <div className="mt-10 grid gap-5">
+        <div className="mt-10 grid gap-5 stagger">
           {vendorPerks.map(({ icon: Icon, title, body }) => (
             <div key={title} className="flex items-start gap-4">
               <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-primary-50 text-primary-600">
@@ -40,7 +40,7 @@ export default function RegisterPage() {
           ))}
         </div>
 
-        <div className="mt-12 flex items-center gap-4 rounded-3xl border border-surface-200/70 bg-white p-6 shadow-soft">
+        <div className="mt-12 flex items-center gap-4 rounded-3xl border border-surface-200/70 bg-white p-6 shadow-soft reveal delay-200">
           <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-accent/15 text-accent-dark">
             <ShieldCheck className="h-6 w-6" />
           </span>
@@ -51,7 +51,7 @@ export default function RegisterPage() {
       </div>
 
       {/* Auth card */}
-      <div className="mx-auto w-full max-w-md">
+      <div className="mx-auto w-full max-w-md reveal-right">
         <Link to="/" className="mb-8 flex items-center justify-center gap-2.5 lg:justify-start">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-600 to-accent shadow-glow">
             <Store className="h-5 w-5 text-white" />

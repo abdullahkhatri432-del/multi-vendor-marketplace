@@ -143,9 +143,9 @@ export default function ProductsPage() {
   const hasActiveFilters = selectedCategory || selectedVendor || minRating > 0 || priceRange[0] > 0 || priceRange[1] < 100000;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-8 reveal">
         <h1 className="text-3xl font-display font-bold text-surface-900">
           {query
             ? `Results for "${query}"`
@@ -158,7 +158,7 @@ export default function ProductsPage() {
 
       {/* Active filter chips */}
       {hasActiveFilters && (
-        <div className="flex flex-wrap items-center gap-2 mb-6">
+        <div className="flex flex-wrap items-center gap-2 mb-6 anim-rise">
           {selectedCategory && (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-50 text-primary-700 text-xs font-medium px-3 py-1.5">
               {categories.find((c) => c.id === selectedCategory)?.name}
@@ -184,7 +184,7 @@ export default function ProductsPage() {
       )}
 
       {/* Toolbar */}
-      <div className="flex items-center justify-between gap-4 mb-6 pb-4 border-b border-surface-100">
+      <div className="flex items-center justify-between gap-4 mb-6 pb-4 border-b border-surface-100 reveal">
         <button
           onClick={() => setShowFilters(!showFilters)}
           className="btn-secondary text-sm lg:hidden"
@@ -224,12 +224,12 @@ export default function ProductsPage() {
 
       {/* Recently Viewed */}
       {recentProducts.length > 0 && (
-        <section className="mb-10">
+        <section className="mb-10 reveal">
           <div className="flex items-center gap-2 mb-4">
             <Clock className="h-4 w-4 text-primary-600" />
             <h2 className="text-sm font-semibold text-surface-900 uppercase tracking-wide">Recently Viewed</h2>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 stagger">
             {recentProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
@@ -348,7 +348,7 @@ export default function ProductsPage() {
         {/* Products Grid */}
         <div className="flex-1">
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div key="loading" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 stagger">
               {[...Array(9)].map((_, i) => (
                 <div key={i} className="card overflow-hidden">
                   <div className="aspect-square skeleton" />
@@ -361,13 +361,13 @@ export default function ProductsPage() {
               ))}
             </div>
           ) : products.length > 0 ? (
-            <div className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
+            <div key={`${viewMode}-${products.length}`} className={`grid gap-6 stagger ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
               {products.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>
           ) : (
-            <div className="text-center py-16">
+            <div className="text-center py-16 anim-rise">
               <p className="text-lg font-medium text-surface-700">No products found</p>
               <p className="mt-2 text-surface-500">Try adjusting your filters or search term</p>
             </div>

@@ -326,8 +326,8 @@ export default function CheckoutPage() {
 
   if (orderComplete) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-16 text-center animate-scale-in">
-        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 mx-auto mb-6">
+      <div className="mx-auto max-w-2xl px-4 py-16 text-center anim-scale">
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 mx-auto mb-6 badge-pop">
           <CheckCircle className="h-10 w-10 text-emerald-600" />
         </div>
         <h1 className="text-3xl font-display font-bold text-surface-900">Order Confirmed!</h1>
@@ -354,8 +354,8 @@ export default function CheckoutPage() {
   // Show auth prompt for unauthenticated users
   if (needsAuth && !isAuthenticated) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-16 text-center animate-fade-in">
-        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary-100 mx-auto mb-6">
+      <div className="mx-auto max-w-2xl px-4 py-16 text-center anim-rise">
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary-100 mx-auto mb-6 float-soft">
           <Mail className="h-10 w-10 text-primary-600" />
         </div>
         <h1 className="text-2xl font-display font-bold text-surface-900">Sign in to Complete Purchase</h1>
@@ -381,19 +381,19 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
       {error && (
-        <div className="mb-6 flex items-center gap-3 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">
+        <div className="mb-6 flex items-center gap-3 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600 anim-slide">
           <AlertCircle className="h-5 w-5 flex-shrink-0" />
           {error}
         </div>
       )}
 
-      <h1 className="text-3xl font-display font-bold text-surface-900 mb-8">Checkout</h1>
+      <h1 className="text-3xl font-display font-bold text-surface-900 mb-8 reveal">Checkout</h1>
 
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-6 stagger">
             {/* Shipping Info */}
             <div className="card p-6">
               <div className="flex items-center gap-3 mb-4">
@@ -545,7 +545,7 @@ export default function CheckoutPage() {
           </div>
 
           {/* Order Summary */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 reveal-right">
             <div className="card p-6 sticky top-24">
               <h3 className="text-lg font-semibold text-surface-900 mb-4">Order Summary</h3>
 
@@ -595,7 +595,7 @@ export default function CheckoutPage() {
                 </div>
               )}
 
-              <div className="space-y-3 max-h-60 overflow-y-auto scrollbar-hide">
+              <div className="space-y-3 max-h-60 overflow-y-auto scrollbar-hide stagger">
                 {cart.map((item) => (
                   <div key={item.id} className="flex items-center gap-3">
                     <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-surface-100">
@@ -616,7 +616,7 @@ export default function CheckoutPage() {
                   </div>
                 ))}
               </div>
-              <div className="mt-4 pt-4 border-t border-surface-100 space-y-2 text-sm">
+              <div className="mt-4 pt-4 border-t border-surface-100 space-y-2 text-sm anim-rise">
                 <div className="flex justify-between">
                   <span className="text-surface-500">Item Subtotal</span>
                   <span>₹{cartTotal.toFixed(2)}</span>

@@ -72,9 +72,9 @@ export default function VendorDashboard() {
   ];
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 reveal">
         <div>
           <h1 className="text-3xl font-display font-bold text-surface-900">Vendor Dashboard</h1>
           <p className="mt-1 text-surface-500">Welcome back, {vendor?.storeName || user?.displayName}</p>
@@ -87,7 +87,7 @@ export default function VendorDashboard() {
       </div>
 
       {vendor && !vendor.verified && (
-        <div className="mb-8 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-5 animate-fade-in">
+        <div className="mb-8 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-5 anim-slide">
           <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
           <div className="text-sm text-amber-800">
             <p className="font-semibold">Your store is under review</p>
@@ -125,7 +125,7 @@ export default function VendorDashboard() {
       {activeTab === 'overview' && (
         <>
           {/* Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 stagger">
             <StatCard icon={DollarSign} label="Revenue" value={`₹${analytics?.totalRevenue?.toFixed(2) || '0.00'}`} color="success" />
             <StatCard icon={ShoppingCart} label="Orders" value={analytics?.totalOrders || 0} color="primary" />
             <StatCard icon={Package} label="Products" value={products.length} color="accent" />
@@ -139,7 +139,7 @@ export default function VendorDashboard() {
                 <AlertTriangle className="h-5 w-5 text-amber-600" />
                 <h3 className="text-sm font-semibold text-amber-900">Inventory Alerts</h3>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 stagger">
                 {outOfStockProducts.map((p) => (
                   <div key={p.id} className="flex items-center justify-between rounded-xl bg-white px-4 py-2 text-sm">
                     <span className="text-surface-700">{p.name}</span>
@@ -158,7 +158,7 @@ export default function VendorDashboard() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Recent Orders */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 reveal">
               <div className="card p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-surface-900">Recent Orders</h3>
@@ -199,8 +199,7 @@ export default function VendorDashboard() {
             </div>
 
             {/* Right Column */}
-            <div className="space-y-6">
-              {/* Top Products */}
+            <div className="space-y-6 stagger">
               <div className="card p-6">
                 <h3 className="text-sm font-semibold text-surface-900 mb-4">Top Selling Products</h3>
                 {topProducts.length > 0 ? (

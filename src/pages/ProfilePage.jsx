@@ -42,8 +42,8 @@ export default function ProfilePage() {
   if (!isAuthenticated) return <Navigate to="/login" />;
 
   return (
-    <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
-      <div className="mb-8">
+    <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mb-8 reveal">
         <div className="flex items-center gap-2 mb-2">
           <User className="h-5 w-5 text-primary-600" />
           <span className="text-sm font-semibold text-primary-600 uppercase tracking-wide">Account</span>
@@ -51,11 +51,11 @@ export default function ProfilePage() {
         <h1 className="text-3xl font-display font-bold text-surface-900">Profile</h1>
       </div>
 
-      <div className="card p-8">
+      <div className="card p-8 reveal-scale">
         {/* Profile Header */}
         <div className="flex items-center gap-5 mb-8 pb-8 border-b border-surface-100">
           <div className="relative">
-            <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-primary-400 to-accent text-white text-3xl font-bold shadow-glow">
+            <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-primary-400 to-accent text-white text-3xl font-bold shadow-glow float-soft">
               {user?.displayName?.charAt(0)?.toUpperCase() || 'U'}
             </div>
             <div className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-success border-3 border-white flex items-center justify-center">
@@ -72,8 +72,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Profile Details */}
-        <div className="space-y-4">
-          {/* Phone */}
+        <div className="space-y-4 stagger">
           <div className="flex items-center gap-4 rounded-2xl bg-surface-50 border border-surface-100 p-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
               <Smartphone className="h-5 w-5" />

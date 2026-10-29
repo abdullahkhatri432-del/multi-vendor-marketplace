@@ -167,7 +167,7 @@ export default function DraftProducts() {
   if (!isVendor) return null;
 
   return (
-    <div className="animate-fade-in">
+    <div className="anim-rise">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-display font-bold text-surface-900">Draft Products</h2>

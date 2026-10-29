@@ -113,7 +113,7 @@ export default function OrdersPage() {
 
   if (orders.length === 0) {
     return (
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 anim-rise">
         <EmptyState
           icon={Package}
           title="No orders yet"
@@ -126,16 +126,16 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
-      <h1 className="text-3xl font-display font-bold text-surface-900 mb-2">My Orders</h1>
-      <p className="text-sm text-surface-500 mb-8">Track, download invoices and reorder past purchases</p>
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+      <h1 className="text-3xl font-display font-bold text-surface-900 mb-2 reveal">My Orders</h1>
+      <p className="text-sm text-surface-500 mb-8 reveal delay-75">Track, download invoices and reorder past purchases</p>
 
-      <div className="space-y-4">
+      <div className="space-y-4 stagger">
         {orders.map((order) => {
           const isExpanded = expandedId === order.id;
           const payment = getPaymentDisplay(order);
           return (
-            <div key={order.id} className="card p-6 animate-fade-in">
+            <div key={order.id} className="card p-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-surface-100">
@@ -192,7 +192,7 @@ export default function OrdersPage() {
               </div>
 
               {/* Payment & shipping summary */}
-              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 stagger">
                 <div className="flex items-center gap-2.5 rounded-xl bg-surface-50 px-3.5 py-2.5 text-xs text-surface-600">
                   <payment.icon className="h-4 w-4 text-primary-600 shrink-0" />
                   <span className="line-clamp-1">{payment.label}</span>
@@ -239,7 +239,7 @@ export default function OrdersPage() {
               </div>
 
               {isExpanded && (
-                <div className="mt-4 pt-4 border-t border-surface-100 grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
+                <div className="mt-4 pt-4 border-t border-surface-100 grid grid-cols-1 md:grid-cols-2 gap-6 anim-rise">
                   <div>
                     <h4 className="text-sm font-semibold text-surface-900 mb-3 flex items-center gap-1.5">
                       <MapPin className="h-4 w-4 text-primary-600" /> Shipping Details

@@ -14,7 +14,7 @@ export default function LoginPage() {
   return (
     <div className="mx-auto grid min-h-[calc(100vh-4.5rem)] max-w-7xl items-center gap-14 px-5 py-12 sm:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-20 lg:px-12 lg:py-20">
       {/* Editorial panel */}
-      <div className="hidden lg:block">
+      <div className="hidden lg:block reveal-left">
         <span className="eyebrow">
           <BadgeCheck className="h-3.5 w-3.5 text-primary-600" />
           Verified marketplace
@@ -26,7 +26,7 @@ export default function LoginPage() {
           Pick up where you left off — your cart, wishlist and orders are exactly where you left them.
         </p>
 
-        <div className="mt-10 grid gap-5">
+        <div className="mt-10 grid gap-5 stagger">
           {perks.map(({ icon: Icon, title, body }) => (
             <div key={title} className="flex items-start gap-4">
               <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-primary-50 text-primary-600">
@@ -40,7 +40,7 @@ export default function LoginPage() {
           ))}
         </div>
 
-        <div className="mt-12 max-w-md rounded-3xl border border-surface-200/70 bg-white p-6 shadow-soft">
+        <div className="mt-12 max-w-md rounded-3xl border border-surface-200/70 bg-white p-6 shadow-soft reveal delay-200">
           <Quote className="h-5 w-5 text-accent" />
           <p className="mt-3 font-display text-xl leading-relaxed text-ink">
             The curated selection means I never worry about quality. This is how online shopping should feel.
@@ -52,7 +52,7 @@ export default function LoginPage() {
       </div>
 
       {/* Auth card */}
-      <div className="mx-auto w-full max-w-md">
+      <div className="mx-auto w-full max-w-md reveal-right">
         <Link to="/" className="mb-8 flex items-center justify-center gap-2.5 lg:justify-start">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-600 to-accent shadow-glow">
             <Store className="h-5 w-5 text-white" />

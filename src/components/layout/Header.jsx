@@ -278,14 +278,14 @@ export default function Header() {
                 </>
               )}
             </div>
-            <Link to="/wishlist" className="btn-ghost p-2 relative">
-              <Heart className="h-5 w-5" />
+            <Link to="/wishlist" className="btn-ghost p-2 relative group">
+              <Heart className="h-5 w-5 icon-pop transition-transform" />
             </Link>
             <Link to="/cart" className="relative btn-ghost p-2">
               <div className="relative">
                 <ShoppingCart className="h-5 w-5" />
                 {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary-600 text-[10px] font-bold text-white shadow-glow">
+                  <span key={cartCount} className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary-600 text-[10px] font-bold text-white shadow-glow badge-pop">
                     {cartCount > 9 ? '9+' : cartCount}
                   </span>
                 )}
@@ -380,7 +380,7 @@ export default function Header() {
             <Link to="/cart" className="relative btn-ghost p-2">
               <ShoppingCart className="h-5 w-5" />
               {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary-600 text-[9px] font-bold text-white shadow-glow">
+                <span key={cartCount} className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary-600 text-[9px] font-bold text-white shadow-glow badge-pop">
                   {cartCount}
                 </span>
               )}

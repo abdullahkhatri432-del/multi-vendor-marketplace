@@ -227,9 +227,9 @@ export default function AdminDashboard() {
   });
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 reveal">
         <div>
           <h1 className="text-3xl font-display font-bold text-surface-900">Admin Dashboard</h1>
           <p className="mt-1 text-surface-500">Platform management & analytics</p>
@@ -294,7 +294,7 @@ export default function AdminDashboard() {
 
       {/* OVERVIEW TAB */}
       {activeTab === 'overview' && (
-        <div className="space-y-8">
+        <div className="space-y-8 stagger">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <StatCard icon={Users} label="Total Users" value={stats?.totalUsers || 0} color="primary" />
             <StatCard icon={Store} label="Vendors" value={stats?.totalVendors || 0} color="accent" />
@@ -304,7 +304,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 stagger">
             <div className="card p-6">
               <div className="flex items-center gap-3 mb-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50">
@@ -337,7 +337,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Recent Activity */}
-          <div className="card p-6">
+          <div className="card p-6 reveal">
             <h3 className="text-lg font-semibold text-surface-900 mb-4">Recent Orders</h3>
             {orders.length > 0 ? (
               <div className="overflow-x-auto">
@@ -375,7 +375,7 @@ export default function AdminDashboard() {
       {activeTab === 'users' && (
         <div className="space-y-4">
           {filteredUsers.length > 0 ? (
-            <div className="card overflow-hidden">
+            <div className="card overflow-hidden anim-rise">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -437,9 +437,9 @@ export default function AdminDashboard() {
 
       {/* VENDORS TAB */}
       {activeTab === 'vendors' && (
-        <div className="space-y-4">
+        <div className="space-y-4 stagger">
           {vendors.length > 0 ? vendors.map((vendor) => (
-            <div key={vendor.id} className="card p-6 animate-fade-in">
+            <div key={vendor.id} className="card p-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-50">
@@ -481,9 +481,9 @@ export default function AdminDashboard() {
 
       {/* ORDERS TAB */}
       {activeTab === 'orders' && (
-        <div className="space-y-4">
+        <div className="space-y-4 stagger">
           {filteredOrders.length > 0 ? filteredOrders.map((order) => (
-            <div key={order.id} className="card overflow-hidden animate-fade-in">
+            <div key={order.id} className="card overflow-hidden">
               <button
                 onClick={() => setExpandedOrder(expandedOrder === order.id ? null : order.id)}
                 className="w-full p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left hover:bg-surface-50 transition-colors"
@@ -513,7 +513,7 @@ export default function AdminDashboard() {
               </button>
 
               {expandedOrder === order.id && (
-                <div className="border-t border-surface-100 px-6 py-4 bg-surface-50 animate-slide-down">
+                <div className="border-t border-surface-100 px-6 py-4 bg-surface-50 anim-rise">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <h4 className="text-sm font-semibold text-surface-900 mb-2">Items</h4>
@@ -612,9 +612,9 @@ export default function AdminDashboard() {
 
       {/* PRODUCTS TAB */}
       {activeTab === 'products' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 stagger">
           {filteredProducts.length > 0 ? filteredProducts.map((product) => (
-            <div key={product.id} className="card overflow-hidden animate-fade-in">
+            <div key={product.id} className="card overflow-hidden">
               <div className="aspect-video overflow-hidden bg-surface-100">
                 <img src={product.images?.[0] || product.image || `https://picsum.photos/seed/${product.id}/300/200`} alt={product.name} className="h-full w-full object-cover" />
               </div>
@@ -684,7 +684,7 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 stagger">
             {categories.map((cat) => (
               <div key={cat.id} className="card p-4 text-center relative group">
                 <button
@@ -945,7 +945,7 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 stagger">
             {coupons.map((c) => (
               <div key={c.id} className="card p-5 relative group">
                 <button

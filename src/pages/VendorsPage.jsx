@@ -26,11 +26,11 @@ export default function VendorsPage() {
   if (loading) return <LoadingSpinner size="lg" className="py-32" />;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
-      <div className="text-center mb-12">
+      <div className="text-center mb-12 reveal">
         <div className="inline-flex items-center gap-2 mb-2">
-          <Store className="h-5 w-5 text-primary-600" />
+          <Store className="h-5 w-5 text-primary-600 breathe" />
           <span className="text-sm font-semibold text-primary-600 uppercase tracking-wide">Marketplace</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-display font-bold text-surface-900">All Verified Vendors</h1>
@@ -48,7 +48,7 @@ export default function VendorsPage() {
           actionLabel="Browse Products"
         />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 stagger">
           {vendors.map((vendor, index) => (
             <Link
               key={vendor.id}
@@ -103,7 +103,7 @@ export default function VendorsPage() {
       )}
 
       {/* Trust Badges */}
-      <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6">
+      <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6 stagger">
         {[
           { icon: ShieldCheck, label: 'Verified Sellers', desc: 'Background checked' },
           { icon: Truck, label: 'Fast Delivery', desc: '2-5 business days' },

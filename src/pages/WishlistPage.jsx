@@ -38,16 +38,16 @@ export default function WishlistPage() {
   if (loading) return <LoadingSpinner size="lg" className="py-32" />;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
-      <div className="mb-8">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mb-8 reveal">
         <h1 className="text-3xl font-display font-bold text-surface-900">My Wishlist</h1>
         <p className="mt-1 text-surface-500">{wishlistProducts.length} items saved</p>
       </div>
 
       {wishlistProducts.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 stagger">
           {wishlistProducts.map((product) => (
-            <div key={product.id} className="card overflow-hidden animate-fade-in">
+            <div key={product.id} className="card overflow-hidden shine-sweep">
               <div className="relative aspect-square overflow-hidden bg-surface-100">
                 <img src={product.images?.[0] || product.image || `https://picsum.photos/seed/${product.id}/400/400`} alt={product.name} className="h-full w-full object-cover" />
                 <button
@@ -75,13 +75,15 @@ export default function WishlistPage() {
           ))}
         </div>
       ) : (
-        <EmptyState
-          icon={Heart}
-          title="Your wishlist is empty"
-          description="Save products you love by clicking the heart icon on any product."
-          action={() => {}}
-          actionLabel="Browse Products"
-        />
+        <div className="anim-rise">
+          <EmptyState
+            icon={Heart}
+            title="Your wishlist is empty"
+            description="Save products you love by clicking the heart icon on any product."
+            action={() => {}}
+            actionLabel="Browse Products"
+          />
+        </div>
       )}
     </div>
   );

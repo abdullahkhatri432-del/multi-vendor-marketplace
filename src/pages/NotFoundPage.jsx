@@ -3,10 +3,10 @@ import { Home, ArrowLeft, Search } from 'lucide-react';
 
 export default function NotFoundPage() {
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 text-center animate-fade-in">
+    <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 text-center anim-rise">
       <div className="relative mb-6">
         <div className="text-8xl sm:text-9xl font-display font-bold text-gradient">404</div>
-        <div className="absolute -top-4 -right-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-primary-500 to-accent shadow-glow animate-float">
+        <div className="absolute -top-4 -right-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-primary-500 to-accent shadow-glow float-soft">
           <Search className="h-8 w-8 text-white" />
         </div>
       </div>

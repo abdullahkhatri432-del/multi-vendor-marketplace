@@ -1,6 +1,6 @@
 export default function ProductSkeleton() {
   return (
-    <div className="card overflow-hidden animate-fade-in">
+    <div className="card overflow-hidden">
       <div className="aspect-square skeleton" />
       <div className="p-4 space-y-3">
         <div className="h-3 w-1/3 skeleton rounded" />
@@ -17,7 +17,7 @@ export default function ProductSkeleton() {
 
 export function ProductSkeletonGrid({ count = 8 }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 stagger">
       {[...Array(count)].map((_, i) => (
         <ProductSkeleton key={i} />
       ))}
@@ -27,7 +27,7 @@ export function ProductSkeletonGrid({ count = 8 }) {
 
 export function OrderSkeleton() {
   return (
-    <div className="card p-6 animate-fade-in">
+    <div className="card p-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="h-12 w-12 skeleton rounded-xl" />
@@ -47,7 +47,7 @@ export function OrderSkeleton() {
 
 export function OrderSkeletonList({ count = 5 }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 stagger">
       {[...Array(count)].map((_, i) => (
         <OrderSkeleton key={i} />
       ))}
@@ -57,7 +57,7 @@ export function OrderSkeletonList({ count = 5 }) {
 
 export function VendorSkeleton() {
   return (
-    <div className="card p-6 animate-fade-in">
+    <div className="card p-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="h-12 w-12 skeleton rounded-xl" />
@@ -74,7 +74,7 @@ export function VendorSkeleton() {
 
 export function ProfileSkeleton() {
   return (
-    <div className="card p-8 animate-fade-in">
+    <div className="card p-8">
       <div className="flex items-center gap-4 mb-8">
         <div className="h-16 w-16 skeleton rounded-2xl" />
         <div className="space-y-2">

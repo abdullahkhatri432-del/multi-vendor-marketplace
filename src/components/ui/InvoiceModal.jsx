@@ -10,8 +10,8 @@ export default function InvoiceModal({ order, onClose }) {
   });
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true" aria-label="Invoice">
-      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-premium invoice-print">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 anim-rise" role="dialog" aria-modal="true" aria-label="Invoice">
+      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-premium invoice-print anim-scale">
         <div className="sticky top-0 flex items-center justify-between border-b border-surface-100 bg-white px-6 py-4">
           <h3 className="text-lg font-bold text-surface-900">Invoice</h3>
           <div className="flex items-center gap-2">

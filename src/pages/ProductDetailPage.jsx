@@ -218,7 +218,7 @@ export default function ProductDetailPage() {
   }));
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
       <button onClick={() => navigate(-1)} className="btn-ghost text-sm mb-4"><ArrowLeft className="h-4 w-4" /> Back</button>
 
       {/* Breadcrumbs */}
@@ -240,9 +240,14 @@ export default function ProductDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         {/* Image Gallery */}
-        <div className="space-y-4">
+        <div className="space-y-4 reveal-scale">
           <div className="relative aspect-square overflow-hidden rounded-3xl bg-surface-100">
-            <img src={images[selectedImage]} alt={product.name} className="h-full w-full object-cover" />
+            <img
+              key={selectedImage}
+              src={images[selectedImage]}
+              alt={product.name}
+              className="h-full w-full object-cover anim-scale"
+            />
             {product.badge && (
               <span className="absolute top-4 left-4 rounded-full bg-primary-600/90 px-3 py-1.5 text-xs font-semibold text-white shadow-sm">
                 {product.badge}
@@ -250,7 +255,7 @@ export default function ProductDetailPage() {
             )}
           </div>
           {images.length > 1 && (
-            <div className="flex gap-3">
+            <div className="flex gap-3 stagger">
               {images.map((img, i) => (
                 <button key={i} onClick={() => setSelectedImage(i)} className={`h-20 w-20 overflow-hidden rounded-xl border-2 transition-all ${i === selectedImage ? 'border-primary-500 shadow-glow' : 'border-surface-200'}`}>
                   <img src={img} alt="" className="h-full w-full object-cover" />
@@ -261,7 +266,7 @@ export default function ProductDetailPage() {
         </div>
 
         {/* Product Info */}
-        <div className="flex flex-col">
+        <div className="flex flex-col reveal-right">
           <div className="flex items-center gap-2 mb-3">
             <span className="badge-primary">{product.category || 'General'}</span>
             {product.discount > 0 && <span className="badge-danger">-{product.discount}% OFF</span>}
@@ -304,7 +309,7 @@ export default function ProductDetailPage() {
           {product.addons && product.addons.length > 0 && (
             <div className="mt-8">
               <h3 className="text-lg font-semibold text-surface-900 mb-4">Available Add-ons</h3>
-              <div className="space-y-3">
+              <div className="space-y-3 stagger">
                 {product.addons.map((addon, index) => {
                   const addonId = addon.id || `addon-${index}`;
                   const isSelected = selectedAddons.some((a) => (a.id || `addon-${product.addons.indexOf(a)}`) === addonId);
@@ -363,7 +368,7 @@ export default function ProductDetailPage() {
             </Link>
           )}
 
-          <div className="mt-4 flex items-center gap-2 rounded-xl bg-surface-50 px-4 py-3 text-sm text-surface-600">
+          <div className="mt-4 flex items-center gap-2 rounded-xl bg-surface-50 px-4 py-3 text-sm text-surface-600 anim-rise">
             <Zap className="h-4 w-4 text-primary-600" />
             Estimated delivery by <span className="font-semibold text-surface-800">{deliveryDate}</span> · 2-4 business days
           </div>
@@ -384,7 +389,7 @@ export default function ProductDetailPage() {
             </button>
           </div>
 
-          <div className="mt-8 grid grid-cols-3 gap-4">
+          <div className="mt-8 grid grid-cols-3 gap-4 stagger">
             {[{ icon: Truck, label: 'Free Shipping' }, { icon: Shield, label: 'Secure Payment' }, { icon: RotateCcw, label: 'Easy Returns' }].map(({ icon: Icon, label }) => (
               <div key={label} className="flex flex-col items-center gap-2 rounded-2xl bg-surface-50 p-4 text-center">
                 <Icon className="h-5 w-5 text-primary-600" />
@@ -397,14 +402,14 @@ export default function ProductDetailPage() {
 
       {/* Related Products */}
       {relatedProducts.length > 0 && (
-        <section className="mt-16">
+        <section className="mt-16 reveal">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-display font-bold text-surface-900">You May Also Like</h2>
             <Link to={`/products?category=${product.category}`} className="btn-ghost text-sm">
               View All <ChevronRight className="h-4 w-4" />
             </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 stagger">
             {relatedProducts.map((related) => (
               <ProductCard key={related.id} product={related} />
             ))}
@@ -413,7 +418,7 @@ export default function ProductDetailPage() {
       )}
 
       {/* Reviews Section */}
-      <div className="mt-16">
+      <div className="mt-16 reveal">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-display font-bold text-surface-900">Customer Reviews ({reviews.length})</h2>
           {isAuthenticated && (
@@ -424,7 +429,7 @@ export default function ProductDetailPage() {
         </div>
 
         {reviews.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 stagger">
             <div className="card p-6 flex flex-col items-center justify-center">
               <p className="text-5xl font-display font-bold text-surface-900">{avgRating}</p>
               <div className="flex gap-1 mt-2">
@@ -480,9 +485,9 @@ export default function ProductDetailPage() {
         )}
 
         {reviews.length > 0 ? (
-          <div className="space-y-4">
+          <div className="space-y-4 stagger">
             {reviews.map((review) => (
-              <div key={review.id} className="card p-6 animate-fade-in">
+              <div key={review.id} className="card p-6">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-50 text-primary-600 text-xs font-bold">
@@ -511,7 +516,7 @@ export default function ProductDetailPage() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-12">
+          <div className="text-center py-12 anim-rise">
             <p className="text-surface-500">No reviews yet. Be the first to review this product!</p>
           </div>
         )}

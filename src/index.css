@@ -55,6 +55,12 @@
     @apply outline-none ring-2 ring-primary-500 ring-offset-2 ring-offset-surface-50;
   }
 
+  /* Reveal transforms translate up to 48px; clip the horizontal axis so they
+     can never create a sideways scrollbar on small screens. `clip` (unlike
+     `hidden`) does not create a scroll container, so sticky positioning and
+     the sticky header keep working. */
+  html, body { overflow-x: clip; }
+
   img { @apply select-none; }
   a { color: inherit; text-decoration: inherit; }
   button { font-family: inherit; }
@@ -225,6 +231,87 @@
   .reveal-scale { opacity: 0; transform: scale(0.94); transition: opacity 0.9s var(--luxe-ease), transform 0.9s var(--luxe-ease); }
   .reveal-left.is-visible, .reveal-right.is-visible, .reveal-scale.is-visible { opacity: 1; transform: none; }
 
+  /* Staggered children — the parent reveals, children cascade in */
+  .stagger > * { opacity: 0; }
+  .stagger.is-visible > * { animation: itemIn 0.8s var(--luxe-ease) both; }
+  .stagger.is-visible > *:nth-child(1) { animation-delay: 0.02s; }
+  .stagger.is-visible > *:nth-child(2) { animation-delay: 0.07s; }
+  .stagger.is-visible > *:nth-child(3) { animation-delay: 0.12s; }
+  .stagger.is-visible > *:nth-child(4) { animation-delay: 0.17s; }
+  .stagger.is-visible > *:nth-child(5) { animation-delay: 0.22s; }
+  .stagger.is-visible > *:nth-child(6) { animation-delay: 0.27s; }
+  .stagger.is-visible > *:nth-child(7) { animation-delay: 0.32s; }
+  .stagger.is-visible > *:nth-child(8) { animation-delay: 0.37s; }
+  .stagger.is-visible > *:nth-child(9) { animation-delay: 0.42s; }
+  .stagger.is-visible > *:nth-child(10) { animation-delay: 0.47s; }
+  .stagger.is-visible > *:nth-child(11) { animation-delay: 0.52s; }
+  .stagger.is-visible > *:nth-child(12) { animation-delay: 0.57s; }
+  .stagger.is-visible > *:nth-child(13) { animation-delay: 0.62s; }
+  .stagger.is-visible > *:nth-child(14) { animation-delay: 0.67s; }
+  .stagger.is-visible > *:nth-child(15) { animation-delay: 0.72s; }
+  .stagger.is-visible > *:nth-child(16) { animation-delay: 0.77s; }
+  .stagger.is-visible > *:nth-child(n + 17) { animation-delay: 0.8s; }
+
+  /* Route-level page transition */
+  /* `backwards` (not `both`) so the finished animation stops applying
+     `transform` to <main>. A permanent transform would make <main> the
+     containing block for `position: fixed` modals rendered inside pages
+     and would shift them below the header. */
+  .page-enter { animation: pageIn 0.65s var(--luxe-ease) backwards; }
+
+  /* Mount entrances for async content: toasts, modals, rows, panels */
+  .anim-rise { animation: riseIn 0.7s var(--luxe-ease) both; }
+  .anim-slide { animation: slideInRight 0.65s var(--luxe-ease) both; }
+  .anim-scale { animation: scaleIn 0.55s var(--luxe-ease) both; }
+  .anim-rise-1 { animation-delay: 0.06s; }
+  .anim-rise-2 { animation-delay: 0.12s; }
+  .anim-rise-3 { animation-delay: 0.18s; }
+  .anim-rise-4 { animation-delay: 0.24s; }
+  .anim-rise-5 { animation-delay: 0.3s; }
+
+  /* Pulsing focus ring for live/urgent UI */
+  .glow-pulse { animation: glowPulse 2.8s ease-in-out infinite; }
+
+  /* Micro-interactions */
+  .press { transition: transform 0.16s var(--luxe-ease); }
+  .press:active { transform: scale(0.96); }
+
+  .icon-nudge { transition: transform 0.35s var(--luxe-ease); }
+  .group:hover .icon-nudge, .group:hover .icon-nudge-left { transform: translateX(4px); }
+  .group:hover .icon-nudge-left { transform: translateX(-4px); }
+  .group:hover .icon-pop { transform: scale(1.12) rotate(-4deg); }
+
+  .badge-pop { animation: badgePop 0.5s var(--luxe-ease) both; }
+
+  .glow-hover { transition: box-shadow 0.4s var(--luxe-ease), transform 0.4s var(--luxe-ease); }
+  .glow-hover:hover { transform: translateY(-4px); box-shadow: 0 24px 60px -24px rgba(91, 61, 245, 0.45); }
+
+  .shine-sweep { position: relative; overflow: hidden; }
+  .shine-sweep::after {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0; width: 40%;
+    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+    transform: translateX(-160%);
+    pointer-events: none;
+  }
+  .shine-sweep:hover::after { animation: shine 1.2s var(--luxe-ease) forwards; }
+
+  .float-soft { animation: float 6s ease-in-out infinite; }
+  .breathe { animation: breathe 5s ease-in-out infinite; }
+
+  .link-sweep {
+    background-image: linear-gradient(currentColor, currentColor);
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+    background-size: 0 1px;
+    transition: background-size 0.35s var(--luxe-ease);
+  }
+  .link-sweep:hover { background-size: 100% 1px; }
+
+  .hover-row { transition: background-color 0.25s var(--luxe-ease), transform 0.25s var(--luxe-ease); }
+  .hover-row:hover { transform: translateX(4px); }
+
   .delay-75 { transition-delay: 75ms; }
   .delay-100 { transition-delay: 100ms; }
   .delay-150 { transition-delay: 150ms; }
@@ -334,6 +421,40 @@
   0% { transform: scale(1); opacity: 0.6; }
   75%, 100% { transform: scale(2.2); opacity: 0; }
 }
+@keyframes itemIn {
+  0% { opacity: 0; transform: translateY(26px) scale(0.985); }
+  60% { opacity: 1; }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes pageIn {
+  0% { opacity: 0; transform: translateY(14px); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes badgePop {
+  0% { opacity: 0; transform: scale(0.7); }
+  60% { opacity: 1; transform: scale(1.08); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes breathe {
+  0%, 100% { transform: scale(1); opacity: 0.82; }
+  50% { transform: scale(1.06); opacity: 1; }
+}
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(91, 61, 245, 0.28); }
+  50% { box-shadow: 0 0 0 14px rgba(91, 61, 245, 0); }
+}
+@keyframes riseIn {
+  0% { opacity: 0; transform: translateY(18px); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes slideInRight {
+  0% { opacity: 0; transform: translateX(28px); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes scaleIn {
+  0% { opacity: 0; transform: scale(0.92); }
+  100% { opacity: 1; transform: scale(1); }
+}
 
 /* =========================================================================
    PRINT + REDUCED MOTION
@@ -360,6 +481,23 @@
   .reveal, .reveal-left, .reveal-right, .reveal-scale,
   .word-rise {
     opacity: 1 !important;
+    transform: none !important;
+  }
+  .stagger > * {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+  }
+  .anim-rise, .anim-slide, .anim-scale, .page-enter, .badge-pop {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+  }
+  .float-soft, .breathe, .glow-pulse, .marquee-track, .marquee-track-rev {
+    animation: none !important;
+    transform: none !important;
+  }
+  .hover-lift:hover, .glow-hover:hover, .card:hover, .card-glass:hover {
     transform: none !important;
   }
 }
