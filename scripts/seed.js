@@ -1,17 +1,23 @@
 /**
  * Seed script for the Speedersmania marketplace.
  *
- * Populates a FRESH (empty) Firestore database with initial categories and
- * sample products so the store isn't blank. Uses ROOT-level collections to
- * match the current client (src/config/firestore.js).
+ * Replaces the old demo catalogue with a curated one and is SAFE TO RE-RUN:
+ * products use deterministic IDs, so nothing is duplicated.
  *
  * Usage:
- *   npm run seed
- *   OR
- *   node scripts/seed.js
+ *   npm run seed            # replace demo products + refresh vendor/categories
+ *   npm run seed -- --keep  # keep existing demo products (only add/update)
  *
- * Credentials: reads FIREBASE_SERVICE_ACCOUNT env var (JSON string), or the
- * local serviceAccountKey.json file. This file is NOT committed to git.
+ * What it touches:
+ *   - deletes products whose vendorId is `demo-vendor` (the old seed data),
+ *   - upserts the `demo-vendor` store document,
+ *   - upserts the six storefront categories,
+ *   - upserts every product from scripts/catalog.json.
+ *
+ * It never touches products belonging to real vendors.
+ *
+ * Credentials: FIREBASE_SERVICE_ACCOUNT env var (JSON string) or a local
+ * `*firebase-adminsdk*.json` key in the project root (not committed).
  */
 import admin from 'firebase-admin';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -19,10 +25,9 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const root = join(__dirname, '..');
 
-// ---------- Firebase Admin init ----------
 function loadServiceAccount() {
-  // 1) Prefer the env var (Vercel format).
   if (process.env.FIREBASE_SERVICE_ACCOUNT) {
     try {
       return JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
@@ -30,18 +35,12 @@ function loadServiceAccount() {
       console.error('[seed] Invalid FIREBASE_SERVICE_ACCOUNT JSON:', e.message);
     }
   }
-  // 2) Any Firebase admin SDK key dropped in the project root.
-  const root = join(__dirname, '..');
   const candidate = readdirSync(root)
     .filter((f) => f.endsWith('.json') && f.includes('firebase-adminsdk'))
     .sort()
     .pop();
-  if (candidate) {
-    return JSON.parse(readFileSync(join(root, candidate), 'utf8'));
-  }
-  // 3) Fallback to the legacy filename.
-  const legacy = join(root, 'serviceAccountKey.json');
-  return JSON.parse(readFileSync(legacy, 'utf8'));
+  if (candidate) return JSON.parse(readFileSync(join(root, candidate), 'utf8'));
+  return JSON.parse(readFileSync(join(root, 'serviceAccountKey.json'), 'utf8'));
 }
 
 if (!admin.apps.length) {
@@ -49,79 +48,100 @@ if (!admin.apps.length) {
 }
 const db = admin.firestore();
 
-// ---------- Seed data ----------
+const CATALOG = JSON.parse(readFileSync(join(__dirname, 'catalog.json'), 'utf8'));
+const DEMO_VENDOR_ID = 'demo-vendor';
+const KEEP_EXISTING = process.argv.includes('--keep');
+
 const CATEGORIES = [
-  { id: 'electronics', name: 'Electronics', description: 'Gadgets, devices & accessories', image: 'https://picsum.photos/seed/electronics/600/400', sortOrder: 1 },
-  { id: 'fashion', name: 'Fashion', description: 'Clothing, footwear & style', image: 'https://picsum.photos/seed/fashion/600/400', sortOrder: 2 },
-  { id: 'home', name: 'Home & Living', description: 'Furniture, decor & essentials', image: 'https://picsum.photos/seed/home/600/400', sortOrder: 3 },
-  { id: 'books', name: 'Books', description: 'Books & media', image: 'https://picsum.photos/seed/books/600/400', sortOrder: 4 },
-  { id: 'sports', name: 'Sports & Outdoors', description: 'Gear & active living', image: 'https://picsum.photos/seed/sports/600/400', sortOrder: 5 },
+  { id: 'electronics', name: 'Electronics', description: 'Gadgets, devices & accessories', image: '/catalog/p78-1.webp', sortOrder: 1 },
+  { id: 'fashion', name: 'Fashion', description: 'Clothing, footwear & style', image: '/catalog/p88-1.webp', sortOrder: 2 },
+  { id: 'home', name: 'Home & Living', description: 'Furniture, decor & essentials', image: '/catalog/p12-1.webp', sortOrder: 3 },
+  { id: 'sports', name: 'Sports', description: 'Gear & active living', image: '/catalog/p144-1.webp', sortOrder: 4 },
+  { id: 'beauty', name: 'Beauty', description: 'Makeup, skincare & fragrance', image: '/catalog/p7-1.webp', sortOrder: 5 },
+  { id: 'books', name: 'Books', description: 'Books & media', image: '/catalog/book-1-1.jpg', sortOrder: 6 },
 ];
 
-const DEMO_VENDOR = { id: 'demo-vendor', vendorName: 'Speedersmania Store' };
+const VENDOR = {
+  storeName: 'Speedersmania Store',
+  description: 'The flagship Speedersmania store — everyday essentials and premium picks, shipped across India.',
+  logo: '/catalog/store-logo.svg',
+  verified: true,
+  rating: 4.7,
+  totalProducts: CATALOG.length,
+  totalSales: 1284,
+  commissionRate: 0,
+  status: 'active',
+};
 
-function product(name, desc, price, category, seed, discount = 0, stock = 25) {
-  const originalPrice = discount > 0 ? Math.round(price / (1 - discount / 100)) : price;
+const toProductDoc = (p, now) => {
+  const { createdAtOffsetMs = 0, _cover, ...rest } = p;
   return {
-    name,
-    description: desc,
-    price,
-    originalPrice,
-    discount,
-    category,
-    images: [`https://picsum.photos/seed/${seed}/800/600`, `https://picsum.photos/seed/${seed}-2/800/600`],
-    image: `https://picsum.photos/seed/${seed}/800/600`,
-    vendorId: DEMO_VENDOR.id,
-    vendorName: DEMO_VENDOR.vendorName,
-    stock,
-    rating: 4.5,
-    reviewCount: Math.floor(Math.random() * 120) + 5,
-    soldCount: Math.floor(Math.random() * 300),
-    active: true,
+    ...rest,
+    createdAt: admin.firestore.Timestamp.fromMillis(now - createdAtOffsetMs),
+    updatedAt: admin.firestore.Timestamp.fromMillis(now - createdAtOffsetMs),
   };
+};
+
+async function purgeDemoProducts() {
+  const snap = await db.collection('products').where('vendorId', '==', DEMO_VENDOR_ID).get();
+  if (snap.empty) {
+    console.log('   no demo products to delete');
+    return 0;
+  }
+  console.log(`   deleting ${snap.size} demo products…`);
+  snap.docs.forEach((d) => console.log(`   - ${d.data().name} (${d.id})`));
+  let batch = db.batch();
+  let n = 0;
+  for (const doc of snap.docs) {
+    batch.delete(doc.ref);
+    if (++n % 400 === 0) {
+      await batch.commit();
+      batch = db.batch();
+    }
+  }
+  await batch.commit();
+  return snap.size;
 }
 
-const PRODUCTS = [
-  product('Wireless Bluetooth Headphones', 'Over-ear headphones with active noise cancellation, 30h battery, and deep bass.', 99.99, 'electronics', 'headphones', 20),
-  product('Smart Watch Series 8', 'AMOLED display, heart-rate & SpO2 tracking, water resistant to 50m.', 189.0, 'electronics', 'watch', 15, 40),
-  product('Mechanical Gaming Keyboard', 'Hot-swappable switches, RGB backlight, aluminum body.', 79.0, 'electronics', 'keyboard', 10),
-  product('Men’s Casual Oxford Shirt', 'Soft cotton, slim fit, machine washable. Available in multiple colors.', 34.5, 'fashion', 'shirt'),
-  product('Women’s Running Sneakers', 'Lightweight mesh, cushioned sole, breathable for all-day wear.', 58.0, 'fashion', 'sneakers', 12, 30),
-  product('Classic Denim Jacket', 'Timeless blue denim with a tapered fit and durable stitching.', 45.0, 'fashion', 'jacket'),
-  product('Ceramic Coffee Mug Set (4)', 'Modern minimalist design, dishwasher-safe, 350ml capacity.', 24.0, 'home', 'mug', 5, 60),
-  product('LED Floor Lamp', 'Dimmable, warm-white lighting with a sleek matte finish.', 66.0, 'home', 'lamp', 8, 15),
-  product('Soft Throw Blanket', 'Premium faux-fur throw, super cozy for couches and beds.', 32.0, 'home', 'blanket'),
-  product('Bestseller Hardcover Novel', 'A gripping page-turner — perfect for every bookshelf.', 18.0, 'books', 'book', 25, 100),
-  product('Yoga Mat, Non-Slip', 'Eco-friendly, extra thick, includes carry strap.', 29.0, 'sports', 'yoga', 0, 50),
-  product('Adjustable Dumbbell Set', 'Space-saving adjustable dumbbells from 5–25 kg.', 149.0, 'sports', 'dumbbell', 10, 10),
-];
-
-// ---------- Run ----------
 async function seed() {
+  const now = Date.now();
   const ts = admin.firestore.FieldValue.serverTimestamp();
 
-  console.log('🌱 Seeding database...\n');
+  console.log('🌱 Seeding Speedersmania…\n');
 
-  // Categories (deterministic IDs)
+  if (!KEEP_EXISTING) {
+    console.log('🧹 Removing old demo catalogue');
+    const removed = await purgeDemoProducts();
+    console.log(`   removed ${removed}\n`);
+  }
+
+  console.log('🏪 Vendor');
+  await db.collection('vendors').doc(DEMO_VENDOR_ID).set({ ...VENDOR, updatedAt: ts }, { merge: true });
+  console.log(`   ${VENDOR.storeName} (${DEMO_VENDOR_ID})\n`);
+
+  console.log('🗂  Categories');
   for (const c of CATEGORIES) {
     const { id, ...data } = c;
-    await db.collection('categories').doc(id).set({ ...data, createdAt: ts, updatedAt: ts });
-    console.log(`✅ Category: ${c.name}`);
+    await db.collection('categories').doc(id).set({ ...data, createdAt: ts, updatedAt: ts }, { merge: true });
+    console.log(`   ${c.name}`);
   }
 
-  // Products (auto-generated IDs)
-  let created = 0;
-  for (const p of PRODUCTS) {
-    const ref = await db.collection('products').add({ ...p, createdAt: ts, updatedAt: ts });
-    console.log(`✅ Product: ${p.name} → ${ref.id}`);
-    created++;
+  console.log('\n📦 Products');
+  let count = 0;
+  for (const p of CATALOG) {
+    const ref = db.collection('products').doc(p.id);
+    await ref.set(toProductDoc(p, now));
+    count++;
   }
+  console.log(`   wrote ${count} products`);
 
-  console.log(`\n🎉 Done! Seeded ${CATEGORIES.length} categories + ${created} products.`);
-  console.log('   Collections now visible in Firestore console: categories, products.');
+  await db.collection('vendors').doc(DEMO_VENDOR_ID).set({ totalProducts: count, updatedAt: ts }, { merge: true });
+
+  console.log(`\n🎉 Done. ${CATEGORIES.length} categories, ${count} products from the demo catalogue.`);
+  console.log('   Real vendor products were left untouched.');
 }
 
 seed().then(() => process.exit(0)).catch((err) => {
-  console.error('❌ Seed failed:', err);
+  console.error('❌ Seed failed:', err.message);
   process.exit(1);
 });
