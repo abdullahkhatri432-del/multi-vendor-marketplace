@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Star, Heart, Bolt, BadgeCheck, Eye, ShoppingBag } from 'lucide-react';
+import { ShoppingCart, Star, Heart, Zap, BadgeCheck, ShoppingBag } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useCheckoutInterceptor } from '../../context/CheckoutInterceptorContext';
 import { useAuth } from '../../context/AuthContext';
@@ -161,30 +161,30 @@ export default function ProductCard({ product, view = 'grid' }) {
         {view === 'list' && (
           <button
             onClick={handleAddToCart}
-            className="flex h-9 items-center gap-1.5 rounded-xl bg-ink px-3.5 text-xs font-semibold text-white transition-all hover:bg-primary-600 active:scale-95"
+            className="flex h-9 items-center gap-1.5 rounded-full bg-ink px-4 text-xs font-semibold text-white transition-all hover:bg-primary-600 active:scale-95"
           >
             <ShoppingCart className="h-3.5 w-3.5" />
             Add to cart
           </button>
         )}
+        {view === 'grid' && (
+          <button
+            onClick={handleAddToCart}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-100 text-ink-soft transition-all hover:bg-primary-600 hover:text-white active:scale-90"
+            title="Add to cart"
+            aria-label="Add to cart"
+          >
+            <ShoppingCart className="h-4 w-4" />
+          </button>
+        )}
         <button
           onClick={handleBuyNow}
-          className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-accent-dark text-primary-950 transition-all hover:shadow-glow-accent active:scale-90"
-          title="Buy Now"
+          className="group/buy flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-accent to-accent-dark text-primary-950 transition-all hover:shadow-glow-accent active:scale-90"
+          title="Buy now"
           aria-label="Buy now"
         >
-          <Bolt className="h-4 w-4" />
+          <Zap className="h-4 w-4 transition-transform duration-300 group-hover/buy:scale-110" />
         </button>
-        {view === 'grid' && (
-          <Link
-            to={`/products/${product.id}`}
-            className="flex h-9 w-9 items-center justify-center rounded-xl bg-surface-100 text-ink-muted transition-all hover:bg-primary-50 hover:text-primary-600 active:scale-90"
-            title="View Details"
-            aria-label="View product details"
-          >
-            <Eye className="h-4 w-4" />
-          </Link>
-        )}
       </div>
     </div>
   );
@@ -256,7 +256,7 @@ export default function ProductCard({ product, view = 'grid' }) {
         <div className="absolute inset-x-3 bottom-3 translate-y-0 opacity-100 transition-all duration-500 sm:inset-x-4 sm:bottom-4 md:translate-y-4 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
           <button
             onClick={handleAddToCart}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-white/95 py-2.5 text-xs font-semibold text-primary-700 shadow-card backdrop-blur-sm transition-all hover:bg-primary-600 hover:text-white active:scale-[0.98] sm:py-3 sm:text-sm"
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-white/95 py-2.5 text-xs font-semibold text-primary-700 shadow-card backdrop-blur-sm transition-all hover:bg-primary-600 hover:text-white active:scale-[0.98] sm:py-3 sm:text-sm"
           >
             <ShoppingCart className="h-4 w-4" />
             Add to cart
