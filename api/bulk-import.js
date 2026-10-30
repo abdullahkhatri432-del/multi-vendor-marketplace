@@ -11,6 +11,7 @@ const {
   applyCors,
   rateLimit,
   fetchHtml,
+  FieldValue,
 } = require('../lib/http.cjs');
 
 const PRODUCTS_COLLECTION = 'products'; // root collection (matches client)
@@ -226,8 +227,8 @@ module.exports = async function handler(req, res) {
         active: false,
         importedFrom: url,
         markupPercentage,
-        createdAt: require('firebase-admin').firestore.FieldValue.serverTimestamp(),
-        updatedAt: require('firebase-admin').firestore.FieldValue.serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
       };
 
       const docRef = await db.collection(PRODUCTS_COLLECTION).add(productDoc);

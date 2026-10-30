@@ -5,13 +5,14 @@
 // coupon from Firestore, recomputes the totals, atomically reserves the UPI
 // reference, decrements stock and writes the order.
 const crypto = require('crypto');
-const admin = require('firebase-admin');
 const {
   HttpError,
   getDb,
   authenticate,
   applyCors,
   rateLimit,
+  FieldValue,
+  adminModulePath,
 } = require('../lib/http.cjs');
 const {
   FREE_SHIPPING_THRESHOLD,
@@ -277,7 +278,7 @@ module.exports = async function handler(req, res) {
 
       // ---------- writes ----------
       const orderRef = db.collection('orders').doc();
-      const now = admin.firestore.FieldValue.serverTimestamp();
+      const now = FieldValue.serverTimestamp();
 
       // set() rather than create(): the Admin SDK's transaction.create() rejects
       // FieldValue transforms (e.g. serverTimestamp) when serializing. `orderRef`
@@ -328,7 +329,7 @@ module.exports = async function handler(req, res) {
 
       for (const update of stockUpdates) {
         const data = {
-          soldCount: admin.firestore.FieldValue.increment(update.quantity),
+          soldCount: FieldValue.increment(update.quantity),
           updatedAt: now,
         };
         if (update.stock != null) data.stock = update.stock - update.quantity;
@@ -345,15 +346,15 @@ module.exports = async function handler(req, res) {
           .filter((item) => item.vendorId === vendorId)
           .reduce((sum, item) => sum + item.price * item.quantity + item.addonTotal, 0);
         transaction.update(vendorRefs[index], {
-          totalSales: admin.firestore.FieldValue.increment(units),
-          totalRevenue: admin.firestore.FieldValue.increment(round2(revenue)),
+          totalSales: FieldValue.increment(units),
+          totalRevenue: FieldValue.increment(round2(revenue)),
           updatedAt: now,
         });
       });
 
       if (couponRef) {
         transaction.update(couponRef, {
-          usedCount: admin.firestore.FieldValue.increment(1),
+          usedCount: FieldValue.increment(1),
           updatedAt: now,
         });
       }
@@ -378,7 +379,12 @@ module.exports = async function handler(req, res) {
     }
     return res.status(status).json({
       error: status >= 500 ? 'Could not place your order. Please try again.' : err.message,
-      debug: { msg: err?.message, code: err?.code, stack: String(err?.stack || '').split('\n').slice(0, 5) },
+      debug: {
+        msg: err?.message,
+        code: err?.code,
+        stack: String(err?.stack || '').split('\n').slice(0, 5),
+        adminPaths: { api: require.resolve('firebase-admin'), lib: adminModulePath },
+      },
     });
   }
 };
