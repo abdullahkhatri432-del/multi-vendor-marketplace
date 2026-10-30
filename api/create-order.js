@@ -279,7 +279,10 @@ module.exports = async function handler(req, res) {
       const orderRef = db.collection('orders').doc();
       const now = admin.firestore.FieldValue.serverTimestamp();
 
-      transaction.create(orderRef, {
+      // set() rather than create(): the Admin SDK's transaction.create() rejects
+      // FieldValue transforms (e.g. serverTimestamp) when serializing. `orderRef`
+      // is a fresh random id, so there is nothing to guard against anyway.
+      transaction.set(orderRef, {
         customerId: token.uid,
         customerName,
         customerEmail,
