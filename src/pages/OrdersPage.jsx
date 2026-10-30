@@ -105,6 +105,12 @@ export default function OrdersPage() {
         icon: CircleDollarSign,
       };
     }
+    if (method === 'manual') {
+      return {
+        label: `Manual Transfer · Awaiting verification`,
+        icon: FileText,
+      };
+    }
     return { label: method ? method.replace(/-/g, ' ') : 'Payment method', icon: CreditCard };
   };
 

@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle, MapPin, AlertCircle, Mail, Smartphone, Banknote, ShieldCheck, Truck, Ticket, X, Loader2, Trash2, BookmarkCheck } from 'lucide-react';
+import {
+  CheckCircle, MapPin, AlertCircle, Mail, Smartphone, Banknote, ShieldCheck, Truck,
+  Ticket, X, Loader2, Trash2, BookmarkCheck, Upload, Image, FileText, Clock,
+} from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useCheckoutInterceptor } from '../context/CheckoutInterceptorContext';
@@ -11,6 +14,8 @@ import { computeTotals, computeCodSplit, TAX_RATE } from '../config/pricing';
 import { trackEvent } from '../config/analytics';
 import UpiPayment from '../components/ui/UpiPayment';
 import { inr } from '../utils/currency';
+import { storage } from '../config/firebase';
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const CREATE_ORDER_ENDPOINT =
   import.meta.env.VITE_CREATE_ORDER_ENDPOINT || '/api/create-order';
@@ -27,6 +32,10 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState('upi');
   const [upiRef, setUpiRef] = useState('');
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const [paymentProofFile, setPaymentProofFile] = useState(null);
+  const [paymentProofUrl, setPaymentProofUrl] = useState('');
+  const [paymentProofNote, setPaymentProofNote] = useState('');
+  const [uploadingProof, setUploadingProof] = useState(false);
   const [couponCode, setCouponCode] = useState('');
   const [coupon, setCoupon] = useState(null);
   const [couponLoading, setCouponLoading] = useState(false);
@@ -78,6 +87,11 @@ export default function CheckoutPage() {
     setUpiRef('');
     setPaymentConfirmed(false);
     setError('');
+    if (method !== 'manual') {
+      setPaymentProofFile(null);
+      setPaymentProofUrl('');
+      setPaymentProofNote('');
+    }
   };
 
   const handleApplyCoupon = async () => {
@@ -172,7 +186,31 @@ export default function CheckoutPage() {
       if (!isValidUtrFormat(upiRef)) return 'Please enter the UPI transaction reference (UTR) for your advance payment.';
       if (!paymentConfirmed) return 'Please confirm that you have paid the advance amount.';
     }
+    if (paymentMethod === 'manual') {
+      if (!paymentProofUrl) return 'Please upload a payment proof screenshot (bank transfer / UPI screenshot).';
+      if (!paymentProofNote) return 'Please add a short note about your payment (e.g. "Paid via PhonePe to 9876543210").';
+    }
     return null;
+  };
+
+  // Upload payment proof to Firebase Storage and return the download URL.
+  const handleProofUpload = async (file) => {
+    if (!file) return;
+    setUploadingProof(true);
+    try {
+      const safeName = String(Date.now()) + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const storagePath = `payment-proofs/${user?.uid}/pending/${safeName}`;
+      const storageRefPath = storageRef(storage, storagePath);
+      await uploadBytes(storageRefPath, file);
+      const url = await getDownloadURL(storageRefPath);
+      setPaymentProofUrl(url);
+      setPaymentProofFile(file);
+    } catch (err) {
+      console.error('Proof upload failed:', err);
+      setError('Failed to upload payment proof. Please try again.');
+    } finally {
+      setUploadingProof(false);
+    }
   };
 
   // Redirect only when there is nothing to check out and no completed order
@@ -271,7 +309,13 @@ export default function CheckoutPage() {
           })),
           couponCode: coupon?.code || null,
           paymentMethod,
-          utr: normalizeUtr(upiRef),
+          utr: paymentMethod === 'manual' ? '' : normalizeUtr(upiRef),
+          ...(paymentMethod === 'manual'
+            ? {
+                paymentProofUrl,
+                paymentProofNote,
+              }
+            : {}),
         }),
       });
 
@@ -336,8 +380,9 @@ export default function CheckoutPage() {
           Thank you for your purchase. Your order <span className="font-semibold text-surface-700">#{orderId?.slice(0, 8)}</span> has been placed successfully.
         </p>
         <div className="mt-4 mx-auto max-w-md rounded-xl bg-amber-50 border border-amber-100 px-4 py-3 text-sm text-amber-700">
-          Your payment is marked <span className="font-semibold">pending verification</span>. It will be confirmed after
-          the seller verifies your UTR against the bank statement (usually within a few hours).
+          {paymentMethod === 'manual'
+            ? 'Your payment proof has been uploaded. Your order will be confirmed after the seller verifies your payment screenshot (usually within a few hours).'
+            : 'Your payment is marked <span className="font-semibold">pending verification</span>. It will be confirmed after the seller verifies your UTR against the bank statement (usually within a few hours).'}
           You can track the status in <span className="font-semibold">My Orders</span>.
         </div>
         <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
@@ -476,7 +521,7 @@ export default function CheckoutPage() {
               </div>
 
               {/* Payment Method Toggle */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
                 <button
                   type="button"
                   onClick={() => handlePaymentMethodChange('upi')}
@@ -499,13 +544,24 @@ export default function CheckoutPage() {
                 >
                   <Banknote className="h-5 w-5" /> Cash on Delivery
                 </button>
+                <button
+                  type="button"
+                  onClick={() => handlePaymentMethodChange('manual')}
+                  className={`flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 px-3 py-3 text-xs font-semibold transition-all ${
+                    paymentMethod === 'manual'
+                      ? 'border-primary-600 bg-primary-50 text-primary-700'
+                      : 'border-surface-200 text-surface-500 hover:border-surface-300'
+                  }`}
+                >
+                  <Upload className="h-5 w-5" /> Manual Transfer
+                </button>
               </div>
 
               {paymentMethod === 'upi' && (
                 <UpiPayment amount={total} upiRef={upiRef} onUpiRefChange={setUpiRef} />
               )}
 
-              {(paymentMethod === 'upi' || paymentMethod === 'cod') && (
+              {(paymentMethod === 'upi' || paymentMethod === 'cod' || paymentMethod === 'manual') && (
                 <label className="mt-4 flex items-start gap-3 rounded-xl border border-surface-200 bg-surface-50 px-4 py-3 cursor-pointer">
                   <input
                     type="checkbox"
@@ -516,9 +572,15 @@ export default function CheckoutPage() {
                   <span className="text-xs text-surface-600">
                     I confirm that I have completed the payment of{' '}
                     <span className="font-semibold text-surface-800">
-                      {inr((paymentMethod === 'cod' ? codAdvance : total))}
+                      {inr(paymentMethod === 'cod' ? codAdvance : paymentMethod === 'manual' ? total : total)}
                     </span>
-                    {' '}via UPI, and I understand the order will only be placed after my payment is verified.
+                    {paymentMethod === 'manual'
+                      ? ' via bank/UPI transfer (proof uploaded above).'
+                      : ' via UPI,'}
+                    {' '}
+                    {paymentMethod === 'manual'
+                      ? 'I understand the order will be shipped after the seller verifies my payment proof.'
+                      : 'and I understand the order will only be placed after my payment is verified.'}
                   </span>
                 </label>
               )}
@@ -539,6 +601,87 @@ export default function CheckoutPage() {
                   <div className="flex items-center gap-2 text-xs text-surface-500">
                     <ShieldCheck className="h-4 w-4 text-emerald-600" />
                     Advance is refunded if the order is cancelled before dispatch.
+                  </div>
+                </div>
+              )}
+
+              {paymentMethod === 'manual' && (
+                <div className="mt-2 space-y-4">
+                  <div className="flex items-start gap-3 rounded-2xl border border-primary-200 bg-primary-50 p-4">
+                    <FileText className="h-5 w-5 text-primary-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold text-primary-800">Manual Bank / UPI Transfer</p>
+                      <p className="mt-1 text-xs text-primary-700">
+                        Pay the full order amount (<span className="font-semibold">{inr(total)}</span>) to the UPI ID or bank account shown below,
+                        then upload a screenshot of the payment confirmation. We will verify it manually before shipping.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="block text-xs font-semibold text-surface-700 mb-1">
+                      Upload Payment Proof (Screenshot)
+                    </label>
+                    {uploadingProof ? (
+                      <div className="flex items-center gap-2 text-xs text-primary-600">
+                        <Loader2 className="h-4 w-4 animate-spin" /> Uploading…
+                      </div>
+                    ) : (
+                      <>
+                        <label
+                          className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-surface-200 bg-surface-50 px-4 py-4 text-sm text-surface-500 hover:border-primary-300 hover:text-primary-600 transition-colors cursor-pointer"
+                        >
+                          <Upload className="h-5 w-5" />
+                          <span>Choose screenshot (PNG/JPG, max 5 MB)</span>
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/jpg,image/webp"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              if (file.size > 5 * 1024 * 1024) {
+                                setError('File too large. Please use an image under 5 MB.');
+                                return;
+                              }
+                              handleProofUpload(file);
+                            }}
+                          />
+                        </label>
+                      </>
+                    )}
+                    {paymentProofUrl && (
+                      <div className="rounded-xl border border-surface-200 bg-surface-50 p-3 relative">
+                        <img
+                          src={paymentProofUrl}
+                          alt="Payment proof"
+                          className="h-32 w-full object-cover rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPaymentProofFile(null);
+                            setPaymentProofUrl('');
+                          }}
+                          className="absolute top-2 right-2 text-xs text-red-500 hover:text-red-700"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-xs font-semibold text-surface-700 mb-1">
+                      Payment Note (optional but helpful)
+                    </label>
+                    <textarea
+                      value={paymentProofNote}
+                      onChange={(e) => setPaymentProofNote(e.target.value)}
+                      placeholder="e.g. Paid ₹1,027 via PhonePe to 8160587811@kotak811 on 30 Oct 2026"
+                      rows={2}
+                      className="input-field text-sm"
+                    />
                   </div>
                 </div>
               )}
