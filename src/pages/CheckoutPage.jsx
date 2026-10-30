@@ -10,6 +10,7 @@ import { isValidUtrFormat, normalizeUtr } from '../utils/paymentMatch';
 import { computeTotals, computeCodSplit, TAX_RATE } from '../config/pricing';
 import { trackEvent } from '../config/analytics';
 import UpiPayment from '../components/ui/UpiPayment';
+import { inr } from '../utils/currency';
 
 const CREATE_ORDER_ENDPOINT =
   import.meta.env.VITE_CREATE_ORDER_ENDPOINT || '/api/create-order';
@@ -97,7 +98,7 @@ export default function CheckoutPage() {
       const status = getCouponStatus(normalized, cartTotal);
       if (!status.valid) {
         if (status.reason === 'min-order') {
-          setCouponError(`This coupon requires a minimum order of ₹${status.minOrder.toFixed(2)}.`);
+          setCouponError(`This coupon requires a minimum order of ${inr(status.minOrder)}.`);
         } else if (status.reason === 'expired') {
           setCouponError('This coupon has expired.');
         } else if (status.reason === 'used-up') {
@@ -515,7 +516,7 @@ export default function CheckoutPage() {
                   <span className="text-xs text-surface-600">
                     I confirm that I have completed the payment of{' '}
                     <span className="font-semibold text-surface-800">
-                      ₹{(paymentMethod === 'cod' ? codAdvance : total).toFixed(2)}
+                      {inr((paymentMethod === 'cod' ? codAdvance : total))}
                     </span>
                     {' '}via UPI, and I understand the order will only be placed after my payment is verified.
                   </span>
@@ -529,8 +530,8 @@ export default function CheckoutPage() {
                     <div>
                       <p className="text-sm font-semibold text-amber-800">Cash on Delivery — Advance Required</p>
                       <p className="mt-1 text-xs text-amber-700">
-                        Pay a small <span className="font-semibold">₹{codAdvance.toFixed(2)}</span> advance now to secure your order.
-                        Remaining <span className="font-semibold">₹{codBalance.toFixed(2)}</span> payable in cash/UPI at delivery.
+                        Pay a small <span className="font-semibold">{inr(codAdvance)}</span> advance now to secure your order.
+                        Remaining <span className="font-semibold">{inr(codBalance)}</span> payable in cash/UPI at delivery.
                       </p>
                     </div>
                   </div>
@@ -606,11 +607,11 @@ export default function CheckoutPage() {
                       <p className="text-xs text-surface-500">Qty: {item.quantity}</p>
                     </div>
                     <span className="text-xs font-semibold">
-                      ₹{(item.price * item.quantity + (item.addonTotal || 0)).toFixed(2)}
+                      {inr((item.price * item.quantity + (item.addonTotal || 0)))}
                     </span>
                     {item.addons && item.addons.length > 0 && (
                       <div className="mt-1 text-[10px] text-primary-600">
-                        +₹{item.addonTotal?.toFixed(2)} add-ons
+                        +{inr(item.addonTotal)} add-ons
                       </div>
                     )}
                   </div>
@@ -619,35 +620,35 @@ export default function CheckoutPage() {
               <div className="mt-4 pt-4 border-t border-surface-100 space-y-2 text-sm anim-rise">
                 <div className="flex justify-between">
                   <span className="text-surface-500">Item Subtotal</span>
-                  <span>₹{cartTotal.toFixed(2)}</span>
+                  <span>{inr(cartTotal)}</span>
                 </div>
                 {discount > 0 && (
                   <div className="flex justify-between text-emerald-600">
                     <span className="text-surface-500">Coupon Discount ({coupon?.code})</span>
-                    <span>-₹{discount.toFixed(2)}</span>
+                    <span>-{inr(discount)}</span>
                   </div>
                 )}
                 <div className="flex justify-between">
                   <span className="text-surface-500">Shipping</span>
-                  <span>{shipping === 0 ? <span className="text-emerald-600 font-medium">Free</span> : `₹${shipping.toFixed(2)}`}</span>
+                  <span>{shipping === 0 ? <span className="text-emerald-600 font-medium">Free</span> : `${inr(shipping)}`}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-surface-500">GST ({Math.round(TAX_RATE * 100)}%)</span>
-                  <span className="text-xs text-surface-400">₹{tax.toFixed(2)}</span>
+                  <span className="text-xs text-surface-400">{inr(tax)}</span>
                 </div>
                 <div className="flex justify-between pt-2 border-t border-surface-100">
                   <span className="font-semibold">Total</span>
-                  <span className="font-bold">₹{total.toFixed(2)}</span>
+                  <span className="font-bold">{inr(total)}</span>
                 </div>
                 {(discount > 0 || shipping === 0) && (
                   <div className="flex items-center gap-1.5 rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-700 mt-2">
                     <CheckCircle className="h-3.5 w-3.5 shrink-0" />
-                    You're saving ₹{(discount + (cartTotal - discount > 999 ? 49 : 0)).toFixed(2)} on this order
+                    You're saving {inr((discount + (cartTotal - discount > 999 ? 49 : 0)))} on this order
                   </div>
                 )}
               </div>
               <button type="submit" disabled={processing} className="btn-primary w-full mt-6">
-                {processing ? 'Processing...' : `Pay ₹${payableNow.toFixed(2)}`}
+                {processing ? 'Processing...' : `Pay ${inr(payableNow)}`}
               </button>
             </div>
           </div>

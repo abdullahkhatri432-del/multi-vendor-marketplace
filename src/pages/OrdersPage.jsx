@@ -9,6 +9,7 @@ import EmptyState from '../components/ui/EmptyState';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import OrderStatusTimeline from '../components/ui/OrderStatusTimeline';
 import InvoiceModal from '../components/ui/InvoiceModal';
+import { inr } from '../utils/currency';
 
 export default function OrdersPage() {
   const { user, loading: authLoading } = useAuth();
@@ -100,7 +101,7 @@ export default function OrdersPage() {
     }
     if (method === 'cod') {
       return {
-        label: `COD · Advance ₹${order.advanceAmount || 0} · Balance ₹${order.balanceDue || order.total || 0}`,
+        label: `COD · Advance ${inr(order.advanceAmount)} · Balance ${inr(order.balanceDue || order.total)}`,
         icon: CircleDollarSign,
       };
     }
@@ -156,7 +157,7 @@ export default function OrdersPage() {
                   <span className={statusColors[order.status] || 'badge-primary'}>
                     {order.status || 'pending'}
                   </span>
-                  <span className="text-lg font-bold text-surface-900">₹{order.total?.toFixed(2)}</span>
+                  <span className="text-lg font-bold text-surface-900">{inr(order.total)}</span>
                 </div>
               </div>
 
@@ -179,7 +180,7 @@ export default function OrdersPage() {
                       />
                       <div>
                         <p className="text-xs font-medium text-surface-700">{item.name}</p>
-                        <p className="text-xs text-surface-400">Qty: {item.quantity} × ₹{item.price}</p>
+                        <p className="text-xs text-surface-400">Qty: {item.quantity} × {inr(item.price)}</p>
                         {item.addons && item.addons.length > 0 && (
                           <div className="text-[10px] text-primary-600 mt-0.5">
                             Add-ons: {item.addons.map(a => a.title).join(', ')}
@@ -269,8 +270,8 @@ export default function OrdersPage() {
                         </p>
                       )}
                       <p>Status: <span className="font-medium capitalize">{paymentLabel(order.paymentStatus)}</span></p>
-                      {order.advanceAmount > 0 && <p>Advance paid: ₹{order.advanceAmount.toFixed(2)}</p>}
-                      {order.balanceDue > 0 && <p>Balance due: ₹{order.balanceDue.toFixed(2)}</p>}
+                      {order.advanceAmount > 0 && <p>Advance paid: {inr(order.advanceAmount)}</p>}
+                      {order.balanceDue > 0 && <p>Balance due: {inr(order.balanceDue)}</p>}
                     </div>
                   </div>
 
@@ -300,17 +301,17 @@ export default function OrdersPage() {
                   <div className="md:col-span-2">
                     <h4 className="text-sm font-semibold text-surface-900 mb-3">Order Summary</h4>
                     <div className="rounded-2xl bg-surface-50 p-4 text-sm space-y-2 text-surface-600">
-                      <div className="flex justify-between"><span>Subtotal</span><span>₹{order.subtotal?.toFixed(2)}</span></div>
+                      <div className="flex justify-between"><span>Subtotal</span><span>{inr(order.subtotal)}</span></div>
                       {order.discount > 0 && (
                         <div className="flex justify-between text-emerald-600">
                           <span>Coupon {order.couponCode ? `(${order.couponCode})` : ''}</span>
-                          <span>-₹{order.discount.toFixed(2)}</span>
+                          <span>-{inr(order.discount)}</span>
                         </div>
                       )}
-                      <div className="flex justify-between"><span>Shipping</span><span>{order.shipping > 0 ? `₹${order.shipping.toFixed(2)}` : 'Free'}</span></div>
-                      <div className="flex justify-between"><span>GST (18%)</span><span>₹{order.tax?.toFixed(2)}</span></div>
+                      <div className="flex justify-between"><span>Shipping</span><span>{order.shipping > 0 ? `${inr(order.shipping)}` : 'Free'}</span></div>
+                      <div className="flex justify-between"><span>GST (18%)</span><span>{inr(order.tax)}</span></div>
                       <div className="flex justify-between font-bold text-surface-900 border-t border-surface-200 pt-2">
-                        <span>Total</span><span>₹{order.total?.toFixed(2)}</span>
+                        <span>Total</span><span>{inr(order.total)}</span>
                       </div>
                     </div>
                   </div>

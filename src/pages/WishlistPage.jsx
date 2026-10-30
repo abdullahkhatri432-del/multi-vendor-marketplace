@@ -6,6 +6,7 @@ import { useCart } from '../context/CartContext';
 import { getWishlist, removeFromWishlist, getProduct } from '../config/firestore';
 import EmptyState from '../components/ui/EmptyState';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
+import { inr } from '../utils/currency';
 
 export default function WishlistPage() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
@@ -63,7 +64,7 @@ export default function WishlistPage() {
                 </Link>
                 <div className="mt-auto flex items-center justify-between gap-2 border-t border-surface-200/60 pt-3">
                   <span className="whitespace-nowrap text-lg font-bold text-surface-900">
-                    ₹{Number(product.price || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                    {inr(product.price)}
                   </span>
                   <button
                     onClick={() => addItem(product)}

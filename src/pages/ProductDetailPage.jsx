@@ -8,6 +8,7 @@ import { useCheckoutInterceptor } from '../context/CheckoutInterceptorContext';
 import { trackEvent } from '../config/analytics';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import ProductCard from '../components/ui/ProductCard';
+import { inr } from '../utils/currency';
 
 const RECENT_KEY = 'speedersmania_recently_viewed';
 const MAX_RECENT = 8;
@@ -210,6 +211,9 @@ export default function ProductDetailPage() {
 
   const images = product.images?.length > 0 ? product.images : [product.image || `https://picsum.photos/seed/${product.id}/600/600`];
   const avgRating = reviews.length > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : (product.rating?.toFixed(1) || '4.5');
+  // Cards show a lifetime review count; until reviews exist in Firestore, fall
+  // back to it so the rating line doesn't contradict the product card.
+  const reviewTotal = reviews.length > 0 ? reviews.length : product.reviewCount || 0;
   const totalPrice = (product.price || 0) * quantity + selectedAddons.reduce((sum, addon) => sum + (addon.price || 0) * quantity, 0);
   const deliveryDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
   const ratingDist = [5, 4, 3, 2, 1].map((s) => ({
@@ -280,7 +284,7 @@ export default function ProductDetailPage() {
                 <Star key={i} className={`h-4 w-4 ${i < Math.round(avgRating) ? 'fill-amber-400 text-amber-400' : 'text-surface-200'}`} />
               ))}
             </div>
-            <span className="text-sm text-surface-500">{avgRating} ({reviews.length} reviews)</span>
+            <span className="text-sm text-surface-500">{avgRating} ({reviewTotal} reviews)</span>
             <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
               product.stock === 0
                 ? 'bg-red-50 text-red-600'
@@ -297,9 +301,9 @@ export default function ProductDetailPage() {
           </div>
 
           <div className="mt-6 flex items-baseline gap-3">
-            <span className="text-3xl font-bold text-surface-900">₹{product.price?.toFixed(2)}</span>
+            <span className="text-3xl font-bold text-surface-900">{inr(product.price)}</span>
             {product.originalPrice && product.originalPrice > product.price && (
-              <span className="text-lg text-surface-400 line-through">₹{product.originalPrice.toFixed(2)}</span>
+              <span className="text-lg text-surface-400 line-through">{inr(product.originalPrice)}</span>
             )}
           </div>
 
@@ -324,7 +328,7 @@ export default function ProductDetailPage() {
                         />
                         <span className="text-sm font-medium text-surface-900">✔️ {addon.title}</span>
                       </div>
-                      <span className="text-sm font-semibold text-primary-600">₹{addon.price?.toFixed(2)}</span>
+                      <span className="text-sm font-semibold text-primary-600">{inr(addon.price)}</span>
                     </label>
                   );
                 })}
@@ -335,13 +339,13 @@ export default function ProductDetailPage() {
           <div className="mt-8">
             <div className="flex items-center gap-2 mb-4">
               <span className="text-sm text-surface-500">Base Price:</span>
-              <span className="text-lg font-bold text-surface-900">₹{product.price?.toFixed(2)}</span>
+              <span className="text-lg font-bold text-surface-900">{inr(product.price)}</span>
             </div>
             {selectedAddons.length > 0 && (
               <div className="flex items-center gap-2 mb-4">
                 <span className="text-sm text-surface-500">Add-ons:</span>
                 <span className="text-lg font-bold text-primary-600">
-                  +₹{selectedAddons.reduce((sum, addon) => sum + (addon.price || 0), 0).toFixed(2)}
+                  +{inr(selectedAddons.reduce((sum, addon) => sum + (addon.price || 0), 0))}
                 </span>
               </div>
             )}
@@ -349,7 +353,7 @@ export default function ProductDetailPage() {
               <div className="flex items-center justify-between">
                 <span className="text-base font-medium text-surface-600">Total for {quantity}×:</span>
                 <span className="text-2xl font-bold text-surface-900">
-                  ₹{totalPrice.toFixed(2)}
+                  {inr(totalPrice)}
                 </span>
               </div>
             </div>

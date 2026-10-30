@@ -6,15 +6,7 @@ import { useCheckoutInterceptor } from '../../context/CheckoutInterceptorContext
 import { useAuth } from '../../context/AuthContext';
 import { trackEvent } from '../../config/analytics';
 import { TiltCard } from './Motion';
-
-/* Indian price formatting: ₹24,999 and ₹149.50 — no trailing ".00". */
-const inr = (value) => {
-  const n = Number(value) || 0;
-  return `₹${n.toLocaleString('en-IN', {
-    minimumFractionDigits: Number.isInteger(n) ? 0 : 2,
-    maximumFractionDigits: 2,
-  })}`;
-};
+import { inr } from '../../utils/currency';
 
 export default function ProductCard({ product, view = 'grid' }) {
   const { addItem } = useCart();

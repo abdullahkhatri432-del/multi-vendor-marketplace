@@ -8,6 +8,7 @@ import { getCouponByCode } from '../config/firestore';
 import { getCouponStatus, computeDiscount, normalizeCoupon, normalizeCouponCode } from '../utils/coupons';
 import { computeTotals, FREE_SHIPPING_THRESHOLD, SHIPPING_FEE, TAX_RATE } from '../config/pricing';
 import EmptyState from '../components/ui/EmptyState';
+import { inr } from '../utils/currency';
 
 export default function CartPage() {
   const { cart, removeItem, updateQuantity, cartTotal, clearCart } = useCart();
@@ -43,7 +44,7 @@ export default function CartPage() {
       const status = getCouponStatus(normalized, cartTotal);
       if (!status.valid) {
         if (status.reason === 'min-order') {
-          setCouponError(`This coupon requires a minimum order of ₹${status.minOrder.toFixed(2)}.`);
+          setCouponError(`This coupon requires a minimum order of ${inr(status.minOrder)}.`);
         } else if (status.reason === 'expired') {
           setCouponError('This coupon has expired.');
         } else if (status.reason === 'used-up') {
@@ -115,7 +116,7 @@ export default function CartPage() {
               {freeShippingRemaining > 0 ? (
                 <>
                   <Truck className="h-4 w-4 text-primary-600" />
-                  Add <span className="font-bold text-primary-700">₹{freeShippingRemaining.toFixed(2)}</span> more for FREE shipping!
+                  Add <span className="font-bold text-primary-700">{inr(freeShippingRemaining)}</span> more for FREE shipping!
                 </>
               ) : (
                 <>
@@ -155,7 +156,7 @@ export default function CartPage() {
                     {item.addons.map((addon, idx) => (
                       <div key={idx} className="flex items-center justify-between text-xs">
                         <span className="text-surface-500">{addon.title}</span>
-                        <span className="text-primary-600">₹{addon.price?.toFixed(2)}</span>
+                        <span className="text-primary-600">{inr(addon.price)}</span>
                       </div>
                     ))}
                   </div>
@@ -180,12 +181,12 @@ export default function CartPage() {
                   </div>
                   <div className="text-right">
                     <span className="text-sm font-bold text-surface-900 block">
-                      ₹{(item.price * item.quantity + (item.addonTotal || 0)).toFixed(2)}
+                      {inr((item.price * item.quantity + (item.addonTotal || 0)))}
                     </span>
                     {item.addons && item.addons.length > 0 && (
                       <div className="flex items-center gap-1 mt-1">
                         <span className="text-xs text-surface-400">Add-ons:</span>
-                        <span className="text-xs text-primary-600">+₹{item.addonTotal?.toFixed(2)}</span>
+                        <span className="text-xs text-primary-600">+{inr(item.addonTotal)}</span>
                       </div>
                     )}
                   </div>
@@ -288,7 +289,7 @@ export default function CartPage() {
                     <p className="text-xs text-surface-500">Qty: {item.quantity}</p>
                   </div>
                   <span className="text-xs font-semibold">
-                    ₹{(item.price * item.quantity + (item.addonTotal || 0)).toFixed(2)}
+                    {inr((item.price * item.quantity + (item.addonTotal || 0)))}
                   </span>
                 </div>
               ))}
@@ -297,30 +298,30 @@ export default function CartPage() {
             <div className="mt-4 pt-4 border-t border-surface-100 space-y-2 text-sm anim-rise">
               <div className="flex justify-between">
                 <span className="text-surface-500">Subtotal</span>
-                <span>₹{cartTotal.toFixed(2)}</span>
+                <span>{inr(cartTotal)}</span>
               </div>
               {discount > 0 && (
                 <div className="flex justify-between text-emerald-600">
                   <span className="text-surface-500">Coupon Discount ({coupon?.code})</span>
-                  <span>-₹{discount.toFixed(2)}</span>
+                  <span>-{inr(discount)}</span>
                 </div>
               )}
               <div className="flex justify-between">
                 <span className="text-surface-500">Shipping</span>
-                <span>{shipping === 0 ? 'Free' : `₹${shipping.toFixed(2)}`}</span>
+                <span>{shipping === 0 ? 'Free' : `${inr(shipping)}`}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-surface-500">GST ({Math.round(TAX_RATE * 100)}%)</span>
-                <span>₹{tax.toFixed(2)}</span>
+                <span>{inr(tax)}</span>
               </div>
               <div className="flex justify-between pt-2 border-t border-surface-100">
                 <span className="font-semibold">Total</span>
-                <span className="font-bold text-lg">₹{total.toFixed(2)}</span>
+                <span className="font-bold text-lg">{inr(total)}</span>
               </div>
               {savings > 0 && (
                 <div className="flex justify-between text-xs text-emerald-600">
                   <span className="text-surface-500">You save</span>
-                  <span>₹{savings.toFixed(2)}</span>
+                  <span>{inr(savings)}</span>
                 </div>
               )}
             </div>
