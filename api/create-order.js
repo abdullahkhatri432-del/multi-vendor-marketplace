@@ -12,7 +12,6 @@ const {
   applyCors,
   rateLimit,
   FieldValue,
-  adminModulePath,
 } = require('../lib/http.cjs');
 const {
   FREE_SHIPPING_THRESHOLD,
@@ -375,16 +374,10 @@ module.exports = async function handler(req, res) {
   } catch (err) {
     const status = err instanceof HttpError ? err.status : 500;
     if (status >= 500) {
-      console.error('[create-order] failed:', err?.message, err?.stack);
+      console.error('[create-order] failed:', err?.message);
     }
     return res.status(status).json({
       error: status >= 500 ? 'Could not place your order. Please try again.' : err.message,
-      debug: {
-        msg: err?.message,
-        code: err?.code,
-        stack: String(err?.stack || '').split('\n').slice(0, 5),
-        adminPaths: { api: require.resolve('firebase-admin'), lib: adminModulePath },
-      },
     });
   }
 };
