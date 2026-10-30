@@ -256,7 +256,7 @@ export default function LazyAuthModal({
           <button
             type="button"
             onClick={goToForgot}
-            className="text-xs font-semibold text-primary-600 hover:text-primary-700 transition-colors"
+            className="inline-flex min-h-[24px] items-center px-1 text-xs font-semibold text-primary-600 hover:text-primary-700 transition-colors"
           >
             Forgot password?
           </button>

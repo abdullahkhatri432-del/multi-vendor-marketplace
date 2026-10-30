@@ -18,7 +18,8 @@ export default function ProductsPage() {
   const [selectedVendor, setSelectedVendor] = useState(searchParams.get('vendor') || '');
   const [vendors, setVendors] = useState([]);
   const [minRating, setMinRating] = useState(0);
-  const [priceRange, setPriceRange] = useState([0, 100000]);
+  // `null` upper bound means "no maximum", so no product is hidden by default.
+  const [priceRange, setPriceRange] = useState([0, null]);
   const [showFilters, setShowFilters] = useState(false);
   const [recentProducts, setRecentProducts] = useState([]);
 
@@ -87,7 +88,11 @@ export default function ProductsPage() {
         if (minRating > 0) {
           result = result.filter((p) => (p.rating || 0) >= minRating);
         }
-        result = result.filter((p) => p.price >= priceRange[0] && p.price <= priceRange[1]);
+        result = result.filter(
+          (p) =>
+            p.price >= priceRange[0] &&
+            (priceRange[1] == null || p.price <= priceRange[1])
+        );
 
         switch (sortBy) {
           case 'price-low':
@@ -136,11 +141,12 @@ export default function ProductsPage() {
     setSelectedCategory('');
     setSelectedVendor('');
     setMinRating(0);
-    setPriceRange([0, 100000]);
+    setPriceRange([0, null]);
     setSearchParams(query ? { q: query } : {});
   };
 
-  const hasActiveFilters = selectedCategory || selectedVendor || minRating > 0 || priceRange[0] > 0 || priceRange[1] < 100000;
+  const hasActiveFilters =
+    selectedCategory || selectedVendor || minRating > 0 || priceRange[0] > 0 || priceRange[1] != null;
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
@@ -184,7 +190,7 @@ export default function ProductsPage() {
       )}
 
       {/* Toolbar */}
-      <div className="flex items-center justify-between gap-4 mb-6 pb-4 border-b border-surface-100 reveal">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-b border-surface-100 pb-4 reveal">
         <button
           onClick={() => setShowFilters(!showFilters)}
           className="btn-secondary text-sm lg:hidden"
@@ -193,11 +199,12 @@ export default function ProductsPage() {
           Filters
         </button>
 
-        <div className="flex items-center gap-3 ml-auto">
+        <div className="ml-auto flex min-w-0 items-center gap-2 sm:gap-3">
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="input-field py-2 text-sm w-auto"
+            aria-label="Sort products"
+            className="input-field w-auto min-w-0 max-w-[15rem] py-2 text-sm"
           >
             <option value="newest">Newest First</option>
             <option value="price-low">Price: Low to High</option>
@@ -326,18 +333,22 @@ export default function ProductsPage() {
               <div className="flex items-center gap-3">
                 <input
                   type="number"
-                  value={priceRange[0]}
-                  onChange={(e) => setPriceRange([+e.target.value, priceRange[1]])}
+                  min="0"
+                  value={priceRange[0] ?? ''}
+                  onChange={(e) => setPriceRange([e.target.value === '' ? 0 : +e.target.value, priceRange[1]])}
                   className="input-field py-2 text-sm w-full"
                   placeholder="Min"
+                  aria-label="Minimum price"
                 />
                 <span className="text-surface-400">—</span>
                 <input
                   type="number"
-                  value={priceRange[1]}
-                  onChange={(e) => setPriceRange([priceRange[0], +e.target.value])}
+                  min="0"
+                  value={priceRange[1] ?? ''}
+                  onChange={(e) => setPriceRange([priceRange[0], e.target.value === '' ? null : +e.target.value])}
                   className="input-field py-2 text-sm w-full"
                   placeholder="Max"
+                  aria-label="Maximum price"
                 />
               </div>
             </div>

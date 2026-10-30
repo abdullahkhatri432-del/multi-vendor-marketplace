@@ -71,7 +71,7 @@ export default function LoginPage() {
 
         <Link
           to="/"
-          className="mt-7 inline-flex items-center gap-2 text-sm font-medium text-ink-muted transition-colors hover:text-ink"
+          className="mt-7 inline-flex min-h-[28px] items-center gap-2 text-sm font-medium text-ink-muted transition-colors hover:text-ink"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to the store

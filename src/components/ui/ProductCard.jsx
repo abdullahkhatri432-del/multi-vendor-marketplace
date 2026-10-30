@@ -122,7 +122,7 @@ export default function ProductCard({ product, view = 'grid' }) {
     <button
       onClick={handleWishlist}
       disabled={wishBusy}
-      className={`flex h-9 w-9 items-center justify-center rounded-full shadow-card backdrop-blur-md transition-all duration-300 active:scale-90 sm:h-10 sm:w-10 ${
+      className={`relative flex h-9 w-9 items-center justify-center rounded-full shadow-card backdrop-blur-md transition-all duration-300 after:absolute after:-inset-1 after:rounded-full after:content-[''] active:scale-90 sm:h-10 sm:w-10 ${
         wished
           ? 'bg-danger text-white hover:bg-danger/90'
           : 'bg-white/90 text-ink-soft opacity-100 hover:text-danger md:opacity-0 md:-translate-x-2 md:group-hover:opacity-100 md:group-hover:translate-x-0'
@@ -140,11 +140,11 @@ export default function ProductCard({ product, view = 'grid' }) {
     <div className="mt-auto flex items-end justify-between gap-2 border-t border-surface-200/60 pt-3">
       <div className="min-w-0">
         <div className="flex flex-wrap items-baseline gap-x-1.5">
-          <span className="whitespace-nowrap text-lg font-bold leading-tight text-ink sm:text-xl">
+          <span className="whitespace-nowrap text-base font-bold leading-tight text-ink sm:text-lg">
             {inr(price)}
           </span>
           {hasDiscount && (
-            <span className="whitespace-nowrap text-xs text-ink-muted line-through sm:text-sm">
+            <span className="whitespace-nowrap text-[11px] text-ink-muted line-through sm:text-xs">
               {inr(originalPrice)}
             </span>
           )}
@@ -157,11 +157,11 @@ export default function ProductCard({ product, view = 'grid' }) {
           <p className="mt-0.5 text-[11px] font-semibold text-transparent" aria-hidden>&nbsp;</p>
         )}
       </div>
-      <div className="flex shrink-0 items-center gap-1.5">
+      <div className="flex shrink-0 items-center gap-2">
         {view === 'list' && (
           <button
             onClick={handleAddToCart}
-            className="flex h-9 items-center gap-1.5 rounded-full bg-ink px-4 text-xs font-semibold text-white transition-all hover:bg-primary-600 active:scale-95"
+            className="flex min-h-[38px] items-center gap-1.5 rounded-full bg-ink px-4 text-xs font-semibold text-white transition-all hover:bg-primary-600 active:scale-95"
           >
             <ShoppingCart className="h-3.5 w-3.5" />
             Add to cart
@@ -170,7 +170,7 @@ export default function ProductCard({ product, view = 'grid' }) {
         {view === 'grid' && (
           <button
             onClick={handleAddToCart}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-100 text-ink-soft transition-all hover:bg-primary-600 hover:text-white active:scale-90"
+            className="relative flex h-9 w-9 items-center justify-center rounded-full bg-surface-100 text-ink-soft transition-all after:absolute after:-inset-1 after:rounded-full after:content-[''] hover:bg-primary-600 hover:text-white active:scale-90"
             title="Add to cart"
             aria-label="Add to cart"
           >
@@ -179,7 +179,7 @@ export default function ProductCard({ product, view = 'grid' }) {
         )}
         <button
           onClick={handleBuyNow}
-          className="group/buy flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-accent to-accent-dark text-primary-950 transition-all hover:shadow-glow-accent active:scale-90"
+          className="group/buy relative flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-accent to-accent-dark text-primary-950 transition-all after:absolute after:-inset-1 after:rounded-full after:content-[''] hover:shadow-glow-accent active:scale-90"
           title="Buy now"
           aria-label="Buy now"
         >

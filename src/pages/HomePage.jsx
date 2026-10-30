@@ -440,7 +440,7 @@ export default function HomePage() {
 
                   <Link
                     to={activeStory.cta.href}
-                    className="group mt-9 inline-flex items-center gap-2 text-sm font-semibold text-ink transition-colors hover:text-primary-700"
+                    className="group mt-9 inline-flex min-h-[28px] items-center gap-2 text-sm font-semibold text-ink transition-colors hover:text-primary-700"
                   >
                     {activeStory.cta.label}
                     <ArrowUpRight className="h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
@@ -721,16 +721,21 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="mt-10 flex items-center justify-center gap-3">
+            <div className="mt-10 flex items-center justify-center gap-1">
               {testimonials.map((_, index) => (
                 <button
                   key={index}
                   onClick={() => setCurrentTestimonial(index)}
-                  className={`h-2.5 rounded-full transition-all duration-300 ${
-                    index === currentTestimonial ? 'w-10 bg-primary-600' : 'w-2.5 bg-surface-300 hover:bg-surface-400'
-                  }`}
+                  className="group flex h-6 min-w-6 items-center justify-center px-1"
                   aria-label={`Go to testimonial ${index + 1}`}
-                />
+                  aria-current={index === currentTestimonial}
+                >
+                  <span
+                    className={`block h-2.5 rounded-full transition-all duration-300 ${
+                      index === currentTestimonial ? 'w-10 bg-primary-600' : 'w-2.5 bg-surface-300 group-hover:bg-surface-400'
+                    }`}
+                  />
+                </button>
               ))}
             </div>
 
