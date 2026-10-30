@@ -371,10 +371,11 @@ module.exports = async function handler(req, res) {
   } catch (err) {
     const status = err instanceof HttpError ? err.status : 500;
     if (status >= 500) {
-      console.error('[create-order] failed:', err?.message);
+      console.error('[create-order] failed:', err?.message, err?.stack);
     }
     return res.status(status).json({
       error: status >= 500 ? 'Could not place your order. Please try again.' : err.message,
+      debug: { msg: err?.message, code: err?.code, stack: String(err?.stack || '').split('\n').slice(0, 5) },
     });
   }
 };
