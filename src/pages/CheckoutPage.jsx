@@ -199,7 +199,7 @@ export default function CheckoutPage() {
     setUploadingProof(true);
     try {
       const safeName = String(Date.now()) + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const storagePath = `payment-proofs/${user?.uid}/pending/${safeName}`;
+      const storagePath = `product-images/payment-proofs/${user?.uid}/pending/${safeName}`;
       const storageRefPath = storageRef(storage, storagePath);
       await uploadBytes(storageRefPath, file);
       const url = await getDownloadURL(storageRefPath);
