@@ -131,7 +131,7 @@ export default function ProductDetailPage() {
   }, [product]);
 
   const handleAddToCart = () => {
-    if (!isAuthenticated) { navigate('/login'); return; }
+    // Guests can hold a cart (checkout is gated later), matching product cards.
     if (isOutOfStock) return;
     const qty = Math.min(quantity, maxQuantity);
     trackEvent('add_to_cart', {
