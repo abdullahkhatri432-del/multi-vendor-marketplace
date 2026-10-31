@@ -3,12 +3,9 @@ import { Store, Twitter, Mail, Instagram, Youtube, Github, ShieldCheck, Truck, R
 import Newsletter from '../Newsletter';
 
 const payments = [
-  { name: 'Visa', short: 'VISA' },
-  { name: 'Mastercard', short: 'MC' },
   { name: 'UPI', short: 'UPI' },
-  { name: 'Paytm', short: 'Paytm' },
-  { name: 'GPay', short: 'GPay' },
-  { name: 'PhonePe', short: 'PhonePe' },
+  { name: 'Cash on Delivery', short: 'COD' },
+  { name: 'Bank / UPI transfer', short: 'BANK' },
 ];
 
 export default function Footer() {
@@ -33,13 +30,13 @@ export default function Footer() {
               </span>
             </Link>
             <p className="text-sm text-ink-muted leading-relaxed max-w-xs mb-6">
-              A curated marketplace where every seller is verified and every product is worth discovering.
+              A multi-vendor marketplace with verified stores, live stock and server-verified UPI payments.
             </p>
             <div className="flex flex-col gap-3">
               {[
-                { icon: ShieldCheck, text: 'Verified vendors & buyer protection' },
-                { icon: Truck, text: 'Free shipping on orders ₹999+' },
-                { icon: RotateCcw, text: '7-day easy returns' },
+                { icon: ShieldCheck, text: 'Admin-verified stores' },
+                { icon: Truck, text: 'Free shipping on orders over ₹999' },
+                { icon: RotateCcw, text: 'Returns per seller policy' },
               ].map(({ icon: Icon, text }) => (
                 <div key={text} className="flex items-center gap-2.5 text-sm text-ink-soft font-medium">
                   <div className="flex h-6 w-6 items-center justify-center rounded bg-primary-50 text-primary-600 shadow-sm">
@@ -109,9 +106,11 @@ export default function Footer() {
                   Privacy Policy
                 </Link>
               </li>
-              <li className="flex items-center gap-2.5 text-sm text-ink-soft hover:text-primary-700 transition-all">
-                <Headphones className="h-3.5 w-3.5 text-primary-500" />
-                <span>24/7 help center</span>
+              <li>
+                <a href="mailto:support@speedersmania.com" className="flex items-center gap-2.5 text-sm text-ink-soft hover:text-primary-700 transition-all">
+                  <Headphones className="h-3.5 w-3.5 text-primary-500" />
+                  <span>Email support</span>
+                </a>
               </li>
             </ul>
           </div>

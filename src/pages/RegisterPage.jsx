@@ -2,13 +2,20 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Store, ArrowLeft, TrendingUp, ShieldCheck, BadgeCheck, Users, Wallet } from 'lucide-react';
 import AuthModal from '../components/AuthModal';
 
+import usePageMeta from '../hooks/usePageMeta';
 const vendorPerks = [
-  { icon: Users, title: 'Reach real buyers', body: 'A curated audience that trusts the marketplace.' },
-  { icon: Wallet, title: 'Transparent payouts', body: 'UPI-first checkout with verified transactions.' },
-  { icon: TrendingUp, title: 'Tools that sell', body: 'Bulk import, analytics and order management built in.' },
+  { icon: Users, title: 'Reach real buyers', body: 'List products for customers shopping the marketplace.' },
+  { icon: Wallet, title: 'UPI-first checkout', body: 'Orders are created with server-verified payment references.' },
+  { icon: TrendingUp, title: 'Seller tools', body: 'Bulk import, product management and order status updates built in.' },
 ];
 
 export default function RegisterPage() {
+  usePageMeta({
+    title: 'Create an account — Speedersmania',
+    description: 'Create a customer or vendor account on Speedersmania.',
+    path: '/register',
+    robots: 'noindex, nofollow',
+  });
   const navigate = useNavigate();
 
   return (
@@ -23,7 +30,7 @@ export default function RegisterPage() {
           Set up shop, or shop the best of it.
         </h1>
         <p className="mt-5 max-w-md text-lg font-light leading-relaxed text-ink-soft">
-          Create an account as a customer to shop verified sellers, or as a vendor to reach millions of buyers.
+          Create an account as a customer to shop verified sellers, or as a vendor to open your own store.
         </p>
 
         <div className="mt-10 grid gap-5 stagger">

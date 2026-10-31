@@ -5,7 +5,13 @@ import { getVerifiedVendors } from '../config/firestore';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import EmptyState from '../components/ui/EmptyState';
 
+import usePageMeta from '../hooks/usePageMeta';
 export default function VendorsPage() {
+  usePageMeta({
+    title: 'Verified vendors — Speedersmania',
+    description: 'Browse verified stores selling on Speedersmania. Every vendor is reviewed and approved by the platform team.',
+    path: '/vendors',
+  });
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -105,10 +111,10 @@ export default function VendorsPage() {
       {/* Trust Badges */}
       <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6 stagger">
         {[
-          { icon: ShieldCheck, label: 'Verified Sellers', desc: 'Background checked' },
-          { icon: Truck, label: 'Fast Delivery', desc: '2-5 business days' },
-          { icon: RotateCcw, label: 'Easy Returns', desc: '30-day hassle-free' },
-          { icon: Headphones, label: '24/7 Support', desc: 'Dedicated help' },
+          { icon: ShieldCheck, label: 'Verified Sellers', desc: 'Admin-approved stores' },
+          { icon: Truck, label: 'Tracked Delivery', desc: 'Tracking once shipped' },
+          { icon: RotateCcw, label: 'Returns', desc: 'Per seller policy' },
+          { icon: Headphones, label: 'Email Support', desc: 'support@speedersmania.com' },
         ].map(({ icon: Icon, label, desc }, index) => (
           <div key={label} className="card p-5 text-center hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-50 text-primary-600 mx-auto mb-3">
