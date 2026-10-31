@@ -10,7 +10,7 @@ import { prefetchProduct } from '../../config/firestore';
 import { TiltCard } from './Motion';
 import { inr } from '../../utils/currency';
 
-export default function ProductCard({ product, view = 'grid' }) {
+export default function ProductCard({ product, view = 'grid', compact = false }) {
   const { addItem } = useCart();
   const { intercept } = useCheckoutInterceptor();
   const { user } = useAuth();
@@ -155,7 +155,7 @@ export default function ProductCard({ product, view = 'grid' }) {
   const priceBlock = (
     <div className="min-w-0 flex-1">
       <div className="flex flex-wrap items-baseline gap-x-1.5">
-        <span className="whitespace-nowrap text-sm font-bold leading-tight text-ink sm:text-base md:text-lg">
+        <span className={`whitespace-nowrap font-bold leading-tight text-ink ${compact ? 'text-[13px] sm:text-sm' : 'text-sm sm:text-base md:text-lg'}`}>
           {inr(price)}
         </span>
         {hasDiscount && (
@@ -264,7 +264,7 @@ export default function ProductCard({ product, view = 'grid' }) {
       intensity={8}
       onMouseEnter={() => prefetchProduct(product.id)}
     >
-      <div className="relative aspect-[4/5] overflow-hidden bg-surface-100">
+      <div className={`relative overflow-hidden bg-surface-100 ${compact ? 'aspect-[4/3]' : 'aspect-[4/5]'}`}>
         <Link
           to={`/products/${product.id}`}
           aria-label={product.name}
@@ -292,10 +292,10 @@ export default function ProductCard({ product, view = 'grid' }) {
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col gap-1.5 p-3 sm:gap-2 sm:p-4 md:p-5">
+      <div className={`flex flex-1 flex-col gap-1.5 sm:gap-2 ${compact ? 'p-2.5 sm:p-3' : 'p-3 sm:p-4 md:p-5'}`}>
         <Link to={`/products/${product.id}`} className="block min-w-0">
           {vendorLine}
-          <h3 className="mt-1 line-clamp-2 min-h-[2.7em] text-[13px] font-semibold leading-snug text-ink transition-colors group-hover:text-primary-700 sm:text-sm md:text-base">
+          <h3 className={`mt-1 line-clamp-2 min-h-[2.7em] font-semibold leading-snug text-ink transition-colors group-hover:text-primary-700 ${compact ? 'text-xs sm:text-[13px]' : 'text-[13px] sm:text-sm md:text-base'}`}>
             {product.name}
           </h3>
         </Link>

@@ -40,8 +40,21 @@ export default function ProductsPage() {
   const [priceRange, setPriceRange] = useState([0, null]);
   const [showFilters, setShowFilters] = useState(false);
   const [recentProducts, setRecentProducts] = useState([]);
+  // Mobile always uses the 2-up grid, even if list view was chosen on desktop.
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 639px)').matches
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 639px)');
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
 
   const query = searchParams.get('q') || '';
+  const effectiveView = isMobile ? 'grid' : viewMode;
 
   // Load recently viewed products from localStorage
   useEffect(() => {
@@ -318,8 +331,8 @@ export default function ProductsPage() {
             <h2 className="text-sm font-semibold text-surface-900 uppercase tracking-wide">Recently Viewed</h2>
           </div>
           <div className="grid grid-cols-2 gap-3 stagger sm:grid-cols-4 sm:gap-4">
-            {recentProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
+            {recentProducts.slice(0, 4).map((product) => (
+              <ProductCard key={product.id} product={product} compact />
             ))}
           </div>
         </section>
@@ -459,9 +472,9 @@ export default function ProductsPage() {
             }
           >
             {products.length > 0 ? (
-              <div className={`grid gap-3 stagger sm:gap-5 lg:gap-6 ${viewMode === 'grid' ? 'grid-cols-2 xl:grid-cols-3' : 'grid-cols-1'}`}>
+              <div className={`grid grid-cols-2 gap-3 stagger sm:gap-5 lg:gap-6 ${effectiveView === 'grid' ? 'xl:grid-cols-3' : 'sm:grid-cols-1'}`}>
                 {products.map((product) => (
-                  <ProductCard key={product.id} product={product} view={viewMode} />
+                  <ProductCard key={product.id} product={product} view={effectiveView} />
                 ))}
               </div>
             ) : (
