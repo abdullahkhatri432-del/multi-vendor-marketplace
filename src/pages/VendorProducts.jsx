@@ -409,7 +409,7 @@ export default function VendorProducts() {
                   {!product.active && <span className="badge-warning text-[10px]">Inactive</span>}
                 </div>
                 <div className="flex items-center gap-3 mt-1">
-                  <span className="text-sm font-bold text-primary-600">₹{product.price?.toFixed(2)}</span>
+                  <span className="text-sm font-bold text-primary-600">₹{Number(product.price || 0).toFixed(2)}</span>
                   <span className="text-xs text-surface-400">{product.category}</span>
                 </div>
               </div>

@@ -156,8 +156,8 @@ export default function DraftProducts() {
   };
 
   const calculateProfit = (product) => {
-    const scraped = product.scrapedPrice || product.price;
-    const final = product.price;
+    const scraped = Number(product.scrapedPrice || product.price) || 0;
+    const final = Number(product.price) || 0;
     const profit = final - scraped;
     const margin = scraped > 0 ? ((profit / scraped) * 100).toFixed(1) : 0;
     return { profit: profit.toFixed(2), margin };
@@ -212,7 +212,7 @@ export default function DraftProducts() {
               </div>
               <div className="text-center">
                 <p className="text-2xl font-bold text-amber-700">
-                  {drafts.reduce((sum, d) => sum + (d.price || 0), 0).toFixed(2)}
+                  {drafts.reduce((sum, d) => sum + (Number(d.price) || 0), 0).toFixed(2)}
                 </p>
                 <p className="text-amber-600">Total Value</p>
               </div>
@@ -304,7 +304,7 @@ export default function DraftProducts() {
                           />
                         ) : (
                           <span className="text-surface-600 font-mono">
-                            ₹{(product.scrapedPrice || product.price || 0).toFixed(2)}
+                            ₹{Number(product.scrapedPrice || product.price || 0).toFixed(2)}
                           </span>
                         )}
                       </td>
@@ -337,7 +337,7 @@ export default function DraftProducts() {
                           />
                         ) : (
                           <span className="font-bold text-surface-900 font-mono">
-                            ₹{(product.price || 0).toFixed(2)}
+                            ₹{Number(product.price || 0).toFixed(2)}
                           </span>
                         )}
                       </td>
@@ -443,8 +443,8 @@ export default function DraftProducts() {
 }
 
 function calculateProfit(product) {
-  const scraped = product.scrapedPrice || product.price;
-  const final = product.price;
+  const scraped = Number(product.scrapedPrice || product.price) || 0;
+  const final = Number(product.price) || 0;
   const profit = final - scraped;
   const margin = scraped > 0 ? ((profit / scraped) * 100).toFixed(1) : 0;
   return { profit: profit.toFixed(2), margin };

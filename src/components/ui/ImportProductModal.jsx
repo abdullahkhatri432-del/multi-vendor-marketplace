@@ -150,7 +150,7 @@ export default function ImportProductModal({ show, onClose, vendorId, vendorName
               )}
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-surface-900">{preview.name}</h3>
-                <p className="text-lg font-bold text-primary-600">₹{preview.price?.toFixed(2)}</p>
+                <p className="text-lg font-bold text-primary-600">₹{Number(preview.price || 0).toFixed(2)}</p>
                 <p className="mt-1 text-xs text-surface-500">Category: {preview.category}</p>
                 {preview.description && (
                   <p className="mt-2 text-xs text-surface-600 line-clamp-2">{preview.description}</p>

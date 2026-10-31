@@ -14,7 +14,7 @@ export default function VendorOrders() {
 
   const vendorItems = (order) => (order.items || []).filter((it) => it.vendorId === user?.uid);
   const vendorSubtotal = (order) =>
-    vendorItems(order).reduce((s, it) => s + (it.price || 0) * (it.quantity || 1) + (it.addonTotal || 0), 0);
+    vendorItems(order).reduce((s, it) => s + (Number(it.price) || 0) * (it.quantity || 1) + (Number(it.addonTotal) || 0), 0);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -94,7 +94,7 @@ export default function VendorOrders() {
                         {vendorItems(order).map((item, i) => (
                           <div key={i} className="flex items-center justify-between text-sm rounded-lg bg-white px-3 py-2">
                             <span className="text-surface-600">{item.name} x{item.quantity}</span>
-                            <span className="font-medium">₹{((item.price * item.quantity) + (item.addonTotal || 0)).toFixed(2)}</span>
+                            <span className="font-medium">₹{((Number(item.price) || 0) * (item.quantity || 1) + (Number(item.addonTotal) || 0)).toFixed(2)}</span>
                           </div>
                         ))}
                       </div>

@@ -96,12 +96,12 @@ export default function InvoiceModal({ order, onClose }) {
           <div className="mt-4 ml-auto max-w-xs space-y-1.5 text-sm">
             <div className="flex justify-between text-surface-600">
               <span>Subtotal</span>
-              <span>₹{(order.subtotal ?? 0).toFixed(2)}</span>
+              <span>₹{Number(order.subtotal ?? 0).toFixed(2)}</span>
             </div>
             {order.discount > 0 && (
               <div className="flex justify-between text-emerald-600">
                 <span>Discount {order.couponCode ? `(${order.couponCode})` : ''}</span>
-                <span>-₹{(order.discount ?? 0).toFixed(2)}</span>
+                <span>-₹{Number(order.discount ?? 0).toFixed(2)}</span>
               </div>
             )}
             <div className="flex justify-between text-surface-600">
@@ -110,11 +110,11 @@ export default function InvoiceModal({ order, onClose }) {
             </div>
             <div className="flex justify-between text-surface-600">
               <span>Tax</span>
-              <span>₹{(order.tax ?? 0).toFixed(2)}</span>
+              <span>₹{Number(order.tax ?? 0).toFixed(2)}</span>
             </div>
             <div className="flex justify-between border-t border-surface-200 pt-2 text-base font-bold text-surface-900">
               <span>Total</span>
-              <span>₹{(order.total ?? 0).toFixed(2)}</span>
+              <span>₹{Number(order.total ?? 0).toFixed(2)}</span>
             </div>
           </div>
 

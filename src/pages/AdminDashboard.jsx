@@ -4,7 +4,7 @@ import {
   Users, Store, Package, ShoppingCart, DollarSign, Shield,
   CheckCircle, XCircle, BarChart3, Trash2, Edit2, Eye,
   Search, Calendar, ChevronDown, TrendingUp, AlertTriangle,
-  Tag, Plus, X, RefreshCw, Clock, Star, Banknote, ScanLine, Ticket,
+  Tag, Plus, X, RefreshCw, Clock, Star, Banknote, ScanLine, Ticket, FileText,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import {

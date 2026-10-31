@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Star, Truck, Shield, RotateCcw, Heart, ArrowLeft, Minus, Plus, Store, Send, BadgeCheck, Zap, ChevronRight, Check, Package } from 'lucide-react';
+import { ShoppingCart, Star, Truck, Shield, RotateCcw, Heart, ArrowLeft, Minus, Plus, Store, Send, BadgeCheck, Zap, ChevronRight, Check, Package, Sparkles } from 'lucide-react';
 import { getProduct, getVendor, getReviewsByProduct, createReview, getOrdersByUser, getProductsByCategory } from '../config/firestore';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';

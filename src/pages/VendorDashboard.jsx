@@ -126,7 +126,7 @@ export default function VendorDashboard() {
         <>
           {/* Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 stagger">
-            <StatCard icon={DollarSign} label="Revenue" value={`₹${analytics?.totalRevenue?.toFixed(2) || '0.00'}`} color="success" />
+            <StatCard icon={DollarSign} label="Revenue" value={`₹${Number(analytics?.totalRevenue || 0).toFixed(2)}`} color="success" />
             <StatCard icon={ShoppingCart} label="Orders" value={analytics?.totalOrders || 0} color="primary" />
             <StatCard icon={Package} label="Products" value={products.length} color="accent" />
             <StatCard icon={Clock} label="Pending" value={analytics?.pendingOrders || 0} color="warning" />
@@ -213,7 +213,7 @@ export default function VendorDashboard() {
                           <p className="text-xs font-medium text-surface-900 truncate">{product.name}</p>
                           <p className="text-xs text-surface-400">{product.soldCount || 0} sold</p>
                         </div>
-                        <span className="text-xs font-semibold text-surface-700">₹{product.price?.toFixed(2)}</span>
+                        <span className="text-xs font-semibold text-surface-700">₹{Number(product.price || 0).toFixed(2)}</span>
                       </div>
                     ))}
                   </div>

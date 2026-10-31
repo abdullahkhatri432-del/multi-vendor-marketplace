@@ -238,7 +238,7 @@ https://example.com/product-3"
                   <div key={item.productId || i} className="text-sm text-emerald-800 flex items-center gap-2">
                     <span className="w-6 text-center">{i + 1}.</span>
                     <span className="truncate">{item.product?.name || 'Unnamed Product'}</span>
-                    <span className="ml-auto font-mono">₹{item.product?.price?.toFixed(2)}</span>
+                    <span className="ml-auto font-mono">₹{Number(item.product?.price || 0).toFixed(2)}</span>
                   </div>
                 ))}
                 {results.successful.length === 0 && (

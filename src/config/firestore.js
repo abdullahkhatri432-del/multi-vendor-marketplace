@@ -14,7 +14,7 @@
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { fallbackProducts, findFallbackProduct, findFallbackVendor, fallbackCoupons, findFallbackCoupon } from './fallbackData';
+import { fallbackProducts, fallbackVendors, findFallbackProduct, findFallbackVendor, fallbackCoupons, findFallbackCoupon } from './fallbackData';
 
 // Demo/fallback catalogue. Disabled in production builds by default so a real
 // deployment never shows fake products. Opt in with VITE_ENABLE_DEMO_DATA=true.
