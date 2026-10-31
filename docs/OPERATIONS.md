@@ -28,7 +28,7 @@ per project, one run per day each.
 | `BACKUP_ENCRYPTION_KEY` | backup, restore | `openssl rand -hex 32` — store it in a password manager; without it backups are unreadable |
 | `BLOB_READ_WRITE_TOKEN` | backup, daily check | Created automatically when a static-token Blob store is connected to the Vercel project |
 | `BLOB_STORE_ID` | backup, daily check | Alternative to the token: injected when a store is connected via OIDC, which @vercel/blob authenticates with `VERCEL_OIDC_TOKEN` automatically |
-| `BLOB_ACCESS` | backup | `public` (default) or `private` — must match how the store was created |
+| `BLOB_ACCESS` | backup | `public` or `private` — must match how the store was created. **This project's store is `private`.** A wrong value is retried once with the other mode, so it costs a log line, not a backup |
 | `ALERT_WEBHOOK_URL` | all error paths | Optional extra channel: Slack, Discord, or any endpoint that accepts JSON |
 | `TELEGRAM_BOT_TOKEN` | all error paths | Bot token from @BotFather (recommended channel) |
 | `TELEGRAM_CHAT_ID` | all error paths | Your chat id — see below |
@@ -77,6 +77,18 @@ curl -H "Authorization: Bearer $CRON_SECRET" https://speedersmania.vercel.app/ap
 
 The response lists each collection with its document count, byte size and
 `sha256`, plus the manifest path.
+
+If it returns **500**, the body now includes a `detail` field with the error
+message (safe to show: the caller already presented `CRON_SECRET`, and the
+summary carries no stack and no secrets). The two failures seen in practice:
+
+| `detail` | Fix |
+|---|---|
+| `Cannot use public access on a private store` | The store is private — set `BLOB_ACCESS=private` (the code retries automatically, but the variable removes the wasted attempt) |
+| `No Blob store is connected` / 503 | `BLOB_STORE_ID` or `BLOB_READ_WRITE_TOKEN` is missing from the project |
+
+The very first run on the current project hit exactly the first case; it is now
+configured with `BLOB_ACCESS=private`.
 
 ### Restore
 
