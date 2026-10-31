@@ -11,6 +11,7 @@ const {
   rateLimit,
   fetchHtml,
 } = require('../lib/http.cjs');
+const ops = require('../lib/ops.cjs');
 
 const MAX_TEXT = 1000;
 
@@ -144,7 +145,15 @@ module.exports = async function handler(req, res) {
     });
   } catch (err) {
     const status = err instanceof HttpError ? err.status : 500;
-    if (status >= 500) console.error('[import-product] Error:', err?.message);
+    if (status >= 500) {
+      console.error('[import-product] Error:', err?.message);
+      await ops.notifyOps({
+        level: 'error',
+        source: 'import-product',
+        title: 'Product import failed (HTTP 500)',
+        detail: ops.summarizeError(err),
+      });
+    }
     return res.status(status).json({
       error: status >= 500 ? 'Failed to import product' : err.message,
     });

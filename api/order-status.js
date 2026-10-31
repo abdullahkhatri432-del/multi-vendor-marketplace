@@ -18,6 +18,7 @@ const {
   rateLimit,
   FieldValue,
 } = require('../lib/http.cjs');
+const ops = require('../lib/ops.cjs');
 
 const ADMIN_STATUSES = [
   'pending',
@@ -261,7 +262,15 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ success: true, ...result });
   } catch (err) {
     const status = err instanceof HttpError ? err.status : 500;
-    if (status >= 500) console.error('[order-status] failed:', err?.message);
+    if (status >= 500) {
+      console.error('[order-status] failed:', err?.message);
+      await ops.notifyOps({
+        level: 'error',
+        source: 'order-status',
+        title: 'Order update failed (HTTP 500)',
+        detail: ops.summarizeError(err),
+      });
+    }
     return res.status(status).json({
       error: status >= 500 ? 'Could not update the order. Please try again.' : err.message,
     });

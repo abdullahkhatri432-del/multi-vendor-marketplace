@@ -13,6 +13,7 @@ const {
   fetchHtml,
   FieldValue,
 } = require('../lib/http.cjs');
+const ops = require('../lib/ops.cjs');
 
 const PRODUCTS_COLLECTION = 'products'; // root collection (matches client)
 const MAX_URLS = 20;
@@ -270,7 +271,15 @@ module.exports = async function handler(req, res) {
     });
   } catch (err) {
     const status = err instanceof HttpError ? err.status : 500;
-    if (status >= 500) console.error('[bulk-import] Error:', err?.message);
+    if (status >= 500) {
+      console.error('[bulk-import] Error:', err?.message);
+      await ops.notifyOps({
+        level: 'error',
+        source: 'bulk-import',
+        title: 'Bulk import failed (HTTP 500)',
+        detail: ops.summarizeError(err),
+      });
+    }
     return res.status(status).json({
       error: status >= 500 ? 'Bulk import failed. Please try again.' : err.message,
     });

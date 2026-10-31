@@ -12,7 +12,11 @@
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "X-Frame-Options", "value": "DENY" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Permissions-Policy", "value": "geolocation=(), microphone=(), camera=()" }
+        { "key": "Permissions-Policy", "value": "geolocation=(), microphone=(), camera=()" },
+        {
+          "key": "Content-Security-Policy-Report-Only",
+          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' https://www.googletagmanager.com https://connect.facebook.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.googleapis.com https://*.firebaseapp.com https://securetoken.google.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com wss://*.firebaseio.com; frame-src 'self' https://*.firebaseapp.com https://accounts.google.com; worker-src 'self' blob:; manifest-src 'self'; report-uri /api/csp-report; upgrade-insecure-requests"
+        }
       ]
     },
     {
@@ -21,6 +25,10 @@
         { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]
     }
+  ],
+  "crons": [
+    { "path": "/api/backup", "schedule": "30 18 * * *" },
+    { "path": "/api/cron-health", "schedule": "0 6 * * *" }
   ],
   "functions": {
     "api/import-product.js": {
@@ -39,6 +47,15 @@
       "maxDuration": 30
     },
     "api/health.js": {
+      "maxDuration": 10
+    },
+    "api/backup.js": {
+      "maxDuration": 60
+    },
+    "api/cron-health.js": {
+      "maxDuration": 30
+    },
+    "api/csp-report.js": {
       "maxDuration": 10
     }
   }
