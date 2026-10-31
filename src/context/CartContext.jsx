@@ -5,28 +5,47 @@ const CartContext = createContext(null);
 
 const CART_KEY = 'speedersmania_cart';
 
+// Cart quantities are clamped to the stock snapshot taken when the item was
+// added. The server still revalidates stock at checkout — this only stops the
+// UI from letting a customer order more than is available right now.
+const toStock = (value) => {
+  if (value === null || value === undefined || value === '') return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.max(0, Math.trunc(n)) : null;
+};
+
+const clampQuantity = (quantity, stock) => {
+  const q = Math.max(1, Math.trunc(Number(quantity)) || 1);
+  return stock === null ? q : Math.min(q, Math.max(1, stock));
+};
+
 function cartReducer(state, action) {
   switch (action.type) {
     case 'SET_CART':
       return action.payload;
     case 'ADD_ITEM': {
+      const incomingStock = toStock(action.payload.stock);
+      if (incomingStock === 0) return state;
+
       const existing = state.find((item) => item.id === action.payload.id);
       if (existing) {
         return state.map((item) => {
           if (item.id !== action.payload.id) return item;
-          const quantity = item.quantity + (action.payload.quantity || 1);
+          const stock = toStock(item.stock) ?? incomingStock;
+          const quantity = clampQuantity(item.quantity + (action.payload.quantity || 1), stock);
           const addonUnit = (item.addons || []).reduce((sum, addon) => sum + (addon.price || 0), 0);
-          return { ...item, quantity, addonTotal: addonUnit * quantity };
+          return { ...item, stock, quantity, addonTotal: addonUnit * quantity };
         });
       }
-      return [...state, { ...action.payload, quantity: action.payload.quantity || 1 }];
+      const quantity = clampQuantity(action.payload.quantity || 1, incomingStock);
+      return [...state, { ...action.payload, stock: incomingStock, quantity }];
     }
     case 'REMOVE_ITEM':
       return state.filter((item) => item.id !== action.payload);
     case 'UPDATE_QUANTITY':
       return state.map((item) => {
         if (item.id !== action.payload.id) return item;
-        const quantity = Math.max(1, action.payload.quantity);
+        const quantity = clampQuantity(action.payload.quantity, toStock(item.stock));
         const addonUnit = (item.addons || []).reduce((sum, addon) => sum + (addon.price || 0), 0);
         return { ...item, quantity, addonTotal: addonUnit * quantity };
       });
@@ -48,12 +67,16 @@ function loadInitialCart() {
     if (!Array.isArray(parsed)) return [];
     return parsed
       .filter((item) => item && typeof item.id === 'string' && Number.isFinite(Number(item.price)))
-      .map((item) => ({
-        ...item,
-        quantity: Math.max(1, Math.trunc(Number(item.quantity)) || 1),
-        addons: Array.isArray(item.addons) ? item.addons : [],
-        addonTotal: Number(item.addonTotal) || 0,
-      }));
+      .map((item) => {
+        const stock = toStock(item.stock);
+        return {
+          ...item,
+          stock,
+          quantity: clampQuantity(Number(item.quantity) || 1, stock),
+          addons: Array.isArray(item.addons) ? item.addons : [],
+          addonTotal: Number(item.addonTotal) || 0,
+        };
+      });
   } catch {
     return [];
   }
@@ -69,6 +92,11 @@ export function CartProvider({ children }) {
   }, [cart]);
 
   const addItem = (product, quantity = 1, selectedAddons = []) => {
+    const stock = toStock(product.stock);
+    if (stock === 0) {
+      return { ok: false, reason: 'out-of-stock' };
+    }
+
     const addonTotal = selectedAddons.reduce((sum, addon) => sum + (addon.price || 0), 0);
     
     dispatch({
@@ -80,12 +108,14 @@ export function CartProvider({ children }) {
         image: product.images?.[0] || product.image,
         vendorId: product.vendorId,
         vendorName: product.vendorName,
+        stock,
         quantity,
         addons: selectedAddons,
         addonTotal: addonTotal * quantity,
       },
     });
     setNotifyItem(product.name);
+    return { ok: true };
   };
 
   const removeItem = (id) => dispatch({ type: 'REMOVE_ITEM', payload: id });

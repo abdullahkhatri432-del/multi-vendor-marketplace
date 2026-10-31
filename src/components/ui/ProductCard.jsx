@@ -23,11 +23,13 @@ export default function ProductCard({ product, view = 'grid', compact = false })
   const wishBusy = busyIds.includes(product.id);
 
   const image =
-    product.images?.[0] || product.image || `https://picsum.photos/seed/${product.id}/600/600`;
+    product.images?.[0] || product.image || `/product-placeholder.svg`;
   const price = Number(product.price) || 0;
   const originalPrice = Number(product.originalPrice) || 0;
-  const rating = Number(product.rating) || 4.5;
+  const rating = Number(product.rating) || 0;
   const reviewCount = Number(product.reviewCount) || 0;
+  const stock = Number.isFinite(Number(product.stock)) ? Math.max(0, Number(product.stock)) : null;
+  const soldOut = stock === 0;
   const rawDiscount =
     Number(product.discount) ||
     (originalPrice > price ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0);
@@ -45,6 +47,7 @@ export default function ProductCard({ product, view = 'grid', compact = false })
   }, [image]);
 
   const handleAddToCart = () => {
+    if (soldOut) return;
     trackEvent('add_to_cart', {
       items: [{ item_id: product.id, item_name: product.name, price, quantity: 1 }],
       value: price,
@@ -53,6 +56,7 @@ export default function ProductCard({ product, view = 'grid', compact = false })
   };
 
   const handleBuyNow = async () => {
+    if (soldOut) return;
     try {
       await intercept('buy_now', { productId: product.id, quantity: 1 });
       addItem(product);
@@ -105,8 +109,13 @@ export default function ProductCard({ product, view = 'grid', compact = false })
     </div>
   );
 
-  const badges = (product.badge || discount > 0) && (
+  const badges = (product.badge || discount > 0 || soldOut) && (
     <div className="pointer-events-none absolute left-2.5 top-2.5 flex max-w-[calc(100%_-_3.5rem)] flex-col items-start gap-1.5 sm:left-3.5 sm:top-3.5">
+      {soldOut && (
+        <span className="rounded-full bg-surface-800/90 px-2.5 py-0.5 text-[10px] font-bold text-white shadow-sm backdrop-blur-md sm:px-3 sm:py-1 sm:text-[11px]">
+          Out of stock
+        </span>
+      )}
       {product.badge && (
         <span className="max-w-full truncate rounded-full bg-primary-600/90 px-2.5 py-0.5 text-[10px] font-bold text-white shadow-sm backdrop-blur-md sm:px-3 sm:py-1 sm:text-[11px]">
           {product.badge}
@@ -176,19 +185,21 @@ export default function ProductCard({ product, view = 'grid', compact = false })
         <button
           type="button"
           onClick={handleAddToCart}
-          className="flex min-h-[36px] items-center gap-1.5 rounded-full bg-ink px-3.5 text-xs font-semibold text-white transition-all hover:bg-primary-600 active:scale-95 sm:px-4"
+          disabled={soldOut}
+          className="flex min-h-[36px] items-center gap-1.5 rounded-full bg-ink px-3.5 text-xs font-semibold text-white transition-all hover:bg-primary-600 active:scale-95 disabled:cursor-not-allowed disabled:bg-surface-400 disabled:active:scale-100 sm:px-4"
         >
           <ShoppingCart className="h-3.5 w-3.5" />
-          Add to cart
+          {soldOut ? 'Sold out' : 'Add to cart'}
         </button>
       )}
       {view === 'grid' && (
         <button
           type="button"
           onClick={handleAddToCart}
-          className="relative hidden h-8 w-8 items-center justify-center rounded-full bg-surface-100 text-ink-soft transition-all after:absolute after:-inset-1 after:rounded-full after:content-[''] hover:bg-primary-600 hover:text-white active:scale-90 sm:flex sm:h-9 sm:w-9"
-          title="Add to cart"
-          aria-label="Add to cart"
+          disabled={soldOut}
+          className="relative hidden h-8 w-8 items-center justify-center rounded-full bg-surface-100 text-ink-soft transition-all after:absolute after:-inset-1 after:rounded-full after:content-[''] hover:bg-primary-600 hover:text-white active:scale-90 disabled:cursor-not-allowed disabled:opacity-50 sm:flex sm:h-9 sm:w-9"
+          title={soldOut ? 'Out of stock' : 'Add to cart'}
+          aria-label={soldOut ? 'Out of stock' : 'Add to cart'}
         >
           <ShoppingCart className="h-4 w-4" />
         </button>
@@ -196,9 +207,10 @@ export default function ProductCard({ product, view = 'grid', compact = false })
       <button
         type="button"
         onClick={handleBuyNow}
-        className="group/buy relative flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-accent to-accent-dark text-primary-950 transition-all after:absolute after:-inset-1 after:rounded-full after:content-[''] hover:shadow-glow-accent active:scale-90 sm:h-9 sm:w-9"
-        title="Buy now"
-        aria-label="Buy now"
+        disabled={soldOut}
+        className="group/buy relative flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-accent to-accent-dark text-primary-950 transition-all after:absolute after:-inset-1 after:rounded-full after:content-[''] hover:shadow-glow-accent active:scale-90 disabled:cursor-not-allowed disabled:opacity-50 sm:h-9 sm:w-9"
+        title={soldOut ? 'Out of stock' : 'Buy now'}
+        aria-label={soldOut ? 'Out of stock' : 'Buy now'}
       >
         <Zap className="h-3.5 w-3.5 transition-transform duration-300 group-hover/buy:scale-110 sm:h-4 sm:w-4" />
       </button>
@@ -284,10 +296,11 @@ export default function ProductCard({ product, view = 'grid', compact = false })
           <button
             type="button"
             onClick={handleAddToCart}
-            className="flex w-full items-center justify-center gap-1.5 rounded-full bg-white/95 py-2 text-[11px] font-semibold text-primary-700 shadow-card backdrop-blur-sm transition-all hover:bg-primary-600 hover:text-white active:scale-[0.98] sm:py-2.5 sm:text-xs md:text-sm"
+            disabled={soldOut}
+            className="flex w-full items-center justify-center gap-1.5 rounded-full bg-white/95 py-2 text-[11px] font-semibold text-primary-700 shadow-card backdrop-blur-sm transition-all hover:bg-primary-600 hover:text-white active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-white/70 disabled:text-ink-muted disabled:active:scale-100 sm:py-2.5 sm:text-xs md:text-sm"
           >
             <ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-            Add to cart
+            {soldOut ? 'Out of stock' : 'Add to cart'}
           </button>
         </div>
       </div>
