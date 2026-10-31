@@ -6,6 +6,7 @@ import ProductCard from '../components/ui/ProductCard';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import EmptyState from '../components/ui/EmptyState';
 
+import usePageMeta from '../hooks/usePageMeta';
 export default function VendorStorePage() {
   const { vendorId } = useParams();
   const navigate = useNavigate();
@@ -13,6 +14,15 @@ export default function VendorStorePage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+
+  usePageMeta({
+    title: vendor ? `${vendor.storeName || vendor.name} — Speedersmania` : 'Vendor store — Speedersmania',
+    description: vendor
+      ? `Shop products from ${vendor.storeName || vendor.name} on Speedersmania.`
+      : 'Vendor store on Speedersmania.',
+    path: vendor ? `/vendor/${vendor.id}` : undefined,
+    image: vendor?.logo,
+  });
 
   useEffect(() => {
     const fetchStore = async () => {

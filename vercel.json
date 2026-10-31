@@ -32,6 +32,12 @@
     "api/create-order.js": {
       "maxDuration": 30
     },
+    "api/order-status.js": {
+      "maxDuration": 30
+    },
+    "api/reviews.js": {
+      "maxDuration": 30
+    },
     "api/health.js": {
       "maxDuration": 10
     }

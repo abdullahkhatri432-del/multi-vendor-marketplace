@@ -1,11 +1,10 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
 
 // Public Firebase web config. These values are safe to ship to the browser —
 // they identify the project, they do not grant admin access (that is enforced
-// by Firestore/Storage rules).
+// by Firestore rules).
 //
 // Prefer setting VITE_FIREBASE_* env vars; the literal values below are the
 // fallback so CI/pages builds without a .env still work.
@@ -22,6 +21,5 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const storage = getStorage(app);
 export const PROJECT_ID = firebaseConfig.projectId;
 export default app;

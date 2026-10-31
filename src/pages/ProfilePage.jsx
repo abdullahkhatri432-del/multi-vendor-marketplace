@@ -5,7 +5,14 @@ import { useAuth } from '../context/AuthContext';
 import { getUser, updateUser } from '../config/firestore';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 
+import usePageMeta from '../hooks/usePageMeta';
 export default function ProfilePage() {
+  usePageMeta({
+    title: 'My profile — Speedersmania',
+    description: 'Manage your Speedersmania account.',
+    path: '/profile',
+    robots: 'noindex, nofollow',
+  });
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);

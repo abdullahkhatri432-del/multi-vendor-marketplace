@@ -149,24 +149,16 @@ module.exports = async function handler(req, res) {
 
     const paymentMethod = String(body.paymentMethod || '').trim();
     if (paymentMethod === 'card') {
-      throw new HttpError(400, 'Card payments are not available yet. Please use UPI, Cash on Delivery, or Manual Bank/UPI transfer.');
+      throw new HttpError(400, 'Card payments are not available yet. Please use UPI or Cash on Delivery.');
     }
-    if (!['upi', 'cod', 'manual'].includes(paymentMethod)) {
-      throw new HttpError(400, 'Please choose a valid payment method.');
+    if (!['upi', 'cod'].includes(paymentMethod)) {
+      throw new HttpError(400, 'Please choose a valid payment method (UPI or Cash on Delivery).');
     }
 
-    // UTR is required for UPI and COD (advance). Manual bank/UPI transfers
-    // use a payment proof screenshot instead of a UTR.
-    const isManual = paymentMethod === 'manual';
-    const utr = isManual ? '' : normalizeUtr(body.utr || body.paymentReference);
-    if (!isManual && !isValidUtr(utr)) {
+    // Every order is matched to a UPI reference — including the COD advance.
+    const utr = normalizeUtr(body.utr || body.paymentReference);
+    if (!isValidUtr(utr)) {
       throw new HttpError(400, 'Please enter a valid UPI transaction reference (12–22 characters starting with a digit).');
-    }
-
-    const paymentProofUrl = isManual ? String(body.paymentProofUrl || '').trim() : null;
-    const paymentProofNote = isManual ? String(body.paymentProofNote || '').trim().slice(0, 500) : null;
-    if (isManual && !paymentProofUrl) {
-      throw new HttpError(400, 'Please upload a payment proof screenshot before placing the order.');
     }
 
     const couponCode = String(body.couponCode || '').trim().toUpperCase().slice(0, 40);
@@ -271,20 +263,17 @@ module.exports = async function handler(req, res) {
       const vendorRefs = vendorIds.map((id) => db.collection('vendors').doc(id));
       const vendorSnaps = vendorRefs.length ? await transaction.getAll(...vendorRefs) : [];
 
-      // UPI reference uniqueness (skip for manual payments — proof screenshot is used instead)
-      // NOTE: `utrRef` is declared outside the branch because it is also written
-      // to later on, after the order document is created.
-      const utrRef = isManual ? null : db.collection('utrs').doc(hashUtr(utr));
-      if (utrRef) {
-        const utrSnap = await transaction.get(utrRef);
-        if (utrSnap.exists) {
-          const claim = utrSnap.data() || {};
-          if (claim.customerId !== token.uid || claim.orderId != null) {
-            throw new HttpError(
-              409,
-              'This UPI reference has already been used. If you were charged, please check My Orders before retrying.'
-            );
-          }
+      // UPI reference uniqueness: a reference can only ever be attached to one
+      // order, and only the customer who claimed it may retry with it.
+      const utrRef = db.collection('utrs').doc(hashUtr(utr));
+      const utrSnap = await transaction.get(utrRef);
+      if (utrSnap.exists) {
+        const claim = utrSnap.data() || {};
+        if (claim.customerId !== token.uid || claim.orderId != null) {
+          throw new HttpError(
+            409,
+            'This UPI reference has already been used. If you were charged, please check My Orders before retrying.'
+          );
         }
       }
 
@@ -317,13 +306,6 @@ module.exports = async function handler(req, res) {
           upiId: UPI_ID,
           transactionRef: utr,
           confirmedAt: new Date().toISOString(),
-          ...(isManual
-            ? {
-                proofUrl: paymentProofUrl,
-                proofNote: paymentProofNote,
-                proofUploadedAt: new Date().toISOString(),
-              }
-            : {}),
         },
         ...(paymentMethod === 'cod'
           ? {
@@ -332,27 +314,19 @@ module.exports = async function handler(req, res) {
               paymentNote: `₹${advanceAmount.toFixed(2)} advance paid (UTR ${utr}), ₹${balanceDue.toFixed(2)} payable on delivery`,
             }
           : {}),
-        ...(isManual
-          ? {
-              paymentNote: `Manual bank/UPI transfer of ₹${total.toFixed(2)} — proof uploaded. Awaiting admin verification.`,
-            }
-          : {}),
         status: 'pending',
         createdAt: now,
         updatedAt: now,
       });
 
-      // Write UTR claim only for UPI/COD (manual payments use proof screenshot instead)
-      if (!isManual) {
-        transaction.set(utrRef, {
-          utr,
-          customerId: token.uid,
-          orderId: orderRef.id,
-          pending: false,
-          createdAt: now,
-          updatedAt: now,
-        });
-      }
+      transaction.set(utrRef, {
+        utr,
+        customerId: token.uid,
+        orderId: orderRef.id,
+        pending: false,
+        createdAt: now,
+        updatedAt: now,
+      });
       for (const update of stockUpdates) {
         const data = {
           soldCount: FieldValue.increment(update.quantity),

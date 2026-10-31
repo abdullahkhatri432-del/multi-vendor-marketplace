@@ -1,16 +1,27 @@
 import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
-import { ClipboardList, Package, ChevronDown, ChevronUp } from 'lucide-react';
+import { ClipboardList, Package, ChevronDown, ChevronUp, AlertCircle, Truck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { getOrdersByVendor, updateOrder } from '../config/firestore';
+import { getOrdersByVendor } from '../config/firestore';
+import { updateOrderStatus } from '../config/api';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import EmptyState from '../components/ui/EmptyState';
 
+import usePageMeta from '../hooks/usePageMeta';
 export default function VendorOrders() {
+  usePageMeta({
+    title: 'Vendor orders — Speedersmania',
+    description: 'Manage and fulfil customer orders.',
+    path: '/vendor/orders',
+    robots: 'noindex, nofollow',
+  });
   const { user, isVendor, isAuthenticated, loading: authLoading } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedOrder, setExpandedOrder] = useState(null);
+  const [actionError, setActionError] = useState('');
+  const [trackingDraft, setTrackingDraft] = useState({});
+  const [savingTracking, setSavingTracking] = useState(null);
 
   const vendorItems = (order) => (order.items || []).filter((it) => it.vendorId === user?.uid);
   const vendorSubtotal = (order) =>
@@ -31,11 +42,40 @@ export default function VendorOrders() {
   }, [user]);
 
   const handleStatusUpdate = async (orderId, status) => {
+    setActionError('');
     try {
-      await updateOrder(orderId, { status });
-      setOrders(orders.map((o) => (o.id === orderId ? { ...o, status } : o)));
+      await updateOrderStatus(user, { orderId, action: 'status', status });
+      setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status } : o)));
     } catch (err) {
       console.error('Failed to update order:', err);
+      setActionError(err?.message || 'Could not update the order.');
+    }
+  };
+
+  const handleSaveTracking = async (orderId) => {
+    const trackingNumber = (trackingDraft[orderId] || '').trim();
+    if (!trackingNumber) {
+      setActionError('Please enter a tracking number.');
+      return;
+    }
+    setActionError('');
+    setSavingTracking(orderId);
+    try {
+      await updateOrderStatus(user, {
+        orderId,
+        action: 'tracking',
+        trackingNumber,
+        status: 'shipped',
+      });
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, status: 'shipped', trackingNumber } : o))
+      );
+      setTrackingDraft((prev) => ({ ...prev, [orderId]: '' }));
+    } catch (err) {
+      console.error('Failed to save tracking:', err);
+      setActionError(err?.message || 'Could not save tracking information.');
+    } finally {
+      setSavingTracking(null);
     }
   };
 
@@ -58,6 +98,13 @@ export default function VendorOrders() {
         <h1 className="text-3xl font-display font-bold text-surface-900">Vendor Orders</h1>
         <p className="mt-1 text-surface-500">Manage and fulfill customer orders</p>
       </div>
+
+      {actionError && (
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {actionError}
+        </div>
+      )}
 
       {orders.length > 0 ? (
         <div className="space-y-4 stagger">
@@ -117,11 +164,12 @@ export default function VendorOrders() {
                       <div className="mt-4">
                         <h4 className="text-sm font-semibold text-surface-900 mb-2">Update Status</h4>
                         <div className="flex flex-wrap gap-2">
-                          {['pending', 'processing', 'shipped', 'delivered', 'cancelled'].map((status) => (
+                          {['processing', 'shipped', 'delivered', 'cancelled'].map((status) => (
                             <button
                               key={status}
                               onClick={() => handleStatusUpdate(order.id, status)}
-                              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                              disabled={order.status === status}
+                              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-default ${
                                 order.status === status
                                   ? 'bg-primary-600 text-white'
                                   : 'bg-white border border-surface-200 text-surface-600 hover:border-primary-300'
@@ -131,6 +179,37 @@ export default function VendorOrders() {
                             </button>
                           ))}
                         </div>
+                        {order.status !== 'cancelled' && (
+                          <div className="mt-4">
+                            <label
+                              htmlFor={`tracking-${order.id}`}
+                              className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-surface-900"
+                            >
+                              <Truck className="h-4 w-4" /> Tracking number
+                            </label>
+                            <div className="flex gap-2">
+                              <input
+                                id={`tracking-${order.id}`}
+                                value={trackingDraft[order.id] || order.trackingNumber || ''}
+                                onChange={(e) =>
+                                  setTrackingDraft((prev) => ({ ...prev, [order.id]: e.target.value }))
+                                }
+                                placeholder="e.g. AWB / courier reference"
+                                className="min-w-0 flex-1 rounded-lg border border-surface-200 px-3 py-1.5 text-xs focus:border-primary-400 focus:outline-none"
+                              />
+                              <button
+                                onClick={() => handleSaveTracking(order.id)}
+                                disabled={savingTracking === order.id}
+                                className="rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-60"
+                              >
+                                {savingTracking === order.id ? 'Saving…' : 'Save'}
+                              </button>
+                            </div>
+                            <p className="mt-1 text-[11px] text-surface-400">
+                              Saving a tracking number marks the order as shipped.
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

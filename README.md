@@ -22,7 +22,7 @@ Browser (React SPA)
         └── bulk-import    — authenticated bulk scraper (max 20 URLs)
 ```
 
-Orders are **server-authoritative**. The browser only sends product IDs, quantities, add-ons, the shipping address and the payment proof; all prices, stock checks, discounts, tax, shipping and totals are recomputed in `api/create-order.js` using the Admin SDK. Firestore rules therefore deny all client writes to `orders` and `utrs`.
+Orders are **server-authoritative**. The browser only sends product IDs, quantities, add-ons, the shipping address, the payment method and the UPI reference; all prices, stock checks, discounts, tax, shipping and totals are recomputed in `api/create-order.js` using the Admin SDK. Firestore rules therefore deny all client writes to `orders` and `utrs`.
 
 ### Firestore collections
 
@@ -52,6 +52,8 @@ npm install
 Copy `.env.example` to `.env` and fill in what you need:
 
 - **Client (`VITE_*`)** — optional; `src/config/firebase.js` ships with working defaults.
+- `VITE_SITE_URL` — canonical public origin used for canonical tags, Open Graph and the sitemap (defaults to `https://speedersmania.vercel.app`). Set this when the site moves to a custom domain.
+- `VITE_ENABLE_DEMO_DATA` — leave unset (or `false`). Setting it to `true` shows the built-in demo catalogue when Firestore has no products; never enable it in production.
 - **Server (`FIREBASE_SERVICE_ACCOUNT`)** — required for checkout, import and bulk import. It is a single-line JSON service account from Firebase Console → Project settings → Service accounts. Never commit it.
 - `UPI_ID` — canonical UPI id used to build orders and verification notes.
 - `ALLOWED_ORIGINS` — comma-separated browser origins allowed to call the API (defaults to localhost in development).
@@ -71,16 +73,18 @@ Vite proxies `/api` to `http://localhost:3001`, so the checkout flow works exact
 Deploy the repository's security rules and indexes before going live:
 
 ```bash
-firebase deploy --only firestore:rules,firestore:indexes
+firebase deploy --only firestore:rules,firestore:indexes,storage
 ```
 
-The rules make orders/UTRs server-only and stop vendors from editing trust or financial fields.
+The rules make orders, UTRs and reviews server-only and stop vendors from editing trust or financial fields.
 
-### 5. Build
+### 5. Build and test
 
 ```bash
 npm run build      # outputs dist/
 npm run preview    # serve the production build
+npm test           # node:test suites (order creation, lifecycle, pricing, coupons, payment matching)
+npm run sitemap    # regenerate public/sitemap.xml (static routes without credentials)
 ```
 
 ## Deployment
@@ -109,6 +113,19 @@ Push to `main`; `.github/workflows/deploy.yml` builds with `VITE_BASE_PATH=/mult
 - UPI references are normalised and hashed; a reference can only ever be attached to one order (enforced in a Firestore transaction).
 - Product scraping only allows public HTTP(S) URLs on ports 80/443; private IP ranges and redirects to them are blocked (SSRF guard).
 - Product images are compressed client-side to base64 and stored on the document (no Storage/Blaze plan required). Keep total document size under 1 MiB.
+- Order status, stock restoration and reviews are written only by `/api/order-status` and `/api/reviews`; Firestore rules deny client writes.
+- Checkout accepts UPI and Cash on Delivery only. There is no file upload anywhere in the app, so no Firebase Storage (and no Blaze plan) is required.
+
+## Before going live
+
+These items need credentials or business decisions and are **not** automated:
+
+1. Rotate the Firebase service account key (any key that ever sat in a local `.env` should be treated as exposed) and set it only in the host's environment variables.
+2. Deploy `firestore.rules`, `firestore.indexes.json` and `storage.rules` to the production project.
+3. Set `VITE_SITE_URL` to the final domain and regenerate the sitemap.
+4. Review `Terms` and `Privacy` with a lawyer for your jurisdiction; they are templates, not legal advice.
+5. Email notifications, returns/refund UI and a real payment gateway are not implemented. Checkout supports UPI reference matching and Cash on Delivery only.
+6. If you ever ran an older build that used manual transfers, delete any leftover screenshots under `product-images/payment-proofs/` and `payment-proofs/` in the Firebase Console — rules cannot retroactively revoke objects that were already public.
 
 ## License
 

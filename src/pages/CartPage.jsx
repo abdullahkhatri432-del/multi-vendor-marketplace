@@ -10,7 +10,14 @@ import { computeTotals, FREE_SHIPPING_THRESHOLD, SHIPPING_FEE, TAX_RATE } from '
 import EmptyState from '../components/ui/EmptyState';
 import { inr } from '../utils/currency';
 
+import usePageMeta from '../hooks/usePageMeta';
 export default function CartPage() {
+  usePageMeta({
+    title: 'Your cart — Speedersmania',
+    description: 'Review the items in your cart before checkout.',
+    path: '/cart',
+    robots: 'noindex, nofollow',
+  });
   const { cart, removeItem, updateQuantity, cartTotal, clearCart } = useCart();
   const { isAuthenticated } = useAuth();
   const { intercept } = useCheckoutInterceptor();
@@ -141,7 +148,7 @@ export default function CartPage() {
             >
               <Link to={`/products/${item.id}`} className="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-surface-100">
                 <img
-                  src={item.image || `https://picsum.photos/seed/${item.id}/100/100`}
+                  src={item.image || `/product-placeholder.svg`}
                   alt={item.name}
                   className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
                 />
@@ -282,7 +289,7 @@ export default function CartPage() {
               {cart.map((item) => (
                 <div key={item.id} className="flex items-center gap-3">
                   <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-surface-100">
-                    <img src={item.image || `https://picsum.photos/seed/${item.id}/50/50`} alt="" className="h-full w-full object-cover" />
+                    <img src={item.image || `/product-placeholder.svg`} alt="" className="h-full w-full object-cover" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-surface-900 line-clamp-1">{item.name}</p>

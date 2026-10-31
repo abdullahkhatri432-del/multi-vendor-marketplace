@@ -16,11 +16,10 @@
 import { db } from './firebase';
 import { fallbackProducts, fallbackVendors, findFallbackProduct, findFallbackVendor, fallbackCoupons, findFallbackCoupon } from './fallbackData';
 
-// Demo/fallback catalogue. Disabled in production builds by default so a real
-// deployment never shows fake products. Opt in with VITE_ENABLE_DEMO_DATA=true.
-export const DEMO_ENABLED =
-  import.meta.env.VITE_ENABLE_DEMO_DATA === 'true' ||
-  (import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEMO_DATA !== 'false');
+// Demo/fallback catalogue. Off unless explicitly enabled, so a real deployment
+// (and local dev against the live project) never shows fake products, fake
+// vendors or fake coupons. Opt in with VITE_ENABLE_DEMO_DATA=true.
+export const DEMO_ENABLED = import.meta.env.VITE_ENABLE_DEMO_DATA === 'true';
 
 const demoProducts = () => (DEMO_ENABLED ? fallbackProducts : []);
 const demoCoupons = () => (DEMO_ENABLED ? fallbackCoupons : []);

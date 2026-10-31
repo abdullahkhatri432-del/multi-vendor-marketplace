@@ -3,23 +3,31 @@ import { Navigate } from 'react-router-dom';
 import {
   Users, Store, Package, ShoppingCart, DollarSign, Shield,
   CheckCircle, XCircle, BarChart3, Trash2, Edit2, Eye,
-  Search, Calendar, ChevronDown, TrendingUp, AlertTriangle,
-  Tag, Plus, X, RefreshCw, Clock, Star, Banknote, ScanLine, Ticket, FileText,
+  Search, Calendar, ChevronDown, TrendingUp, AlertTriangle, AlertCircle,
+  Tag, Plus, X, RefreshCw, Clock, Star, Banknote, ScanLine, Ticket,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import {
   getPlatformStats, getAllVendors, getAllOrders, getAllProducts,
-  getAllUsers, updateUserRole, deleteUser, updateOrderStatus,
+  getAllUsers, updateUserRole, deleteUser,
   deleteOrder, deleteProductById, updateVendor, getAllCategories,
   createCategory, deleteCategory, verifyOrderPayment, updateOrder,
   getAllCoupons, createCoupon, deleteCoupon,
 } from '../config/firestore';
+import { updateOrderStatus as apiUpdateOrderStatus } from '../config/api';
 import StatCard from '../components/ui/StatCard';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import EmptyState from '../components/ui/EmptyState';
 import { matchFromPaste, normalizeUtr } from '../utils/paymentMatch';
 
+import usePageMeta from '../hooks/usePageMeta';
 export default function AdminDashboard() {
+  usePageMeta({
+    title: 'Admin dashboard — Speedersmania',
+    description: 'Platform administration.',
+    path: '/admin',
+    robots: 'noindex, nofollow',
+  });
   const { user, isAdmin, isAuthenticated, loading: authLoading } = useAuth();
   const [stats, setStats] = useState(null);
   const [vendors, setVendors] = useState([]);
@@ -37,6 +45,7 @@ export default function AdminDashboard() {
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [newCategory, setNewCategory] = useState({ name: '', icon: '' });
   const [utrPaste, setUtrPaste] = useState('');
+  const [orderActionError, setOrderActionError] = useState('');
   const [matchResult, setMatchResult] = useState(null);
   const [coupons, setCoupons] = useState([]);
   const [showCouponForm, setShowCouponForm] = useState(false);
@@ -113,9 +122,12 @@ export default function AdminDashboard() {
 
   const handleOrderStatus = async (orderId, status) => {
     try {
-      await updateOrderStatus(orderId, status);
+      await apiUpdateOrderStatus(user, { orderId, action: 'status', status });
       setOrders(orders.map((o) => (o.id === orderId ? { ...o, status } : o)));
-    } catch (err) { console.error('Failed to update order:', err); }
+    } catch (err) {
+      console.error('Failed to update order:', err);
+      setOrderActionError(err?.message || 'Could not update the order.');
+    }
   };
 
   const handleDeleteOrder = async (orderId) => {
@@ -247,6 +259,20 @@ export default function AdminDashboard() {
       </div>
 
       {/* Tabs */}
+      {orderActionError && (
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <span className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            {orderActionError}
+          </span>
+          <button
+            onClick={() => setOrderActionError('')}
+            className="text-xs font-semibold underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
       <div className="flex gap-1 mb-6 rounded-2xl bg-surface-100 p-1 overflow-x-auto scrollbar-hide">
         {tabs.map(({ id, label, icon: Icon }) => (
           <button
@@ -616,7 +642,7 @@ export default function AdminDashboard() {
           {filteredProducts.length > 0 ? filteredProducts.map((product) => (
             <div key={product.id} className="card overflow-hidden">
               <div className="aspect-video overflow-hidden bg-surface-100">
-                <img src={product.images?.[0] || product.image || `https://picsum.photos/seed/${product.id}/300/200`} alt={product.name} className="h-full w-full object-cover" />
+                <img src={product.images?.[0] || product.image || `/product-placeholder.svg`} alt={product.name} className="h-full w-full object-cover" />
               </div>
               <div className="p-4">
                 <p className="text-sm font-semibold text-surface-900 truncate">{product.name}</p>
@@ -847,127 +873,7 @@ export default function AdminDashboard() {
             )}
           </div>
 
-          {/* Manual Payment Proof Verification */}
-          <div className="card p-6">
-            <div className="flex items-start gap-3 mb-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50">
-                <FileText className="h-5 w-5 text-primary-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-surface-900">Manual Payment Proofs</h3>
-                <p className="mt-1 text-sm text-surface-500">
-                  Orders paid via manual bank/UPI transfer with uploaded proof screenshots. Review the proof
-                  and verify or reject each payment.
-                </p>
-              </div>
-            </div>
 
-            {(() => {
-              const manualPending = orders.filter(
-                (o) => o.paymentMethod === 'manual' && o.paymentStatus === 'pending-verification'
-              );
-              if (manualPending.length === 0) {
-                return (
-                  <p className="text-sm text-surface-500 text-center py-8">
-                    No manual payment proofs pending verification.
-                  </p>
-                );
-              }
-              return (
-                <div className="space-y-3 stagger">
-                  {manualPending.map((order) => {
-                    const proofUrl = order.paymentDetails?.proofUrl;
-                    const proofNote = order.paymentDetails?.proofNote || '';
-                    return (
-                      <div key={order.id} className="rounded-2xl border border-primary-200 bg-primary-50 p-5">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-surface-900">
-                              Order #{order.id?.slice(0, 8)}
-                            </p>
-                            <p className="mt-0.5 text-xs text-surface-500">
-                              {order.customerName} · {order.customerEmail}
-                              {order.createdAt ? (
-                                <span className="ml-2">· {new Date(order.createdAt).toLocaleDateString()}</span>
-                              ) : null}
-                            </p>
-                            <p className="mt-1 text-xs font-mono text-primary-700">
-                              {proofNote || 'No note provided'}
-                            </p>
-                            <p className="mt-1 text-xs text-surface-600">
-                              Total: <span className="font-bold">₹{Number(order.total || 0).toFixed(2)}</span>
-                            </p>
-                          </div>
-                          {proofUrl && (
-                            <div className="flex flex-col gap-2 sm:flex-row">
-                              <img
-                                src={proofUrl}
-                                alt="Payment proof"
-                                className="h-32 w-48 object-cover rounded-lg border border-surface-200"
-                              />
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => {
-                                    try {
-                                      verifyOrderPayment(order.id, {
-                                        utr: order.paymentReference || 'manual',
-                                        amount: order.total,
-                                        matchedBy: 'proof-verified',
-                                      });
-                                      setOrders(
-                                        orders.map((o) =>
-                                          o.id === order.id
-                                            ? { ...o, paymentStatus: 'verified' }
-                                            : o
-                                        )
-                                      );
-                                    } catch (err) {
-                                      console.error('Failed to verify:', err);
-                                    }
-                                  }}
-                                  className="btn-primary text-xs px-3 py-1.5 flex-1"
-                                >
-                                  Verify Payment
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    if (
-                                      !confirm(
-                                        'Reject this payment proof? The order will be marked as rejected and the customer will need to re-pay.'
-                                      )
-                                    )
-                                      return;
-                                    try {
-                                      updateOrder(order.id, {
-                                        paymentStatus: 'rejected',
-                                        adminNotes: 'Payment proof rejected by admin',
-                                      });
-                                      setOrders(
-                                        orders.map((o) =>
-                                          o.id === order.id
-                                            ? { ...o, paymentStatus: 'rejected' }
-                                            : o
-                                        )
-                                      );
-                                    } catch (err) {
-                                      console.error('Failed to reject:', err);
-                                    }
-                                  }}
-                                  className="btn-secondary text-xs px-3 py-1.5 flex-1"
-                                >
-                                  Reject
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })()}
-          </div>
         </div>
       )}
 

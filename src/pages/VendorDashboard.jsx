@@ -16,7 +16,14 @@ import ProductImporter from '../components/ProductImporter';
 import BulkImport from '../components/BulkImport';
 import DraftProducts from '../components/DraftProducts';
 
+import usePageMeta from '../hooks/usePageMeta';
 export default function VendorDashboard() {
+  usePageMeta({
+    title: 'Vendor dashboard — Speedersmania',
+    description: 'Manage your store.',
+    path: '/vendor',
+    robots: 'noindex, nofollow',
+  });
   const { user, isVendor, isAuthenticated, loading: authLoading } = useAuth();
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);

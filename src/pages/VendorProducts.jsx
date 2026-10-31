@@ -9,6 +9,7 @@ import EmptyState from '../components/ui/EmptyState';
 import ImportProductModal from '../components/ui/ImportProductModal';
 import { useToast } from '../context/ToastContext';
 
+import usePageMeta from '../hooks/usePageMeta';
 // Stock editor that only writes to Firestore on blur/Enter instead of on every
 // keystroke (which used to fire one update per digit typed).
 function StockInput({ value, onCommit, disabled }) {
@@ -44,6 +45,12 @@ function StockInput({ value, onCommit, disabled }) {
 }
 
 export default function VendorProducts() {
+  usePageMeta({
+    title: 'Vendor products — Speedersmania',
+    description: 'Manage your product listings.',
+    path: '/vendor/products',
+    robots: 'noindex, nofollow',
+  });
   const { user, isVendor, isAuthenticated, loading: authLoading } = useAuth();
   const { addToast } = useToast();
   const [products, setProducts] = useState([]);
@@ -401,7 +408,7 @@ export default function VendorProducts() {
           {filteredProducts.map((product) => (
             <div key={product.id} className="card p-4 flex flex-col sm:flex-row sm:items-center gap-4">
               <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-surface-100">
-                <img src={product.images?.[0] || product.image || `https://picsum.photos/seed/${product.id}/64/64`} alt={product.name} className="h-full w-full object-cover" />
+                <img src={product.images?.[0] || product.image || `/product-placeholder.svg`} alt={product.name} className="h-full w-full object-cover" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">

@@ -1,7 +1,13 @@
 import { Link } from 'react-router-dom';
 import { Home, ArrowLeft, Search } from 'lucide-react';
 
+import usePageMeta from '../hooks/usePageMeta';
 export default function NotFoundPage() {
+  usePageMeta({
+    title: 'Page not found — Speedersmania',
+    description: 'The page you were looking for does not exist.',
+    robots: 'noindex, nofollow',
+  });
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 text-center anim-rise">
       <div className="relative mb-6">

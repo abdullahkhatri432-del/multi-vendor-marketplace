@@ -1,4 +1,11 @@
+import usePageMeta from '../hooks/usePageMeta';
+
 export default function PrivacyPage() {
+  usePageMeta({
+    title: 'Privacy Policy — Speedersmania',
+    description: 'What data Speedersmania collects, why it is collected, and how it is protected.',
+    path: '/privacy',
+  });
   return (
     <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-12">
       <div className="card p-8 sm:p-12 reveal-scale">

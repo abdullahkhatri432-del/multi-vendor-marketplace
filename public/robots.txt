@@ -1,9 +1,20 @@
 User-agent: *
 Allow: /
+
+# Private / transactional routes — never useful in search results
+Disallow: /cart
 Disallow: /checkout
 Disallow: /login
 Disallow: /register
-Disallow: /vendor
+Disallow: /orders
+Disallow: /profile
+Disallow: /wishlist
 Disallow: /admin
+
+# Vendor dashboard. Anchored so the public /vendors list and /vendor/:id
+# store pages remain crawlable.
+Disallow: /vendor$
+Disallow: /vendor/products
+Disallow: /vendor/orders
 
 Sitemap: https://speedersmania.vercel.app/sitemap.xml

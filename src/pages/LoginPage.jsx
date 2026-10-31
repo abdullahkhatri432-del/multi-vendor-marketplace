@@ -2,13 +2,20 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Store, ShieldCheck, Truck, RotateCcw, BadgeCheck, ArrowLeft, Quote } from 'lucide-react';
 import AuthModal from '../components/AuthModal';
 
+import usePageMeta from '../hooks/usePageMeta';
 const perks = [
-  { icon: ShieldCheck, title: 'Buyer protection', body: 'Every order covered from checkout to doorstep.' },
-  { icon: Truck, title: 'Fast, tracked delivery', body: 'Free shipping on orders over ₹999.' },
-  { icon: RotateCcw, title: '7-day easy returns', body: 'Changed your mind? Send it back, no fuss.' },
+  { icon: ShieldCheck, title: 'Server-verified payments', body: 'Every UPI reference is matched to an order before it is marked paid.' },
+  { icon: Truck, title: 'Tracked delivery', body: 'Free shipping on orders over ₹999.' },
+  { icon: RotateCcw, title: 'Clear returns', body: 'Returns follow the individual seller policy shown on the product.' },
 ];
 
 export default function LoginPage() {
+  usePageMeta({
+    title: 'Sign in — Speedersmania',
+    description: 'Sign in to your Speedersmania account.',
+    path: '/login',
+    robots: 'noindex, nofollow',
+  });
   const navigate = useNavigate();
 
   return (
