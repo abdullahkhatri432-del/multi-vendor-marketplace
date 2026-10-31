@@ -1,22 +1,41 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Public product imagery. Anyone may read (needed for storefront rendering);
+    // writes require a signed-in user and must be real images under 5 MB.
     match /product-images/{allPaths=**} {
       allow read: if true;
-      allow write: if request.auth != null &&
-        request.resource.size < 5 * 1024 * 1024 && // max 5 MB
+      allow write: if isAuthenticated() &&
+        request.resource.size < 5 * 1024 * 1024 &&
         request.resource.contentType.matches('image/(png|jpeg|jpg|webp|gif|svg\\+xml)');
     }
 
-    // Payment proof screenshots uploaded by customers during manual-payment checkout.
-    // Only the owner may upload; any authenticated user can read (so admins can view
-    // proofs linked from order documents). Files are images only, max 5 MB.
-    match /payment-proofs/{userId}/{orderId}/{fileName} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null &&
+    // Payment proof screenshots are private financial evidence: only the
+    // customer who uploaded them and platform admins may read them.
+    // Path: payment-proofs/{uid}/{batchId}/{fileName}
+    match /payment-proofs/{userId}/{batchId}/{fileName} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow create: if isAuthenticated() &&
         request.auth.uid == userId &&
         request.resource.size < 5 * 1024 * 1024 &&
         request.resource.contentType.matches('image/(png|jpeg|jpg|webp)');
+      allow update, delete: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+    }
+
+    // Deny anything not explicitly matched above.
+    match /{allPaths=**} {
+      allow read, write: if false;
     }
   }
 }
