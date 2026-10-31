@@ -1,4 +1,11 @@
+import usePageMeta from '../hooks/usePageMeta';
+
 export default function TermsPage() {
+  usePageMeta({
+    title: 'Terms & Conditions — Speedersmania',
+    description: 'The terms that govern buying and selling on Speedersmania, including payments, shipping and returns.',
+    path: '/terms',
+  });
   return (
     <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-12">
       <div className="card p-8 sm:p-12 reveal-scale">

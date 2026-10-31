@@ -7,6 +7,7 @@ import SkeletonWrapper from '../components/ui/SkeletonWrapper';
 import { trackEvent } from '../config/analytics';
 import { inr } from '../utils/currency';
 
+import usePageMeta from '../hooks/usePageMeta';
 const RECENT_KEY = 'speedersmania_recently_viewed';
 const SORT_OPTIONS = ['newest', 'price-low', 'price-high', 'rating'];
 
@@ -54,6 +55,16 @@ export default function ProductsPage() {
   }, []);
 
   const query = searchParams.get('q') || '';
+  const metaCategory = searchParams.get('category');
+  usePageMeta({
+    title: metaCategory
+      ? `${metaCategory.replace(/-/g, ' ')} — Shop online | Speedersmania`
+      : 'All products — Shop online | Speedersmania',
+    description: metaCategory
+      ? `Browse ${metaCategory.replace(/-/g, ' ')} products from verified sellers. Live stock, transparent pricing and UPI checkout.`
+      : 'Browse every product listed on Speedersmania. Filter by category, price and availability from verified sellers.',
+    path: metaCategory ? `/products?category=${metaCategory}` : '/products',
+  });
   const effectiveView = isMobile ? 'grid' : viewMode;
 
   // Load recently viewed products from localStorage

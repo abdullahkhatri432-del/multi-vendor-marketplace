@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600" role="img" aria-label="Product image unavailable">
+  <rect width="600" height="600" fill="#F4F4F5"/>
+  <g fill="none" stroke="#A1A1AA" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M190 250h220v180H190z"/>
+    <path d="M190 250l60-70h100l60 70"/>
+    <path d="M300 250v180"/>
+    <path d="M190 330h220"/>
+  </g>
+  <text x="300" y="500" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="26" fill="#71717A">
+    Image coming soon
+  </text>
+</svg>

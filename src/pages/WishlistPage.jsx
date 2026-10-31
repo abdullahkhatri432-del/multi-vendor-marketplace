@@ -8,7 +8,14 @@ import ProductCard from '../components/ui/ProductCard';
 import EmptyState from '../components/ui/EmptyState';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 
+import usePageMeta from '../hooks/usePageMeta';
 export default function WishlistPage() {
+  usePageMeta({
+    title: 'My wishlist — Speedersmania',
+    description: 'Products you have saved for later.',
+    path: '/wishlist',
+    robots: 'noindex, nofollow',
+  });
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const { wishlistIds, loading: wishlistLoading } = useWishlist();
   const navigate = useNavigate();

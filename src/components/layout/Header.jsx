@@ -167,7 +167,7 @@ export default function Header() {
                 >
                   <div className="flex-shrink-0 h-10 w-10 rounded-xl overflow-hidden bg-surface-100">
                     <img
-                      src={s.images?.[0] || s.image || `https://picsum.photos/seed/${s.id}/80/80`}
+                      src={s.images?.[0] || s.image || `/product-placeholder.svg`}
                       alt=""
                       className="h-full w-full object-cover"
                     />

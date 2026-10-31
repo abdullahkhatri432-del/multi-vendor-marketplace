@@ -17,10 +17,17 @@ import { inr } from '../utils/currency';
 import { storage } from '../config/firebase';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 
+import usePageMeta from '../hooks/usePageMeta';
 const CREATE_ORDER_ENDPOINT =
   import.meta.env.VITE_CREATE_ORDER_ENDPOINT || '/api/create-order';
 
 export default function CheckoutPage() {
+  usePageMeta({
+    title: 'Checkout — Speedersmania',
+    description: 'Complete your order securely.',
+    path: '/checkout',
+    robots: 'noindex, nofollow',
+  });
   const { cart, cartTotal, clearCart } = useCart();
   const { user, isAuthenticated } = useAuth();
   const { intercept } = useCheckoutInterceptor();
@@ -194,14 +201,26 @@ export default function CheckoutPage() {
   };
 
   // Upload payment proof to Firebase Storage and return the download URL.
+  // Files live under payment-proofs/{uid}/{batch}/ so storage.rules can keep
+  // them private to the customer and platform admins (they are financial data).
   const handleProofUpload = async (file) => {
     if (!file) return;
+    if (!/^image\/(png|jpe?g|webp)$/i.test(file.type)) {
+      setError('Please upload a PNG, JPG or WebP screenshot of your payment.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Payment proof must be smaller than 5 MB.');
+      return;
+    }
     setUploadingProof(true);
+    setError('');
     try {
-      const safeName = String(Date.now()) + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const storagePath = `product-images/payment-proofs/${user?.uid}/pending/${safeName}`;
+      const batchId = `pending-${Date.now()}`;
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-80);
+      const storagePath = `payment-proofs/${user?.uid}/${batchId}/${safeName}`;
       const storageRefPath = storageRef(storage, storagePath);
-      await uploadBytes(storageRefPath, file);
+      await uploadBytes(storageRefPath, file, { contentType: file.type });
       const url = await getDownloadURL(storageRefPath);
       setPaymentProofUrl(url);
       setPaymentProofFile(file);
@@ -748,7 +767,7 @@ export default function CheckoutPage() {
                 {cart.map((item) => (
                   <div key={item.id} className="flex items-center gap-3">
                     <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-surface-100">
-                      <img src={item.image || `https://picsum.photos/seed/${item.id}/50/50`} alt="" className="h-full w-full object-cover" />
+                      <img src={item.image || `/product-placeholder.svg`} alt="" className="h-full w-full object-cover" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-surface-900 line-clamp-1">{item.name}</p>
