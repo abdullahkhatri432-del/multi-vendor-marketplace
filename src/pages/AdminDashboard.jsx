@@ -4,7 +4,7 @@ import {
   Users, Store, Package, ShoppingCart, DollarSign, Shield,
   CheckCircle, XCircle, BarChart3, Trash2, Edit2, Eye,
   Search, Calendar, ChevronDown, TrendingUp, AlertTriangle, AlertCircle,
-  Tag, Plus, X, RefreshCw, Clock, Star, Banknote, ScanLine, Ticket, FileText,
+  Tag, Plus, X, RefreshCw, Clock, Star, Banknote, ScanLine, Ticket,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -873,127 +873,7 @@ export default function AdminDashboard() {
             )}
           </div>
 
-          {/* Manual Payment Proof Verification */}
-          <div className="card p-6">
-            <div className="flex items-start gap-3 mb-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50">
-                <FileText className="h-5 w-5 text-primary-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-surface-900">Manual Payment Proofs</h3>
-                <p className="mt-1 text-sm text-surface-500">
-                  Orders paid via manual bank/UPI transfer with uploaded proof screenshots. Review the proof
-                  and verify or reject each payment.
-                </p>
-              </div>
-            </div>
 
-            {(() => {
-              const manualPending = orders.filter(
-                (o) => o.paymentMethod === 'manual' && o.paymentStatus === 'pending-verification'
-              );
-              if (manualPending.length === 0) {
-                return (
-                  <p className="text-sm text-surface-500 text-center py-8">
-                    No manual payment proofs pending verification.
-                  </p>
-                );
-              }
-              return (
-                <div className="space-y-3 stagger">
-                  {manualPending.map((order) => {
-                    const proofUrl = order.paymentDetails?.proofUrl;
-                    const proofNote = order.paymentDetails?.proofNote || '';
-                    return (
-                      <div key={order.id} className="rounded-2xl border border-primary-200 bg-primary-50 p-5">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-surface-900">
-                              Order #{order.id?.slice(0, 8)}
-                            </p>
-                            <p className="mt-0.5 text-xs text-surface-500">
-                              {order.customerName} · {order.customerEmail}
-                              {order.createdAt ? (
-                                <span className="ml-2">· {new Date(order.createdAt).toLocaleDateString()}</span>
-                              ) : null}
-                            </p>
-                            <p className="mt-1 text-xs font-mono text-primary-700">
-                              {proofNote || 'No note provided'}
-                            </p>
-                            <p className="mt-1 text-xs text-surface-600">
-                              Total: <span className="font-bold">₹{Number(order.total || 0).toFixed(2)}</span>
-                            </p>
-                          </div>
-                          {proofUrl && (
-                            <div className="flex flex-col gap-2 sm:flex-row">
-                              <img
-                                src={proofUrl}
-                                alt="Payment proof"
-                                className="h-32 w-48 object-cover rounded-lg border border-surface-200"
-                              />
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => {
-                                    try {
-                                      verifyOrderPayment(order.id, {
-                                        utr: order.paymentReference || 'manual',
-                                        amount: order.total,
-                                        matchedBy: 'proof-verified',
-                                      });
-                                      setOrders(
-                                        orders.map((o) =>
-                                          o.id === order.id
-                                            ? { ...o, paymentStatus: 'verified' }
-                                            : o
-                                        )
-                                      );
-                                    } catch (err) {
-                                      console.error('Failed to verify:', err);
-                                    }
-                                  }}
-                                  className="btn-primary text-xs px-3 py-1.5 flex-1"
-                                >
-                                  Verify Payment
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    if (
-                                      !confirm(
-                                        'Reject this payment proof? The order will be marked as rejected and the customer will need to re-pay.'
-                                      )
-                                    )
-                                      return;
-                                    try {
-                                      updateOrder(order.id, {
-                                        paymentStatus: 'rejected',
-                                        adminNotes: 'Payment proof rejected by admin',
-                                      });
-                                      setOrders(
-                                        orders.map((o) =>
-                                          o.id === order.id
-                                            ? { ...o, paymentStatus: 'rejected' }
-                                            : o
-                                        )
-                                      );
-                                    } catch (err) {
-                                      console.error('Failed to reject:', err);
-                                    }
-                                  }}
-                                  className="btn-secondary text-xs px-3 py-1.5 flex-1"
-                                >
-                                  Reject
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })()}
-          </div>
         </div>
       )}
 

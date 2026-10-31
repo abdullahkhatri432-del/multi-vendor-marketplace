@@ -22,7 +22,7 @@ Browser (React SPA)
         └── bulk-import    — authenticated bulk scraper (max 20 URLs)
 ```
 
-Orders are **server-authoritative**. The browser only sends product IDs, quantities, add-ons, the shipping address and the payment proof; all prices, stock checks, discounts, tax, shipping and totals are recomputed in `api/create-order.js` using the Admin SDK. Firestore rules therefore deny all client writes to `orders` and `utrs`.
+Orders are **server-authoritative**. The browser only sends product IDs, quantities, add-ons, the shipping address, the payment method and the UPI reference; all prices, stock checks, discounts, tax, shipping and totals are recomputed in `api/create-order.js` using the Admin SDK. Firestore rules therefore deny all client writes to `orders` and `utrs`.
 
 ### Firestore collections
 
@@ -76,7 +76,7 @@ Deploy the repository's security rules and indexes before going live:
 firebase deploy --only firestore:rules,firestore:indexes,storage
 ```
 
-The rules make orders, UTRs and reviews server-only, keep payment proofs private to the customer and admins, and stop vendors from editing trust or financial fields.
+The rules make orders, UTRs and reviews server-only and stop vendors from editing trust or financial fields.
 
 ### 5. Build and test
 
@@ -114,7 +114,7 @@ Push to `main`; `.github/workflows/deploy.yml` builds with `VITE_BASE_PATH=/mult
 - Product scraping only allows public HTTP(S) URLs on ports 80/443; private IP ranges and redirects to them are blocked (SSRF guard).
 - Product images are compressed client-side to base64 and stored on the document (no Storage/Blaze plan required). Keep total document size under 1 MiB.
 - Order status, stock restoration and reviews are written only by `/api/order-status` and `/api/reviews`; Firestore rules deny client writes.
-- Payment proof screenshots are uploaded to the private `payment-proofs/{uid}/{batch}/` path. Firebase download URLs are bearer links, so treat them as sensitive.
+- Checkout accepts UPI and Cash on Delivery only. There is no file upload anywhere in the app, so no Firebase Storage (and no Blaze plan) is required.
 
 ## Before going live
 
@@ -124,8 +124,8 @@ These items need credentials or business decisions and are **not** automated:
 2. Deploy `firestore.rules`, `firestore.indexes.json` and `storage.rules` to the production project.
 3. Set `VITE_SITE_URL` to the final domain and regenerate the sitemap.
 4. Review `Terms` and `Privacy` with a lawyer for your jurisdiction; they are templates, not legal advice.
-5. Email notifications, returns/refund UI and a real payment gateway are not implemented. Checkout supports UPI reference matching, Cash on Delivery and manual bank/UPI transfer only.
-6. Old payment proofs previously stored under `product-images/payment-proofs/` remain publicly readable — delete or migrate them in the Firebase Console.
+5. Email notifications, returns/refund UI and a real payment gateway are not implemented. Checkout supports UPI reference matching and Cash on Delivery only.
+6. If you ever ran an older build that used manual transfers, delete any leftover screenshots under `product-images/payment-proofs/` and `payment-proofs/` in the Firebase Console — rules cannot retroactively revoke objects that were already public.
 
 ## License
 

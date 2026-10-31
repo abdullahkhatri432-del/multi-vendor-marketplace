@@ -6,12 +6,6 @@ service firebase.storage {
       return request.auth != null;
     }
 
-    function isAdmin() {
-      return isAuthenticated() &&
-        firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
-        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-
     // Public product imagery. Anyone may read (needed for storefront rendering);
     // writes require a signed-in user and must be real images under 5 MB.
     match /product-images/{allPaths=**} {
@@ -21,17 +15,8 @@ service firebase.storage {
         request.resource.contentType.matches('image/(png|jpeg|jpg|webp|gif|svg\\+xml)');
     }
 
-    // Payment proof screenshots are private financial evidence: only the
-    // customer who uploaded them and platform admins may read them.
-    // Path: payment-proofs/{uid}/{batchId}/{fileName}
-    match /payment-proofs/{userId}/{batchId}/{fileName} {
-      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
-      allow create: if isAuthenticated() &&
-        request.auth.uid == userId &&
-        request.resource.size < 5 * 1024 * 1024 &&
-        request.resource.contentType.matches('image/(png|jpeg|jpg|webp)');
-      allow update, delete: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
-    }
+    // Payment-proof uploads were removed from checkout, so the only Storage
+    // namespace that exists is product imagery. Anything else is denied below.
 
     // Deny anything not explicitly matched above.
     match /{allPaths=**} {

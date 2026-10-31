@@ -211,7 +211,7 @@ test('COD order records the advance and the balance due', async () => {
   assert.equal(order.data.balanceDue, 0);
 });
 
-test('manual transfer requires proof and does not claim a UTR', async () => {
+test('manual transfer is rejected because the method was removed', async () => {
   const res = await call({
     ...baseBody,
     paymentMethod: 'manual',
@@ -219,17 +219,9 @@ test('manual transfer requires proof and does not claim a UTR', async () => {
     paymentProofNote: 'Paid via PhonePe',
   });
 
-  assert.equal(res.statusCode, 200);
-  assert.equal(findWrite('utrs', 'set'), undefined);
-  const order = findWrite('orders', 'set');
-  assert.equal(order.data.paymentMethod, 'manual');
-  assert.equal(order.data.paymentDetails.proofUrl, 'https://example.com/proof.png');
-});
-
-test('manual transfer without proof is rejected', async () => {
-  const res = await call({ ...baseBody, paymentMethod: 'manual' });
   assert.equal(res.statusCode, 400);
-  assert.match(res.payload.error, /proof/i);
+  assert.match(res.payload.error, /valid payment method/i);
+  assert.equal(state.writes.length, 0);
 });
 
 test('card payments are rejected with a clear message', async () => {

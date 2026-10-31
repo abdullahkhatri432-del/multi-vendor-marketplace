@@ -27,7 +27,7 @@ Legend: **Works** = implemented and exercised by automated tests or by reading t
 | Checkout | Server-side pricing/stock revalidation | Works | Works | `api/create-order.js` |
 | Checkout | UPI reference (UTR) matching | **Broken** | Fixed | `utrRef` scope bug returned HTTP 500 for UPI/COD |
 | Checkout | Cash on Delivery with advance | Works | Works | |
-| Checkout | Manual bank/UPI transfer with proof | Works | Fixed | Proof moved to a private Storage path |
+| Checkout | Manual bank/UPI transfer with proof | Works | **Removed** | Feature deleted: checkout is UPI + COD only |
 | Checkout | Card payments | Missing (by design) | Missing (by design) | Rejected with a clear message |
 | Orders | Order creation | Works | Works | API-only |
 | Orders | Status transitions | **Broken** | Fixed | Direct client writes; no transition table |
@@ -70,7 +70,7 @@ Legend: **Works** = implemented and exercised by automated tests or by reading t
 2. **Vendor registration always failed** — the client wrote `verified`, `status: 'active'` and aggregate fields that `firestore.rules` rejects. Registration now creates a minimal `status: 'pending'` profile through `ensureVendorProfile`.
 3. **Order state was client-writable** — vendors could set any status, skip states, and stock was never returned on cancellation. All transitions now go through `api/order-status.js`.
 4. **Reviews were client-writable** — "Verified Purchase" and star ratings could be forged. Reviews now go through `api/reviews.js`, which checks a real order and recomputes aggregates.
-5. **Payment proofs were world-readable** — screenshots sat under `product-images/`, which is public. New uploads go to private `payment-proofs/{uid}/{batch}/`.
+5. **Payment proofs were world-readable** — screenshots sat under `product-images/`, which is public. The feature has since been removed entirely, so checkout no longer uploads any files.
 6. **Cart allowed unbounded quantities** and product cards showed a default 4.5 rating. Both corrected.
 7. **Checkout confirmation banner rendered literal `<span>` text** — broken JSX in the success state.
 
@@ -112,7 +112,7 @@ Coverage by suite:
 
 | Suite | Cases | What it proves |
 |---|---|---|
-| `tests/create-order.test.cjs` | 12 | Server pricing, client price tampering ignored, UPI/COD/manual paths, UTR reuse rejected, stock limits, address validation, method rejection |
+| `tests/create-order.test.cjs` | 11 | Server pricing, client price tampering ignored, UPI/COD paths, UTR reuse rejected, stock limits, address validation, removed-method and card rejection |
 | `tests/order-status.test.cjs` | 11 | Role matrix, allowed transitions, stock restoration, multi-vendor cancel refusal, idempotency, tracking URL validation, 404 |
 | `tests/pricing.test.js` | 5 | Shipping threshold, tax, discount caps, COD split |
 | `tests/coupons.test.js` | 6 | Code normalisation, expiry/usage/min-order, percent cap, fixed cap |
@@ -136,9 +136,9 @@ Coverage by suite:
 | 2 | Deploy `firestore.rules`, `firestore.indexes.json`, `storage.rules` | You | App is insecure until rules are live |
 | 3 | Set `VITE_SITE_URL` + regenerate sitemap | You | Canonicals point at the Vercel default |
 | 4 | Legal review of Terms/Privacy | You | Templates, not legal advice |
-| 5 | Delete/migrate legacy public payment proofs | You | Rules cannot retroactively revoke public objects |
+| 5 | Delete/migrate legacy public payment proofs | You | Rules cannot retroactively revoke public objects; only matters if an old build ran |
 | 6 | Email notifications | Decision + provider | No provider configured; no order emails are sent |
-| 7 | Payment gateway | Decision | Only UPI reference matching, COD and manual transfer exist |
+| 7 | Payment gateway | Decision | Only UPI reference matching and COD exist |
 | 8 | Returns/refund customer workflow | Decision | Policy undefined; only cancel + refund flag |
 | 9 | Product pagination | Engineering | Full catalogue is loaded client-side |
 | 10 | Product variants | Engineering + data migration | Addons exist; size/colour does not |
