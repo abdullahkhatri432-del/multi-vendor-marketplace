@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Store, Star, BadgeCheck, ArrowRight, ShieldCheck, Truck, RotateCcw, Headphones, Sparkles } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Store, Star, BadgeCheck, ArrowRight, ShieldCheck, Truck, RotateCcw, Headphones } from 'lucide-react';
 import { getVerifiedVendors } from '../config/firestore';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import EmptyState from '../components/ui/EmptyState';
@@ -8,6 +8,7 @@ import EmptyState from '../components/ui/EmptyState';
 export default function VendorsPage() {
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchVendors = async () => {
@@ -44,17 +45,16 @@ export default function VendorsPage() {
           icon={Store}
           title="No vendors yet"
           description="Vendors will appear here as stores get approved on the platform."
-          action={() => {}}
+          action={() => navigate('/products')}
           actionLabel="Browse Products"
         />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 stagger">
-          {vendors.map((vendor, index) => (
+          {vendors.map((vendor) => (
             <Link
               key={vendor.id}
               to={`/vendor/${vendor.id}`}
               className="group card bg-white/80 backdrop-blur-sm border border-surface-100 hover:border-primary-200 hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1 overflow-hidden"
-              style={{ animationDelay: `${index * 0.05}s` }}
             >
               <div className="p-6">
                 <div className="flex items-center gap-4 mb-4">
@@ -83,7 +83,7 @@ export default function VendorsPage() {
                 <div className="flex items-center gap-2 mb-4">
                   <div className="flex items-center gap-1">
                     <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-                    <span className="text-sm font-semibold text-surface-800">{vendor.rating?.toFixed(1) || '0.0'}</span>
+                    <span className="text-sm font-semibold text-surface-800">{Number(vendor.rating || 0).toFixed(1)}</span>
                     <span className="text-xs text-surface-400">rating</span>
                   </div>
                   {vendor.verified && (

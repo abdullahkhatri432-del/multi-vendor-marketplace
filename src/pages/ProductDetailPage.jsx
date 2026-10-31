@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Star, Truck, Shield, RotateCcw, Heart, ArrowLeft, Minus, Plus, Store, Send, BadgeCheck, Zap, ChevronRight, Check, Package } from 'lucide-react';
-import { getProduct, getVendor, getReviewsByProduct, createReview, getWishlist, addToWishlist, removeFromWishlist, getOrdersByUser, getProductsByCategory } from '../config/firestore';
+import { getProduct, getVendor, getReviewsByProduct, createReview, getOrdersByUser, getProductsByCategory } from '../config/firestore';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useWishlist } from '../context/WishlistContext';
 import { useCheckoutInterceptor } from '../context/CheckoutInterceptorContext';
 import { trackEvent } from '../config/analytics';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
@@ -28,6 +29,7 @@ export default function ProductDetailPage() {
   const navigate = useNavigate();
   const { addItem } = useCart();
   const { user, isAuthenticated } = useAuth();
+  const { isWished, toggleWishlist, busyIds } = useWishlist();
   const { intercept } = useCheckoutInterceptor();
   const [product, setProduct] = useState(null);
   const [vendor, setVendor] = useState(null);
@@ -35,7 +37,6 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [isInWishlist, setIsInWishlist] = useState(false);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' });
   const [submittingReview, setSubmittingReview] = useState(false);
@@ -46,6 +47,8 @@ export default function ProductDetailPage() {
   const stock = Number.isFinite(Number(product?.stock)) ? Math.max(0, Number(product.stock)) : null;
   const isOutOfStock = stock === 0;
   const maxQuantity = stock ?? 99;
+  const isInWishlist = isWished(id);
+  const wishBusy = busyIds.includes(id);
 
   useEffect(() => {
     // Clamp quantity whenever stock changes (e.g. product reloads).
@@ -75,8 +78,6 @@ export default function ProductDetailPage() {
         const revs = await getReviewsByProduct(id);
         setReviews(revs);
         if (user) {
-          const wishlist = await getWishlist(user.uid);
-          setIsInWishlist(wishlist.includes(id));
           try {
             const userOrders = await getOrdersByUser(user.uid);
             const purchased = new Set();
@@ -167,13 +168,13 @@ export default function ProductDetailPage() {
   };
 
   const handleToggleWishlist = async () => {
-    if (!isAuthenticated) { navigate('/login'); return; }
-    if (isInWishlist) {
-      await removeFromWishlist(user.uid, id);
-      setIsInWishlist(false);
-    } else {
-      await addToWishlist(user.uid, id);
-      setIsInWishlist(true);
+    try {
+      const authedUser = await intercept('wishlist', { productId: id });
+      await toggleWishlist(id, authedUser?.uid || user?.uid);
+    } catch (err) {
+      if (err.message !== 'Authentication cancelled') {
+        console.error('Wishlist toggle failed:', err);
+      }
     }
   };
 
@@ -276,7 +277,7 @@ export default function ProductDetailPage() {
             {product.discount > 0 && <span className="badge-danger">-{product.discount}% OFF</span>}
           </div>
 
-          <h1 className="text-3xl font-display font-bold text-surface-900 leading-tight">{product.name}</h1>
+          <h1 className="text-fluid-title font-display font-bold text-surface-900 leading-tight">{product.name}</h1>
 
           <div className="mt-4 flex items-center gap-4">
             <div className="flex items-center gap-1">
@@ -388,7 +389,14 @@ export default function ProductDetailPage() {
               Buy Now
             </button>
             <button onClick={handleAddToCart} disabled={isOutOfStock} className="btn-primary flex-1 sm:flex-none disabled:opacity-50 disabled:cursor-not-allowed"><ShoppingCart className="h-5 w-5" /> {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</button>
-            <button onClick={handleToggleWishlist} className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition-colors ${isInWishlist ? 'border-red-200 bg-red-50 text-red-500' : 'border-surface-200 text-surface-400 hover:text-red-500 hover:border-red-200'}`}>
+            <button
+              type="button"
+              onClick={handleToggleWishlist}
+              disabled={wishBusy}
+              aria-pressed={isInWishlist}
+              aria-label={isInWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
+              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition-colors disabled:opacity-60 ${isInWishlist ? 'border-red-200 bg-red-50 text-red-500' : 'border-surface-200 text-surface-400 hover:text-red-500 hover:border-red-200'}`}
+            >
               <Heart className={`h-5 w-5 ${isInWishlist ? 'fill-current' : ''}`} />
             </button>
           </div>
@@ -404,6 +412,34 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
+      {/* Contextual Product Bundling / Complete the Look */}
+      {relatedProducts.length >= 2 && (
+        <section className="mt-16 reveal rounded-3xl border border-primary-200 bg-gradient-to-br from-primary-50/60 via-white to-primary-50/30 p-6 lg:p-8 shadow-soft">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+            <div>
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-primary-100 px-3 py-1 text-xs font-bold text-primary-700 mb-3">
+                <Sparkles className="h-3.5 w-3.5" /> Bundle & Save
+              </div>
+              <h3 className="text-2xl font-display font-bold text-surface-900">Complete the Look</h3>
+              <p className="mt-1 text-sm text-surface-600 max-w-xl">
+                Grab this item together with the top matching items below for a curated bundle experience.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                addItem(product, 1);
+                relatedProducts.slice(0, 2).forEach((p) => addItem(p, 1));
+                trackEvent('add_bundle', { product_id: product.id });
+                alert('Bundle added to cart successfully!');
+              }}
+              className="btn-primary shrink-0"
+            >
+              <ShoppingCart className="h-4 w-4" /> Add Bundle to Cart
+            </button>
+          </div>
+        </section>
+      )}
+
       {/* Related Products */}
       {relatedProducts.length > 0 && (
         <section className="mt-16 reveal">
@@ -413,7 +449,7 @@ export default function ProductDetailPage() {
               View All <ChevronRight className="h-4 w-4" />
             </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 stagger">
+          <div className="grid grid-cols-2 gap-4 stagger sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
             {relatedProducts.map((related) => (
               <ProductCard key={related.id} product={related} />
             ))}

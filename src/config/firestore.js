@@ -121,7 +121,9 @@ export const updateVendor = async (vendorId, data) => {
 export const getAllVendors = async () => {
   return withErrorLogging('getAllVendors', async () => {
     const snap = await getDocs(vendorsCol());
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    if (docs.length > 0) return docs;
+    return DEMO_ENABLED ? fallbackVendors : [];
   });
 };
 
@@ -129,7 +131,9 @@ export const getVerifiedVendors = async () => {
   return withErrorLogging('getVerifiedVendors', async () => {
     const q = query(vendorsCol(), where('verified', '==', true));
     const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    if (docs.length > 0) return docs;
+    return DEMO_ENABLED ? fallbackVendors.filter((v) => v.verified) : [];
   });
 };
 
@@ -166,13 +170,25 @@ export const createProduct = async (data) => {
   });
 };
 
+const productCache = new Map();
+
 export const getProduct = async (productId) => {
+  if (productCache.has(productId)) {
+    return productCache.get(productId);
+  }
   return withErrorLogging('getProduct', async () => {
     const ref = doc(productsCol(), productId);
     const snap = await getDoc(ref);
-    if (snap.exists()) return { id: snap.id, ...snap.data() };
-    return DEMO_ENABLED ? findFallbackProduct(productId) : null;
+    const data = snap.exists() ? { id: snap.id, ...snap.data() } : (DEMO_ENABLED ? findFallbackProduct(productId) : null);
+    if (data) productCache.set(productId, data);
+    return data;
   });
+};
+
+export const prefetchProduct = async (productId) => {
+  if (!productCache.has(productId)) {
+    getProduct(productId).catch(() => {});
+  }
 };
 
 export const updateProduct = async (productId, data) => {
@@ -202,7 +218,9 @@ export const getProductsByVendor = async (vendorId) => {
   return withErrorLogging('getProductsByVendor', async () => {
     const q = query(productsCol(), where('vendorId', '==', vendorId), orderBy('createdAt', 'desc'));
     const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    if (docs.length > 0) return docs;
+    return demoProducts().filter((p) => p.vendorId === vendorId);
   });
 };
 

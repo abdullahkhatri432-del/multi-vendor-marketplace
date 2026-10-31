@@ -125,7 +125,7 @@ export default function OrdersPage() {
           icon={Package}
           title="No orders yet"
           description="When you place orders, they will appear here. Start shopping to see your order history."
-          action={() => {}}
+          action={() => navigate('/products')}
           actionLabel="Browse Products"
         />
       </div>

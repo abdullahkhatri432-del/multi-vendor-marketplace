@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Store, Star, BadgeCheck, ArrowLeft, Package, Shield, Truck, Headphones, RotateCcw } from 'lucide-react';
 import { getVendor, getProductsByVendor } from '../config/firestore';
 import ProductCard from '../components/ui/ProductCard';
@@ -8,6 +8,7 @@ import EmptyState from '../components/ui/EmptyState';
 
 export default function VendorStorePage() {
   const { vendorId } = useParams();
+  const navigate = useNavigate();
   const [vendor, setVendor] = useState(null);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +46,7 @@ export default function VendorStorePage() {
           icon={Store}
           title="Store not found"
           description="This vendor store doesn't exist or may have been removed."
-          action={() => {}}
+          action={() => navigate('/vendors')}
           actionLabel="Browse Marketplace"
         />
       </div>
@@ -91,7 +92,7 @@ export default function VendorStorePage() {
               <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-primary-200">
                 <span className="inline-flex items-center gap-1.5">
                   <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-                  <span className="font-semibold text-white">{vendor.rating?.toFixed(1) || '0.0'}</span> rating
+                  <span className="font-semibold text-white">{Number(vendor.rating || 0).toFixed(1)}</span> rating
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <Package className="h-4 w-4" />
@@ -145,11 +146,11 @@ export default function VendorStorePage() {
             icon={Package}
             title="No products yet"
             description="This vendor hasn't published any products yet. Check back soon."
-            action={() => {}}
+            action={() => navigate('/products')}
             actionLabel="Browse Marketplace"
           />
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 stagger">
+          <div className="grid grid-cols-2 gap-3 stagger sm:gap-5 lg:grid-cols-4 lg:gap-6">
             {products.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

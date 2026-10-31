@@ -224,7 +224,7 @@ export default function HomePage() {
 
               <h1
                 aria-label="Discover extraordinary products. Verified sellers. Zero compromise."
-                className="font-display text-display-sm text-white sm:text-display-md lg:text-display-lg"
+                className="font-display text-fluid-hero text-white"
               >
                 {heroWords.map((word, i) => (
                   <span key={i} aria-hidden className="word-rise-wrap" style={{ marginRight: '0.22em' }}>
@@ -369,7 +369,7 @@ export default function HomePage() {
                 <Tag className="h-3.5 w-3.5 text-primary-600" />
                 Shop by category
               </span>
-              <h2 className="mt-4 font-display text-display-xs text-ink sm:text-display-sm">
+              <h2 className="mt-4 font-display text-fluid-title text-ink">
                 Explore the collections
               </h2>
             </div>
@@ -572,7 +572,7 @@ export default function HomePage() {
           </Reveal>
 
           {displayProducts.length > 0 ? (
-            <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
               {displayProducts.slice(0, 8).map((product, idx) => (
                 <Reveal key={product.id} delay={Math.min((idx % 4) * 90, 270)} className="h-full">
                   <ProductCard product={product} />

@@ -8,6 +8,7 @@ export function useCountUp(target, { duration = 1800, decimals = 0, start = 0 } 
   const ref = useRef(null);
   const [value, setValue] = useState(start);
   const doneRef = useRef(false);
+  const frameRef = useRef(0);
 
   useEffect(() => {
     const el = ref.current;
@@ -27,10 +28,10 @@ export function useCountUp(target, { duration = 1800, decimals = 0, start = 0 } 
         const p = Math.min((now - startTime) / duration, 1);
         const eased = 1 - Math.pow(1 - p, 4); // easeOutQuart
         setValue(start + (target - start) * eased);
-        if (p < 1) requestAnimationFrame(tick);
+        if (p < 1) frameRef.current = requestAnimationFrame(tick);
         else setValue(target);
       };
-      requestAnimationFrame(tick);
+      frameRef.current = requestAnimationFrame(tick);
     };
 
     const observer = new IntersectionObserver(
@@ -43,7 +44,10 @@ export function useCountUp(target, { duration = 1800, decimals = 0, start = 0 } 
       { threshold: 0.4 },
     );
     observer.observe(el);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      if (frameRef.current) cancelAnimationFrame(frameRef.current);
+    };
   }, [target, duration, start]);
 
   const formatted = decimals > 0 ? Number(value).toFixed(decimals) : Math.round(value).toLocaleString();

@@ -1,11 +1,13 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { WishlistProvider } from './context/WishlistContext';
 import { CartProvider } from './context/CartContext';
 import { ToastProvider } from './context/ToastContext';
 import { CheckoutInterceptorProvider } from './context/CheckoutInterceptorContext';
 import CartToastBridge from './components/ui/CartToastBridge';
 import Layout from './components/layout/Layout';
+import ErrorBoundary from './components/ui/ErrorBoundary';
 import LoadingSpinner from './components/ui/LoadingSpinner';
 import { trackPageView } from './config/analytics';
 import HomePage from './pages/HomePage';
@@ -42,40 +44,53 @@ const withSuspense = (node) => (
   <Suspense fallback={<LoadingSpinner size="lg" className="py-32" />}>{node}</Suspense>
 );
 
+function RoutedRoutes() {
+  const location = useLocation();
+  // Remount the boundary per route so a crash on one page does not poison the
+  // rest of the session.
+  return (
+    <ErrorBoundary key={location.pathname}>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/products" element={<ProductsPage />} />
+        <Route path="/products/:id" element={withSuspense(<ProductDetailPage />)} />
+        <Route path="/cart" element={<CartPage />} />
+        <Route path="/checkout" element={withSuspense(<CheckoutPage />)} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/orders" element={withSuspense(<OrdersPage />)} />
+        <Route path="/wishlist" element={withSuspense(<WishlistPage />)} />
+        <Route path="/profile" element={withSuspense(<ProfilePage />)} />
+        <Route path="/vendor" element={withSuspense(<VendorDashboard />)} />
+        <Route path="/vendor/products" element={withSuspense(<VendorProducts />)} />
+        <Route path="/vendor/orders" element={withSuspense(<VendorOrders />)} />
+        <Route path="/vendors" element={withSuspense(<VendorsPage />)} />
+        <Route path="/vendor/:vendorId" element={withSuspense(<VendorStorePage />)} />
+        <Route path="/admin" element={withSuspense(<AdminDashboard />)} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </ErrorBoundary>
+  );
+}
+
 export default function App() {
   return (
     <AuthProvider>
-      <CartProvider>
-        <ToastProvider>
-          <CheckoutInterceptorProvider>
-            <PageTracker />
-            <CartToastBridge />
-            <Layout>
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/products" element={<ProductsPage />} />
-                <Route path="/products/:id" element={withSuspense(<ProductDetailPage />)} />
-                <Route path="/cart" element={<CartPage />} />
-                <Route path="/checkout" element={withSuspense(<CheckoutPage />)} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegisterPage />} />
-                <Route path="/orders" element={withSuspense(<OrdersPage />)} />
-                <Route path="/wishlist" element={withSuspense(<WishlistPage />)} />
-                <Route path="/profile" element={withSuspense(<ProfilePage />)} />
-                <Route path="/vendor" element={withSuspense(<VendorDashboard />)} />
-                <Route path="/vendor/products" element={withSuspense(<VendorProducts />)} />
-                <Route path="/vendor/orders" element={withSuspense(<VendorOrders />)} />
-                <Route path="/vendors" element={withSuspense(<VendorsPage />)} />
-                <Route path="/vendor/:vendorId" element={withSuspense(<VendorStorePage />)} />
-                <Route path="/admin" element={withSuspense(<AdminDashboard />)} />
-                <Route path="/terms" element={<TermsPage />} />
-                <Route path="/privacy" element={<PrivacyPage />} />
-                <Route path="*" element={<NotFoundPage />} />
-              </Routes>
-            </Layout>
-          </CheckoutInterceptorProvider>
-        </ToastProvider>
-      </CartProvider>
+      <WishlistProvider>
+        <CartProvider>
+          <ToastProvider>
+            <CheckoutInterceptorProvider>
+              <PageTracker />
+              <CartToastBridge />
+              <Layout>
+                <RoutedRoutes />
+              </Layout>
+            </CheckoutInterceptorProvider>
+          </ToastProvider>
+        </CartProvider>
+      </WishlistProvider>
     </AuthProvider>
   );
 }

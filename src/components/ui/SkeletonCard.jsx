@@ -1,8 +1,8 @@
 export default function ProductSkeleton() {
   return (
     <div className="card overflow-hidden">
-      <div className="aspect-square skeleton" />
-      <div className="p-4 space-y-3">
+      <div className="aspect-[4/5] skeleton rounded-none" />
+      <div className="space-y-3 p-3 sm:p-4">
         <div className="h-3 w-1/3 skeleton rounded" />
         <div className="h-4 w-3/4 skeleton rounded" />
         <div className="h-3 w-1/2 skeleton rounded" />
@@ -17,7 +17,7 @@ export default function ProductSkeleton() {
 
 export function ProductSkeletonGrid({ count = 8 }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 stagger">
+    <div className="grid grid-cols-2 gap-3 stagger sm:gap-5 lg:grid-cols-4 lg:gap-6">
       {[...Array(count)].map((_, i) => (
         <ProductSkeleton key={i} />
       ))}

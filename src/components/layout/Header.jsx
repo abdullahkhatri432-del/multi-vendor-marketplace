@@ -7,8 +7,10 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
+import { useWishlist } from '../../context/WishlistContext';
 import { searchProducts } from '../../config/firestore';
 import { trackEvent } from '../../config/analytics';
+import { inr } from '../../utils/currency';
 import AuthModal from '../AuthModal';
 
 const CATEGORIES = [
@@ -23,6 +25,7 @@ const CATEGORIES = [
 export default function Header() {
   const { user, userRole, logout, isAuthenticated } = useAuth();
   const { cartCount } = useCart();
+  const { count: wishlistCount } = useWishlist();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,6 +38,7 @@ export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [catOpen, setCatOpen] = useState(false);
   const searchWrapRef = useRef(null);
+  const mobileSearchRef = useRef(null);
   const catRef = useRef(null);
 
   useEffect(() => {
@@ -44,30 +48,58 @@ export default function Header() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  // Lock the page behind the mobile drawer, and close overlays on Escape.
+  useEffect(() => {
+    if (!mobileOpen) return undefined;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [mobileOpen]);
+
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key !== 'Escape') return;
+      setMobileOpen(false);
+      setCatOpen(false);
+      setProfileOpen(false);
+      setShowSuggestions(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
   useEffect(() => {
     const term = searchQuery.trim();
     if (term.length < 2) {
       setSuggestions([]);
       setSearching(false);
-      return;
+      return undefined;
     }
     setSearching(true);
+    let cancelled = false;
     const timer = setTimeout(async () => {
       try {
         const results = await searchProducts(term);
-        setSuggestions(results.slice(0, 5));
+        if (!cancelled) setSuggestions(results.slice(0, 5));
       } catch {
-        setSuggestions([]);
+        if (!cancelled) setSuggestions([]);
       } finally {
-        setSearching(false);
+        if (!cancelled) setSearching(false);
       }
     }, 300);
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [searchQuery]);
 
   useEffect(() => {
     const onClick = (e) => {
-      if (searchWrapRef.current && !searchWrapRef.current.contains(e.target)) {
+      const inDesktopSearch = searchWrapRef.current?.contains(e.target);
+      const inMobileSearch = mobileSearchRef.current?.contains(e.target);
+      if (!inDesktopSearch && !inMobileSearch) {
         setShowSuggestions(false);
       }
       if (catRef.current && !catRef.current.contains(e.target)) {
@@ -86,17 +118,19 @@ export default function Header() {
       navigate(`/products?q=${encodeURIComponent(term)}`);
       setSearchQuery('');
       setShowSuggestions(false);
+      setMobileOpen(false);
     }
   };
 
   const goToProduct = (id) => {
     setSearchQuery('');
     setShowSuggestions(false);
+    setMobileOpen(false);
     navigate(`/products/${id}`);
   };
 
   const searchForm = (mobile = false) => (
-    <div ref={searchWrapRef} className="relative w-full">
+    <div ref={mobile ? mobileSearchRef : searchWrapRef} className="relative w-full">
       <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
       <input
         type="text"
@@ -142,7 +176,7 @@ export default function Header() {
                     <p className="text-sm font-semibold text-ink line-clamp-1">{s.name}</p>
                     <p className="text-xs text-ink-muted">{s.category}</p>
                   </div>
-                  <span className="text-sm font-semibold text-ink">₹{Number(s.price || 0).toFixed(2)}</span>
+                  <span className="text-sm font-semibold text-ink">{inr(s.price)}</span>
                 </button>
               ))}
               <button
@@ -218,11 +252,11 @@ export default function Header() {
             <span className="absolute -bottom-1.5 left-0 h-[2px] w-0 bg-primary-600 transition-all duration-500 group-hover:w-full" />
           </Link>
 
-          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-xl">
+          <form onSubmit={handleSearch} className="hidden lg:flex flex-1 max-w-xl">
             {searchForm()}
           </form>
 
-          <nav className="hidden md:flex items-center gap-3">
+          <nav className="hidden lg:flex items-center gap-3">
             <div ref={catRef} className="relative">
               <button
                 onClick={() => setCatOpen(!catOpen)}
@@ -268,7 +302,7 @@ export default function Header() {
                     ))}
                     <div className="my-2 border-t border-surface-100/40" />
                     <button
-                      onClick={() => { setCatOpen(false); navigate('/products?sort=price-low'); }}
+                      onClick={() => { setCatOpen(false); navigate('/products?sort=price-low&max=999'); }}
                       className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-50 px-4 py-2.5 text-sm font-medium text-primary-700 hover:bg-primary-100 transition-all"
                     >
                       <BadgePercent className="h-4 w-4" />
@@ -278,8 +312,15 @@ export default function Header() {
                 </>
               )}
             </div>
-            <Link to="/wishlist" className="btn-ghost p-2 relative group">
-              <Heart className="h-5 w-5 icon-pop transition-transform" />
+            <Link to="/wishlist" className="btn-ghost p-2 relative group" aria-label="Wishlist">
+              <div className="relative">
+                <Heart className="h-5 w-5 icon-pop transition-transform" />
+                {wishlistCount > 0 && (
+                  <span key={wishlistCount} className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-danger text-[10px] font-bold text-white shadow-sm badge-pop">
+                    {wishlistCount > 9 ? '9+' : wishlistCount}
+                  </span>
+                )}
+              </div>
             </Link>
             <Link to="/cart" className="relative btn-ghost p-2">
               <div className="relative">
@@ -376,7 +417,7 @@ export default function Header() {
             )}
           </nav>
 
-          <div className="flex items-center gap-3 md:hidden">
+          <div className="flex items-center gap-3 lg:hidden">
             <Link to="/cart" className="relative btn-ghost p-2">
               <ShoppingCart className="h-5 w-5" />
               {cartCount > 0 && (
@@ -392,7 +433,7 @@ export default function Header() {
         </div>
 
         {mobileOpen && (
-          <div className="border-t border-surface-100 py-6 md:hidden animate-fade-up bg-white/80 backdrop-blur">
+          <div className="border-t border-surface-100 py-6 lg:hidden animate-fade-up bg-white/80 backdrop-blur">
             <form onSubmit={handleSearch} className="mb-6">
               {searchForm(true)}
             </form>
@@ -402,6 +443,14 @@ export default function Header() {
               </Link>
               <Link to="/vendors" onClick={() => setMobileOpen(false)} className="btn-ghost justify-start text-sm font-medium">
                 Vendors
+              </Link>
+              <Link to="/wishlist" onClick={() => setMobileOpen(false)} className="btn-ghost justify-start text-sm font-medium">
+                Wishlist
+                {wishlistCount > 0 && (
+                  <span className="ml-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-danger px-1.5 text-[10px] font-bold text-white">
+                    {wishlistCount > 9 ? '9+' : wishlistCount}
+                  </span>
+                )}
               </Link>
               <div className="my-2 border-t border-surface-100/40" />
               {CATEGORIES.map((cat) => (

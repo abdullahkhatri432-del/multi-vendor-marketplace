@@ -37,7 +37,14 @@ export function Reveal({
 }
 
 /* ---------------------------------------------------------------- TiltCard */
-export function TiltCard({ children, className = '', intensity = 10, glare = true }) {
+export function TiltCard({
+  children,
+  className = '',
+  intensity = 10,
+  glare = true,
+  onMouseEnter,
+  ...rest
+}) {
   const ref = useRef(null);
   const glareRef = useRef(null);
 
@@ -51,6 +58,9 @@ export function TiltCard({ children, className = '', intensity = 10, glare = tru
       const py = (e.clientY - rect.top) / rect.height;
       const rx = (0.5 - py) * intensity * 2;
       const ry = (px - 0.5) * intensity * 2;
+      // Follow the cursor immediately; the CSS transition is only for the
+      // smooth return-to-rest on mouse leave.
+      el.style.transition = 'transform 0ms, box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1)';
       el.style.transform = `perspective(1200px) rotateX(${rx}deg) rotateY(${ry}deg) translateZ(0)`;
       if (glareRef.current) {
         glareRef.current.style.background =
@@ -63,6 +73,7 @@ export function TiltCard({ children, className = '', intensity = 10, glare = tru
   const onLeave = useCallback(() => {
     const el = ref.current;
     if (!el) return;
+    el.style.transition = '';
     el.style.transform = 'perspective(1200px) rotateX(0) rotateY(0) translateZ(0)';
     if (glareRef.current) glareRef.current.style.background = 'transparent';
   }, []);
@@ -72,7 +83,9 @@ export function TiltCard({ children, className = '', intensity = 10, glare = tru
       ref={ref}
       onMouseMove={onMove}
       onMouseLeave={onLeave}
+      onMouseEnter={onMouseEnter}
       className={`tilt preserve-3d ${className}`}
+      {...rest}
     >
       {children}
       {glare && (
@@ -257,14 +270,23 @@ export function Counter({ value, decimals = 0, prefix = '', suffix = '', classNa
 
 /* ---------------------------------------------------------------- Marquee */
 export function Marquee({ items, renderItem, reverse = false, speed = 40, className = '' }) {
-  const track = [...items, ...items];
   return (
     <div className={`group relative flex overflow-hidden marquee-mask ${className}`}>
       <div
-        className={`flex shrink-0 items-center gap-14 pr-14 ${reverse ? 'marquee-track-rev' : 'marquee-track'}`}
+        className={`flex w-max shrink-0 ${reverse ? 'marquee-track-rev' : 'marquee-track'}`}
         style={{ animationDuration: `${speed}s` }}
       >
-        {track.map((item, i) => renderItem(item, i))}
+        {/* Two identical copies: translating the track by exactly -50% loops
+            seamlessly because each copy carries the same trailing padding. */}
+        {[0, 1].map((copy) => (
+          <div
+            key={copy}
+            aria-hidden={copy === 1 || undefined}
+            className="flex shrink-0 items-center gap-14 pr-14"
+          >
+            {items.map((item, i) => renderItem(item, i))}
+          </div>
+        ))}
       </div>
     </div>
   );

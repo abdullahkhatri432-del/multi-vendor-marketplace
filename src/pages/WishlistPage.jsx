@@ -1,82 +1,75 @@
-import { useState, useEffect } from 'react';
-import { Link, Navigate } from 'react-router-dom';
-import { Heart, ShoppingCart, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { Heart } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useCart } from '../context/CartContext';
-import { getWishlist, removeFromWishlist, getProduct } from '../config/firestore';
+import { useWishlist } from '../context/WishlistContext';
+import { getProduct } from '../config/firestore';
+import ProductCard from '../components/ui/ProductCard';
 import EmptyState from '../components/ui/EmptyState';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
-import { inr } from '../utils/currency';
 
 export default function WishlistPage() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
-  const { addItem } = useCart();
-  const [wishlistProducts, setWishlistProducts] = useState([]);
+  const { wishlistIds, loading: wishlistLoading } = useWishlist();
+  const navigate = useNavigate();
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Stable key so the effect re-runs only when the saved set actually changes.
+  const idsKey = useMemo(() => wishlistIds.join(','), [wishlistIds]);
+
   useEffect(() => {
-    const fetchWishlist = async () => {
-      try {
-        const productIds = await getWishlist(user.uid);
-        const products = await Promise.all(productIds.map((id) => getProduct(id)));
-        setWishlistProducts(products.filter(Boolean));
-      } catch (err) {
-        console.error('Failed to fetch wishlist:', err);
-      } finally {
-        setLoading(false);
-      }
+    if (!user) {
+      setProducts([]);
+      setLoading(false);
+      return undefined;
+    }
+    if (wishlistLoading) return undefined;
+    if (wishlistIds.length === 0) {
+      setProducts([]);
+      setLoading(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+    Promise.all(wishlistIds.map((id) => getProduct(id).catch(() => null)))
+      .then((items) => {
+        if (!cancelled) setProducts(items.filter(Boolean));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
     };
-    if (user) fetchWishlist();
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, wishlistLoading, idsKey]);
 
-  const handleRemove = async (productId) => {
-    await removeFromWishlist(user.uid, productId);
-    setWishlistProducts(wishlistProducts.filter((p) => p.id !== productId));
-  };
+  // Keep the grid in lockstep with optimistic removals from the shared store.
+  const visibleProducts = useMemo(
+    () => products.filter((product) => wishlistIds.includes(product.id)),
+    [products, wishlistIds],
+  );
 
-  if (authLoading) return <LoadingSpinner size="lg" className="py-32" />;
-  if (!isAuthenticated) return <Navigate to="/login" />;
+  if (authLoading || wishlistLoading) return <LoadingSpinner size="lg" className="py-32" />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (loading) return <LoadingSpinner size="lg" className="py-32" />;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8 reveal">
         <h1 className="text-3xl font-display font-bold text-surface-900">My Wishlist</h1>
-        <p className="mt-1 text-surface-500">{wishlistProducts.length} items saved</p>
+        <p className="mt-1 text-surface-500">
+          {visibleProducts.length} {visibleProducts.length === 1 ? 'item' : 'items'} saved
+        </p>
       </div>
 
-      {wishlistProducts.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 stagger">
-          {wishlistProducts.map((product) => (
-            <div key={product.id} className="card overflow-hidden shine-sweep flex h-full flex-col">
-              <div className="relative aspect-[4/5] overflow-hidden bg-surface-100">
-                <img src={product.images?.[0] || product.image || `https://picsum.photos/seed/${product.id}/400/400`} alt={product.name} className="h-full w-full object-cover" />
-                <button
-                  onClick={() => handleRemove(product.id)}
-                  className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-red-500 shadow-sm hover:bg-red-50 transition-colors"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-              <div className="flex flex-1 flex-col p-4">
-                <Link to={`/products/${product.id}`} className="block min-w-0">
-                  <p className="line-clamp-2 min-h-[2.75em] text-sm font-semibold text-surface-900 hover:text-primary-600 transition-colors">{product.name}</p>
-                </Link>
-                <div className="mt-auto flex items-center justify-between gap-2 border-t border-surface-200/60 pt-3">
-                  <span className="whitespace-nowrap text-lg font-bold text-surface-900">
-                    {inr(product.price)}
-                  </span>
-                  <button
-                    onClick={() => addItem(product)}
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600 hover:bg-primary-600 hover:text-white transition-all"
-                    aria-label="Add to cart"
-                    title="Add to cart"
-                  >
-                    <ShoppingCart className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
+      {visibleProducts.length > 0 ? (
+        <div className="grid grid-cols-2 gap-3 stagger sm:gap-5 lg:grid-cols-3 xl:grid-cols-4 lg:gap-6">
+          {visibleProducts.map((product) => (
+            <ProductCard key={product.id} product={product} />
           ))}
         </div>
       ) : (
@@ -85,11 +78,18 @@ export default function WishlistPage() {
             icon={Heart}
             title="Your wishlist is empty"
             description="Save products you love by clicking the heart icon on any product."
-            action={() => {}}
+            action={() => navigate('/products')}
             actionLabel="Browse Products"
           />
         </div>
       )}
+
+      <p className="mt-10 text-center text-xs text-ink-muted">
+        Tip: tap the heart on a saved product to remove it.{' '}
+        <Link to="/products" className="link-underline text-primary-600">
+          Keep browsing
+        </Link>
+      </p>
     </div>
   );
 }
