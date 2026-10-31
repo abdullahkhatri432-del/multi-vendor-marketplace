@@ -29,11 +29,14 @@ per project, one run per day each.
 | `BLOB_READ_WRITE_TOKEN` | backup, daily check | Created automatically when a static-token Blob store is connected to the Vercel project |
 | `BLOB_STORE_ID` | backup, daily check | Alternative to the token: injected when a store is connected via OIDC, which @vercel/blob authenticates with `VERCEL_OIDC_TOKEN` automatically |
 | `BLOB_ACCESS` | backup | `public` (default) or `private` — must match how the store was created |
-| `ALERT_WEBHOOK_URL` | all error paths | Slack, Discord, or any endpoint that accepts JSON |
+| `ALERT_WEBHOOK_URL` | all error paths | Optional extra channel: Slack, Discord, or any endpoint that accepts JSON |
+| `TELEGRAM_BOT_TOKEN` | all error paths | Bot token from @BotFather (recommended channel) |
+| `TELEGRAM_CHAT_ID` | all error paths | Your chat id — see below |
 | `SITE_URL` | daily check | Defaults to `VITE_SITE_URL`, then `https://speedersmania.vercel.app` |
 
-Nothing alerts while `ALERT_WEBHOOK_URL` is empty — errors are still logged to
-the Vercel function logs, but nobody is notified. **Set it before launch.**
+Nothing alerts until at least one channel is configured (`TELEGRAM_BOT_TOKEN` +
+`TELEGRAM_CHAT_ID`, or `ALERT_WEBHOOK_URL`) — errors are still logged to the
+Vercel function logs, but nobody is notified. **Set Telegram before launch.**
 
 ---
 
@@ -106,9 +109,29 @@ and will refuse to start without them.
 
 ## 3. Alerting
 
-`lib/ops.cjs` posts one JSON body to `ALERT_WEBHOOK_URL`, shaped for the target:
+Alerts go to **Telegram** by default and to any extra `ALERT_WEBHOOK_URL` if one
+is set. Channels are independent: if one is misconfigured, the other still fires.
 
-| Target | Payload |
+### Telegram setup (recommended)
+
+1. Open [@BotFather](https://t.me/BotFather) → `/newbot` → pick a name → copy the token.
+2. Open your new bot and send it any message (a bot cannot message you first).
+3. Read your chat id:
+
+   ```bash
+   curl "https://api.telegram.org/bot<TOKEN>/getUpdates"
+   # -> "chat":{"id":123456789,...}
+   ```
+
+4. Set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` in Vercel, then redeploy.
+
+Messages are plain text (no MarkdownV2) on purpose: escaping rules would turn an
+unescaped `_` in an error message into a 400, i.e. the alert about the outage
+would be the thing that fails.
+
+### Other channels
+
+| `ALERT_WEBHOOK_URL` | Payload |
 |---|---|
 | `discord.com/api/webhooks/...` | `{ "content": "🚨 **title**\ndetail" }` |
 | `hooks.slack.com/...` | `{ "text": "🚨 *title*\ndetail" }` |
@@ -202,4 +225,4 @@ Current policy in plain terms:
 | Backup cadence | once per day (Hobby cron) | Up to 24h of data loss in a disaster; fine for a store at this volume |
 | Cron count | 2 (Hobby) | Adding a third job needs the Pro plan or an external scheduler |
 | Auth users in backup | not included | Recreate accounts manually if Auth is lost |
-| Alert webhook | single URL | One channel; use a relay if you need fan-out |
+| Alert channels | Telegram + one optional webhook | No SMS/pager escalation; both are fire-and-forget |

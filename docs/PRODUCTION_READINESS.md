@@ -138,7 +138,7 @@ Coverage by suite:
 | 3 | Set `VITE_SITE_URL` + regenerate sitemap | You | Canonicals point at the Vercel default |
 | 4 | Legal review of Terms/Privacy | You | Templates, not legal advice |
 | 5 | Delete/migrate legacy public payment proofs | You | Rules cannot retroactively revoke public objects; only matters if an old build ran |
-| 6 | Configure backups + alerting | You | Code is in place (`/api/backup`, `/api/cron-health`, `lib/ops.cjs`); needs `CRON_SECRET`, `BACKUP_ENCRYPTION_KEY`, `BLOB_READ_WRITE_TOKEN`, `ALERT_WEBHOOK_URL` — see `docs/OPERATIONS.md` |
+| 6 | Configure backups + alerting | You | Code is in place (`/api/backup`, `/api/cron-health`, `lib/ops.cjs`); needs `CRON_SECRET`, `BACKUP_ENCRYPTION_KEY`, the Blob credentials and `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` — see `docs/OPERATIONS.md` |
 | 7 | Switch CSP from report-only to enforcing | You | After one report-free day (`vercel.json`) |
 | 8 | Email notifications | Decision + provider | No provider configured; no order emails are sent |
 | 9 | Payment gateway | Decision | Only UPI reference matching and COD exist |

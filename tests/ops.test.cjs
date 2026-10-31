@@ -70,6 +70,87 @@ test('notifyOps posts a channel-shaped body', async () => {
   assert.match(captured.body.content, /Backup failed/);
 });
 
+// ------------------------------------------------------------- telegram ----
+
+test('telegram payloads are plain text and carry the chat id as a string', () => {
+  const payload = ops.buildTelegramPayload(123456789, {
+    level: 'error',
+    title: 'Checkout failed (HTTP 500)',
+    detail: 'utrRef is not defined',
+    source: 'create-order',
+  });
+  assert.equal(payload.chat_id, '123456789');
+  assert.equal(payload.disable_web_page_preview, true);
+  assert.equal(payload.parse_mode, undefined, 'no MarkdownV2 escaping bugs');
+  assert.match(payload.text, /Checkout failed \(HTTP 500\)/);
+  assert.match(payload.text, /create-order: utrRef is not defined/);
+});
+
+test('telegram endpoint embeds the bot token', () => {
+  assert.equal(
+    ops.telegramEndpoint(' 123:ABC '),
+    'https://api.telegram.org/bot123:ABC/sendMessage'
+  );
+});
+
+test('alert targets include telegram only when both values are present', () => {
+  const base = { TELEGRAM_BOT_TOKEN: 't', TELEGRAM_CHAT_ID: '42' };
+  assert.deepEqual(ops.alertTargets(base), [{ kind: 'telegram', token: 't', chatId: '42' }]);
+  assert.deepEqual(ops.alertTargets({ TELEGRAM_BOT_TOKEN: 't' }), []);
+  assert.deepEqual(ops.alertTargets({ TELEGRAM_CHAT_ID: '42' }), []);
+  assert.deepEqual(ops.alertTargets({}), []);
+});
+
+test('telegram and a webhook can be configured together', () => {
+  const targets = ops.alertTargets({
+    TELEGRAM_BOT_TOKEN: 't',
+    TELEGRAM_CHAT_ID: '42',
+    ALERT_WEBHOOK_URL: 'https://hooks.slack.com/services/x',
+  });
+  assert.deepEqual(targets.map((t) => t.kind), ['telegram', 'webhook']);
+});
+
+test('notifyOps delivers to every configured channel', async () => {
+  ops.resetAlertDedupe();
+  const calls = [];
+  const fakeFetch = async (url) => {
+    calls.push(url);
+    return { ok: true };
+  };
+  const sent = await ops.notifyOps(
+    { title: 'Backup failed', detail: 'quota', source: 'backup' },
+    {
+      targets: [
+        { kind: 'telegram', token: '1:A', chatId: '42' },
+        { kind: 'webhook', url: 'https://hooks.slack.com/services/x' },
+      ],
+      fetchImpl: fakeFetch,
+    }
+  );
+  assert.equal(sent, true);
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0], 'https://api.telegram.org/bot1:A/sendMessage');
+});
+
+test('one failing channel does not stop the other from alerting', async () => {
+  ops.resetAlertDedupe();
+  const fakeFetch = async (url) => {
+    if (url.includes('telegram')) throw new Error('telegram down');
+    return { ok: true };
+  };
+  const sent = await ops.notifyOps(
+    { title: 'Order update failed', source: 'order-status' },
+    {
+      targets: [
+        { kind: 'telegram', token: '1:A', chatId: '42' },
+        { kind: 'webhook', url: 'https://example.com/hook' },
+      ],
+      fetchImpl: fakeFetch,
+    }
+  );
+  assert.equal(sent, true);
+});
+
 // -------------------------------------------------------------- encryption --
 
 test('backup envelopes round-trip and hide the plaintext', () => {

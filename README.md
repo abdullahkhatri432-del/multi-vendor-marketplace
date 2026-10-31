@@ -57,7 +57,7 @@ Copy `.env.example` to `.env` and fill in what you need:
 - **Server (`FIREBASE_SERVICE_ACCOUNT`)** — required for checkout, import and bulk import. It is a single-line JSON service account from Firebase Console → Project settings → Service accounts. Never commit it.
 - `UPI_ID` — canonical UPI id used to build orders and verification notes.
 - `ALLOWED_ORIGINS` — comma-separated browser origins allowed to call the API (defaults to localhost in development).
-- **Operations** — `CRON_SECRET`, `BACKUP_ENCRYPTION_KEY`, `BLOB_READ_WRITE_TOKEN`, `ALERT_WEBHOOK_URL`, `SITE_URL`. All five are documented in [docs/OPERATIONS.md](docs/OPERATIONS.md#1-what-runs-automatically); without them the store runs, but you get no backups and no alerts.
+- **Operations** — `CRON_SECRET`, `BACKUP_ENCRYPTION_KEY`, the Blob credentials, `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` and `SITE_URL`. All are documented in [docs/OPERATIONS.md](docs/OPERATIONS.md#1-what-runs-automatically); without them the store runs, but you get no backups and no alerts.
 
 ### 3. Run
 
@@ -127,7 +127,7 @@ runbook.
 |---|---|
 | Backup | `GET /api/backup` daily at 18:30 UTC → AES-256-GCM encrypted JSON per collection in Vercel Blob, 14 days retained |
 | Restore | `npm run restore -- --from <backup>` (dry run unless `--write`) |
-| Alerting | Any 5xx from the API, a failed backup or a CSP violation posts to `ALERT_WEBHOOK_URL` |
+| Alerting | Any 5xx from the API, a failed backup or a CSP violation is pushed to Telegram (and to `ALERT_WEBHOOK_URL` if set) |
 | Health | `GET /api/health` (Firestore reachability) plus a daily cron that also checks backup age |
 | Security headers | HSTS, `X-Frame-Options: DENY`, `nosniff`, Referrer-Policy, Permissions-Policy, and a CSP that ships in report-only mode until it has a report-free day |
 
@@ -136,7 +136,7 @@ runbook.
 These items need credentials or business decisions and are **not** automated:
 
 1. Rotate the Firebase service account key (any key that ever sat in a local `.env` should be treated as exposed) and set it only in the host's environment variables.
-2. Set the operations variables (`CRON_SECRET`, `BACKUP_ENCRYPTION_KEY`, `BLOB_READ_WRITE_TOKEN`, `ALERT_WEBHOOK_URL`) and confirm one manual backup succeeds — see [docs/OPERATIONS.md](docs/OPERATIONS.md).
+2. Set the operations variables (`CRON_SECRET`, `BACKUP_ENCRYPTION_KEY`, the Blob credentials, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`) and confirm one manual backup succeeds — see [docs/OPERATIONS.md](docs/OPERATIONS.md).
 3. Set `VITE_SITE_URL` to the final domain and regenerate the sitemap.
 4. Review `Terms` and `Privacy` with a lawyer for your jurisdiction; they are templates, not legal advice.
 5. Email notifications, returns/refund UI and a real payment gateway are not implemented. Checkout supports UPI reference matching and Cash on Delivery only.
