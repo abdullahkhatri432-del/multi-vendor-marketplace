@@ -22,6 +22,24 @@ const PAGE_SIZE = 400;
 const MAX_DOCS_PER_COLLECTION = 5_000;
 const KEEP_DAYS = 14;
 
+// Two ways to authenticate against Blob:
+//   - BLOB_READ_WRITE_TOKEN: the classic static token.
+//   - BLOB_STORE_ID only: the store is connected via OIDC and Vercel injects
+//     VERCEL_OIDC_TOKEN at runtime. @vercel/blob resolves it automatically when
+//     no token is passed, so we send no token in that case.
+function blobAuth() {
+  if (process.env.BLOB_READ_WRITE_TOKEN) return { token: process.env.BLOB_READ_WRITE_TOKEN };
+  if (process.env.BLOB_STORE_ID) return {};
+  return null;
+}
+
+// Public stores reject `access: 'private'` and vice versa, and the SDK requires
+// the value explicitly. Default to public (backups are encrypted either way);
+// set BLOB_ACCESS=private when the store is private.
+function blobAccess() {
+  return process.env.BLOB_ACCESS === 'private' ? 'private' : 'public';
+}
+
 async function exportCollection(db, name) {
   const docs = [];
   let last = null;
@@ -52,13 +70,13 @@ async function exportCollection(db, name) {
   return { docs, truncated };
 }
 
-async function writeBackup(pathname, payload, key, token) {
+async function writeBackup(pathname, payload, key, auth) {
   const encrypted = ops.encryptBuffer(Buffer.from(payload, 'utf8'), key);
   await put(pathname, encrypted, {
-    access: 'public',
+    access: blobAccess(),
     addRandomSuffix: false,
     contentType: 'application/octet-stream',
-    token,
+    ...auth,
   });
   return encrypted.length;
 }
@@ -70,10 +88,13 @@ module.exports = async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  const auth = blobAuth();
   const key = ops.deriveBackupKey();
-  if (!token || !key) {
-    const missing = [!token && 'BLOB_READ_WRITE_TOKEN', !key && 'BACKUP_ENCRYPTION_KEY']
+  if (!auth || !key) {
+    const missing = [
+      !auth && 'BLOB_READ_WRITE_TOKEN or BLOB_STORE_ID',
+      !key && 'BACKUP_ENCRYPTION_KEY',
+    ]
       .filter(Boolean)
       .join(', ');
     await ops.notifyOps({
@@ -101,7 +122,7 @@ module.exports = async function handler(req, res) {
         docs,
       });
       const pathname = ops.backupPathFor(startedAt, collection);
-      const bytes = await writeBackup(pathname, body, key, token);
+      const bytes = await writeBackup(pathname, body, key, auth);
 
       summaries.push({
         collection,
@@ -119,12 +140,12 @@ module.exports = async function handler(req, res) {
       collections: summaries,
     };
     const manifestPath = ops.backupManifestPathFor(startedAt);
-    const manifestBytes = await writeBackup(manifestPath, JSON.stringify(manifest), key, token);
+    const manifestBytes = await writeBackup(manifestPath, JSON.stringify(manifest), key, auth);
 
     // Prune old days. A failure here must not fail the backup itself.
     let pruned = 0;
     try {
-      const existing = await list({ prefix: 'backups/', limit: 1_000, token });
+      const existing = await list({ prefix: 'backups/', limit: 1_000, ...auth });
       const stale = ops.chooseBackupsToDelete(
         existing.blobs.map((blob) => blob.pathname),
         { keepDays: KEEP_DAYS }
@@ -133,7 +154,7 @@ module.exports = async function handler(req, res) {
         .filter((blob) => stale.includes(blob.pathname))
         .map((blob) => blob.url);
       if (urls.length) {
-        await del(urls, { token });
+        await del(urls, auth);
         pruned = urls.length;
       }
     } catch (err) {

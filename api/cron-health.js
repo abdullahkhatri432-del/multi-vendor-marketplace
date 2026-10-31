@@ -41,10 +41,15 @@ async function checkHealth(url) {
 }
 
 async function checkBackupAge(now = Date.now()) {
+  // Same auth rules as api/backup.js: static token, or OIDC via BLOB_STORE_ID.
   const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if (!token) return { configured: false, ok: false, reason: 'BLOB_READ_WRITE_TOKEN is not set' };
+  const storeId = process.env.BLOB_STORE_ID;
+  if (!token && !storeId) {
+    return { configured: false, ok: false, reason: 'No Blob store is connected (BLOB_STORE_ID/BLOB_READ_WRITE_TOKEN missing)' };
+  }
+  const auth = token ? { token } : {};
 
-  const { blobs } = await list({ prefix: 'backups/', limit: 1_000, token });
+  const { blobs } = await list({ prefix: 'backups/', limit: 1_000, ...auth });
   const manifests = blobs.filter((blob) => blob.pathname.endsWith('-manifest.json.enc'));
   if (!manifests.length) {
     return { configured: true, ok: false, reason: 'No backup manifest found' };

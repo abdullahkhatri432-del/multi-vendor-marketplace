@@ -26,7 +26,9 @@ per project, one run per day each.
 |---|---|---|
 | `CRON_SECRET` | both crons | `openssl rand -hex 32` |
 | `BACKUP_ENCRYPTION_KEY` | backup, restore | `openssl rand -hex 32` — store it in a password manager; without it backups are unreadable |
-| `BLOB_READ_WRITE_TOKEN` | backup, daily check | Created automatically when a Blob store is added to the Vercel project |
+| `BLOB_READ_WRITE_TOKEN` | backup, daily check | Created automatically when a static-token Blob store is connected to the Vercel project |
+| `BLOB_STORE_ID` | backup, daily check | Alternative to the token: injected when a store is connected via OIDC, which @vercel/blob authenticates with `VERCEL_OIDC_TOKEN` automatically |
+| `BLOB_ACCESS` | backup | `public` (default) or `private` — must match how the store was created |
 | `ALERT_WEBHOOK_URL` | all error paths | Slack, Discord, or any endpoint that accepts JSON |
 | `SITE_URL` | daily check | Defaults to `VITE_SITE_URL`, then `https://speedersmania.vercel.app` |
 
