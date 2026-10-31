@@ -272,8 +272,10 @@ module.exports = async function handler(req, res) {
       const vendorSnaps = vendorRefs.length ? await transaction.getAll(...vendorRefs) : [];
 
       // UPI reference uniqueness (skip for manual payments — proof screenshot is used instead)
-      if (!isManual) {
-        const utrRef = db.collection('utrs').doc(hashUtr(utr));
+      // NOTE: `utrRef` is declared outside the branch because it is also written
+      // to later on, after the order document is created.
+      const utrRef = isManual ? null : db.collection('utrs').doc(hashUtr(utr));
+      if (utrRef) {
         const utrSnap = await transaction.get(utrRef);
         if (utrSnap.exists) {
           const claim = utrSnap.data() || {};

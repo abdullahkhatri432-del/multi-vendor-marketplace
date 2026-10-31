@@ -380,9 +380,14 @@ export default function CheckoutPage() {
           Thank you for your purchase. Your order <span className="font-semibold text-surface-700">#{orderId?.slice(0, 8)}</span> has been placed successfully.
         </p>
         <div className="mt-4 mx-auto max-w-md rounded-xl bg-amber-50 border border-amber-100 px-4 py-3 text-sm text-amber-700">
-          {paymentMethod === 'manual'
-            ? 'Your payment proof has been uploaded. Your order will be confirmed after the seller verifies your payment screenshot (usually within a few hours).'
-            : 'Your payment is marked <span className="font-semibold">pending verification</span>. It will be confirmed after the seller verifies your UTR against the bank statement (usually within a few hours).'}
+          {paymentMethod === 'manual' ? (
+            'Your payment proof has been uploaded. Your order will be confirmed after the seller verifies your payment screenshot (usually within a few hours).'
+          ) : (
+            <>
+              Your payment is marked <span className="font-semibold">pending verification</span>. It will be
+              confirmed after the seller verifies your UTR against the bank statement (usually within a few hours).
+            </>
+          )}
           You can track the status in <span className="font-semibold">My Orders</span>.
         </div>
         <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">

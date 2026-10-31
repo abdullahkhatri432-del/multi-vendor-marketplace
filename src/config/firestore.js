@@ -87,18 +87,35 @@ export const updateUser = async (uid, data) => {
 };
 
 // ===================== VENDORS =====================
+// Create the vendor profile for a user if it does not exist yet.
+// Only fields that `firestore.rules` lets a vendor write are included — trust
+// and aggregate fields (verified, rating, totalSales, totalProducts) are
+// intentionally omitted, otherwise the create is rejected and the profile is
+// silently missing while the user role says "vendor".
+export const ensureVendorProfile = async (uid, data = {}) => {
+  return withErrorLogging('ensureVendorProfile', async () => {
+    const ref = doc(vendorsCol(), uid);
+    const snap = await getDoc(ref);
+    if (snap.exists()) return { id: snap.id, ...snap.data() };
+
+    const profile = {
+      storeName: data.storeName || 'My Store',
+      description: data.description || '',
+      logo: data.logo || '',
+      verified: false,
+      status: 'pending',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+    await setDoc(ref, profile);
+    return { id: uid, ...profile };
+  });
+};
+
 export const createVendor = async (uid, data) => {
   return withErrorLogging('createVendor', async () => {
-    const ref = doc(vendorsCol(), uid);
-    await setDoc(ref, {
-      ...data,
-      rating: 0,
-      totalSales: 0,
-      totalProducts: 0,
-      verified: false,
-      createdAt: serverTimestamp(),
-    });
-    return ref;
+    await ensureVendorProfile(uid, data);
+    return doc(vendorsCol(), uid);
   });
 };
 
@@ -420,6 +437,15 @@ export const updateUserRole = async (userId, role) => {
   return withErrorLogging('updateUserRole', async () => {
     const ref = doc(usersCol(), userId);
     await updateDoc(ref, { role });
+
+    // Promoting someone to vendor must also create their storefront profile,
+    // otherwise their products have a vendorId with no matching vendor doc and
+    // the public store page 404s.
+    if (role === 'vendor') {
+      const userSnap = await getDoc(ref);
+      const displayName = userSnap.exists() ? userSnap.data().displayName : '';
+      await ensureVendorProfile(userId, { storeName: displayName || 'My Store' });
+    }
   });
 };
 
