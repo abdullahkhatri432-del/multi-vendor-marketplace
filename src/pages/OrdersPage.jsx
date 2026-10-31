@@ -1,17 +1,25 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
-import { Package, ChevronRight, Calendar, FileText, MapPin, CreditCard, RotateCcw, ChevronDown, Store, Truck, ShieldCheck, CircleDollarSign } from 'lucide-react';
+import { Package, ChevronRight, Calendar, FileText, MapPin, CreditCard, RotateCcw, ChevronDown, Store, Truck, ShieldCheck, CircleDollarSign, XCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { getOrdersByUser } from '../config/firestore';
+import { cancelOrder } from '../config/api';
 import EmptyState from '../components/ui/EmptyState';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import OrderStatusTimeline from '../components/ui/OrderStatusTimeline';
 import InvoiceModal from '../components/ui/InvoiceModal';
 import { inr } from '../utils/currency';
 
+import usePageMeta from '../hooks/usePageMeta';
 export default function OrdersPage() {
+  usePageMeta({
+    title: 'My orders — Speedersmania',
+    description: 'Track your orders and their status.',
+    path: '/orders',
+    robots: 'noindex, nofollow',
+  });
   const { user, loading: authLoading } = useAuth();
   const { addItem } = useCart();
   const { addToast } = useToast();
@@ -21,6 +29,7 @@ export default function OrdersPage() {
   const [invoiceOrder, setInvoiceOrder] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
   const [reordering, setReordering] = useState(null);
+  const [cancelling, setCancelling] = useState(null);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -84,6 +93,24 @@ export default function OrdersPage() {
   };
 
   const formatDate = (ts) => ts?.toDate?.().toLocaleString() || 'Processing';
+
+  const CANCELLABLE = ['pending', 'confirmed', 'processing', 'packed'];
+
+  const handleCancelOrder = async (order) => {
+    if (!window.confirm('Cancel this order? Reserved stock is released and any verified payment is queued for refund.')) {
+      return;
+    }
+    setCancelling(order.id);
+    try {
+      await cancelOrder(user, order.id);
+      setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, status: 'cancelled' } : o)));
+      addToast('Order cancelled', 'success');
+    } catch (err) {
+      addToast(err?.message || 'Could not cancel the order', 'error');
+    } finally {
+      setCancelling(null);
+    }
+  };
 
   const getPaymentDisplay = (order) => {
     const method = order.paymentMethod;
@@ -180,7 +207,7 @@ export default function OrdersPage() {
                       className="flex items-center gap-2 rounded-xl bg-surface-50 px-3 py-2 hover:bg-surface-100 transition-colors"
                     >
                       <img
-                        src={item.image || `https://picsum.photos/seed/${item.productId}/40/40`}
+                        src={item.image || `/product-placeholder.svg`}
                         alt=""
                         className="h-8 w-8 rounded-lg object-cover"
                       />
@@ -227,6 +254,16 @@ export default function OrdersPage() {
                   <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                 </button>
                 <div className="flex flex-wrap items-center gap-2">
+                  {CANCELLABLE.includes(order.status) && (
+                    <button
+                      onClick={() => handleCancelOrder(order)}
+                      disabled={cancelling === order.id}
+                      className="btn-ghost text-sm text-red-600 hover:bg-red-50"
+                    >
+                      <XCircle className={`h-4 w-4 ${cancelling === order.id ? 'animate-spin' : ''}`} />
+                      {cancelling === order.id ? 'Cancelling…' : 'Cancel order'}
+                    </button>
+                  )}
                   <button
                     onClick={() => setInvoiceOrder(order)}
                     className="btn-secondary text-sm"

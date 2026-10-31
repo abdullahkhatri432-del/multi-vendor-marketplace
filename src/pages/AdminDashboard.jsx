@@ -3,23 +3,31 @@ import { Navigate } from 'react-router-dom';
 import {
   Users, Store, Package, ShoppingCart, DollarSign, Shield,
   CheckCircle, XCircle, BarChart3, Trash2, Edit2, Eye,
-  Search, Calendar, ChevronDown, TrendingUp, AlertTriangle,
+  Search, Calendar, ChevronDown, TrendingUp, AlertTriangle, AlertCircle,
   Tag, Plus, X, RefreshCw, Clock, Star, Banknote, ScanLine, Ticket, FileText,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import {
   getPlatformStats, getAllVendors, getAllOrders, getAllProducts,
-  getAllUsers, updateUserRole, deleteUser, updateOrderStatus,
+  getAllUsers, updateUserRole, deleteUser,
   deleteOrder, deleteProductById, updateVendor, getAllCategories,
   createCategory, deleteCategory, verifyOrderPayment, updateOrder,
   getAllCoupons, createCoupon, deleteCoupon,
 } from '../config/firestore';
+import { updateOrderStatus as apiUpdateOrderStatus } from '../config/api';
 import StatCard from '../components/ui/StatCard';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import EmptyState from '../components/ui/EmptyState';
 import { matchFromPaste, normalizeUtr } from '../utils/paymentMatch';
 
+import usePageMeta from '../hooks/usePageMeta';
 export default function AdminDashboard() {
+  usePageMeta({
+    title: 'Admin dashboard — Speedersmania',
+    description: 'Platform administration.',
+    path: '/admin',
+    robots: 'noindex, nofollow',
+  });
   const { user, isAdmin, isAuthenticated, loading: authLoading } = useAuth();
   const [stats, setStats] = useState(null);
   const [vendors, setVendors] = useState([]);
@@ -37,6 +45,7 @@ export default function AdminDashboard() {
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [newCategory, setNewCategory] = useState({ name: '', icon: '' });
   const [utrPaste, setUtrPaste] = useState('');
+  const [orderActionError, setOrderActionError] = useState('');
   const [matchResult, setMatchResult] = useState(null);
   const [coupons, setCoupons] = useState([]);
   const [showCouponForm, setShowCouponForm] = useState(false);
@@ -113,9 +122,12 @@ export default function AdminDashboard() {
 
   const handleOrderStatus = async (orderId, status) => {
     try {
-      await updateOrderStatus(orderId, status);
+      await apiUpdateOrderStatus(user, { orderId, action: 'status', status });
       setOrders(orders.map((o) => (o.id === orderId ? { ...o, status } : o)));
-    } catch (err) { console.error('Failed to update order:', err); }
+    } catch (err) {
+      console.error('Failed to update order:', err);
+      setOrderActionError(err?.message || 'Could not update the order.');
+    }
   };
 
   const handleDeleteOrder = async (orderId) => {
@@ -247,6 +259,20 @@ export default function AdminDashboard() {
       </div>
 
       {/* Tabs */}
+      {orderActionError && (
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <span className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            {orderActionError}
+          </span>
+          <button
+            onClick={() => setOrderActionError('')}
+            className="text-xs font-semibold underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
       <div className="flex gap-1 mb-6 rounded-2xl bg-surface-100 p-1 overflow-x-auto scrollbar-hide">
         {tabs.map(({ id, label, icon: Icon }) => (
           <button
@@ -616,7 +642,7 @@ export default function AdminDashboard() {
           {filteredProducts.length > 0 ? filteredProducts.map((product) => (
             <div key={product.id} className="card overflow-hidden">
               <div className="aspect-video overflow-hidden bg-surface-100">
-                <img src={product.images?.[0] || product.image || `https://picsum.photos/seed/${product.id}/300/200`} alt={product.name} className="h-full w-full object-cover" />
+                <img src={product.images?.[0] || product.image || `/product-placeholder.svg`} alt={product.name} className="h-full w-full object-cover" />
               </div>
               <div className="p-4">
                 <p className="text-sm font-semibold text-surface-900 truncate">{product.name}</p>

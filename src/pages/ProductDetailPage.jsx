@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Star, Truck, Shield, RotateCcw, Heart, ArrowLeft, Minus, Plus, Store, Send, BadgeCheck, Zap, ChevronRight, Check, Package, Sparkles } from 'lucide-react';
-import { getProduct, getVendor, getReviewsByProduct, createReview, getOrdersByUser, getProductsByCategory } from '../config/firestore';
+import { getProduct, getVendor, getReviewsByProduct, getOrdersByUser, getProductsByCategory } from '../config/firestore';
+import { saveReview } from '../config/api';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useWishlist } from '../context/WishlistContext';
@@ -11,6 +12,7 @@ import LoadingSpinner from '../components/ui/LoadingSpinner';
 import ProductCard from '../components/ui/ProductCard';
 import { inr } from '../utils/currency';
 
+import usePageMeta from '../hooks/usePageMeta';
 const RECENT_KEY = 'speedersmania_recently_viewed';
 const MAX_RECENT = 8;
 
@@ -40,9 +42,20 @@ export default function ProductDetailPage() {
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' });
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewError, setReviewError] = useState('');
   const [selectedAddons, setSelectedAddons] = useState([]);
   const [purchasedProductIds, setPurchasedProductIds] = useState([]);
   const [relatedProducts, setRelatedProducts] = useState([]);
+
+  usePageMeta({
+    title: product ? `${product.name} — Speedersmania` : 'Product — Speedersmania',
+    description: product
+      ? (product.description || `Buy ${product.name} from a verified seller on Speedersmania.`).slice(0, 300)
+      : 'Product details on Speedersmania.',
+    path: product ? `/products/${product.id}` : undefined,
+    image: product?.images?.[0] || product?.image,
+    type: 'product',
+  });
 
   const stock = Number.isFinite(Number(product?.stock)) ? Math.max(0, Number(product.stock)) : null;
   const isOutOfStock = stock === 0;
@@ -97,38 +110,62 @@ export default function ProductDetailPage() {
     fetchData();
   }, [id, user]);
 
-  // Structured data + analytics when the product loads
+  // Structured data (Product + Offer) and the view_item analytics event.
+  // Availability and ratings reflect real data only — no invented values.
   useEffect(() => {
-    if (!product) return;
-    const prev = document.getElementById('product-ld-json');
-    if (prev) prev.remove();
-    const script = document.createElement('script');
-    script.type = 'application/ld+json';
-    script.id = 'product-ld-json';
-    script.text = JSON.stringify({
+    if (!product) return undefined;
+
+    const stockValue = Number(product.stock);
+    const availability = Number.isFinite(stockValue) && stockValue <= 0
+      ? 'https://schema.org/OutOfStock'
+      : 'https://schema.org/InStock';
+
+    const data = {
       '@context': 'https://schema.org',
       '@type': 'Product',
       name: product.name,
-      image: product.images?.[0] || product.image,
-      description: product.description,
+      image: product.images?.length ? product.images : [product.image || '/product-placeholder.svg'],
+      description: product.description || undefined,
       sku: product.id,
       brand: { '@type': 'Organization', name: product.vendorName || 'Speedersmania' },
       offers: {
         '@type': 'Offer',
         priceCurrency: 'INR',
         price: Number(product.price) || 0,
-        availability: 'https://schema.org/InStock',
+        availability,
+        url: `${window.location.origin}/products/${product.id}`,
       },
-    });
-    document.head.appendChild(script);
+    };
 
+    // Only publish an aggregate rating when genuine reviews exist.
+    if (reviews.length > 0) {
+      const ratings = reviews.map((r) => Number(r.rating)).filter((n) => n >= 1 && n <= 5);
+      if (ratings.length > 0) {
+        data.aggregateRating = {
+          '@type': 'AggregateRating',
+          ratingValue: Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 10) / 10,
+          reviewCount: ratings.length,
+        };
+      }
+    }
+
+    let script = document.getElementById('product-ld-json');
+    if (!script) {
+      script = document.createElement('script');
+      script.type = 'application/ld+json';
+      script.id = 'product-ld-json';
+      document.head.appendChild(script);
+    }
+    script.text = JSON.stringify(data);
+  }, [product, reviews]);
+
+  // Fire the analytics event once per product view (not on review updates).
+  useEffect(() => {
+    if (!product) return;
     trackEvent('view_item', {
       items: [{ item_id: product.id, item_name: product.name, price: product.price, quantity: 1 }],
       value: product.price || 0,
     });
-    return () => {
-      document.getElementById('product-ld-json')?.remove();
-    };
   }, [product]);
 
   const handleAddToCart = () => {
@@ -181,22 +218,29 @@ export default function ProductDetailPage() {
   const handleSubmitReview = async (e) => {
     e.preventDefault();
     if (!isAuthenticated) { navigate('/login'); return; }
-    if (!reviewForm.comment.trim()) return;
+    if (!reviewForm.comment.trim()) {
+      setReviewError('Please write a short review before submitting.');
+      return;
+    }
 
     setSubmittingReview(true);
+    setReviewError('');
     try {
-      await createReview(id, {
-        userId: user.uid,
-        userName: user.displayName,
+      // Server verifies the purchase, prevents duplicate reviews and recomputes
+      // the product's rating. Never trust a client-side "verified" flag.
+      await saveReview(user, {
+        productId: id,
         rating: reviewForm.rating,
-        comment: reviewForm.comment,
-        verifiedPurchase: purchasedProductIds.length > 0,
+        comment: reviewForm.comment.trim(),
       });
       const revs = await getReviewsByProduct(id);
       setReviews(revs);
       setReviewForm({ rating: 5, comment: '' });
       setShowReviewForm(false);
-    } catch (err) { console.error('Failed to submit review:', err); }
+    } catch (err) {
+      console.error('Failed to submit review:', err);
+      setReviewError(err?.message || 'Could not save your review. Please try again.');
+    }
     setSubmittingReview(false);
   };
 
@@ -210,7 +254,7 @@ export default function ProductDetailPage() {
     );
   }
 
-  const images = product.images?.length > 0 ? product.images : [product.image || `https://picsum.photos/seed/${product.id}/600/600`];
+  const images = product.images?.length > 0 ? product.images : [product.image || '/product-placeholder.svg'];
   const avgRating = reviews.length > 0
     ? (reviews.reduce((s, r) => s + (Number(r.rating) || 0), 0) / reviews.length).toFixed(1)
     : (Number(product.rating) || 4.5).toFixed(1);
@@ -517,6 +561,9 @@ export default function ProductDetailPage() {
               placeholder="Share your experience with this product..."
               required
             />
+            {reviewError && (
+              <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{reviewError}</p>
+            )}
             <div className="mt-3 flex gap-3">
               <button type="submit" disabled={submittingReview} className="btn-primary text-sm">
                 <Send className="h-4 w-4" /> {submittingReview ? 'Submitting...' : 'Submit Review'}
