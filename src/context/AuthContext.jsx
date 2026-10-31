@@ -9,6 +9,7 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
+import { ensureVendorProfile } from '../config/firestore';
 
 const AuthContext = createContext(null);
 
@@ -89,19 +90,10 @@ export function AuthProvider({ children }) {
     }, { merge: true });
 
     if (role === 'vendor') {
-      const vendorDoc = await getDoc(doc(db, 'vendors', firebaseUser.uid));
-      if (!vendorDoc.exists()) {
-        await setDoc(doc(db, 'vendors', firebaseUser.uid), {
-          storeName: displayName || 'My Store',
-          description: '',
-          logo: '',
-          rating: 0,
-          totalSales: 0,
-          totalProducts: 0,
-          verified: false,
-          createdAt: serverTimestamp(),
-        });
-      }
+      // Reuse the shared helper: it only writes fields the Firestore rules let
+      // a vendor set, so the profile is actually created instead of being
+      // silently rejected (rating/totalSales/totalProducts are admin-only).
+      await ensureVendorProfile(firebaseUser.uid, { storeName: displayName });
     }
     setUserRole(role);
   };
