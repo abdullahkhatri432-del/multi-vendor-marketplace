@@ -211,7 +211,9 @@ export default function ProductDetailPage() {
   }
 
   const images = product.images?.length > 0 ? product.images : [product.image || `https://picsum.photos/seed/${product.id}/600/600`];
-  const avgRating = reviews.length > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : (product.rating?.toFixed(1) || '4.5');
+  const avgRating = reviews.length > 0
+    ? (reviews.reduce((s, r) => s + (Number(r.rating) || 0), 0) / reviews.length).toFixed(1)
+    : (Number(product.rating) || 4.5).toFixed(1);
   // Cards show a lifetime review count; until reviews exist in Firestore, fall
   // back to it so the rating line doesn't contradict the product card.
   const reviewTotal = reviews.length > 0 ? reviews.length : product.reviewCount || 0;

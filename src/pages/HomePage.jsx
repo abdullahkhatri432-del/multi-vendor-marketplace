@@ -643,8 +643,8 @@ export default function HomePage() {
                         <p className="mt-1 text-xs capitalize text-ink-muted">{vendor.category}</p>
                         <div className="mt-3 flex items-center justify-center gap-1.5">
                           <Star className="h-3.5 w-3.5 fill-accent text-accent" />
-                          <span className="text-sm font-semibold text-ink">{vendor.rating.toFixed(1)}</span>
-                          <span className="text-xs text-ink-muted">({vendor.reviewCount.toLocaleString()})</span>
+                          <span className="text-sm font-semibold text-ink">{Number(vendor.rating || 0).toFixed(1)}</span>
+                          <span className="text-xs text-ink-muted">({Number(vendor.reviewCount || 0).toLocaleString('en-IN')})</span>
                           {vendor.verified && <BadgeCheck className="h-4 w-4 text-primary-600" aria-label="Verified vendor" />}
                         </div>
                         <p className="mt-2 text-xs text-ink-muted">{vendor.productsCount} products</p>

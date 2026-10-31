@@ -242,7 +242,7 @@ export default function VendorDashboard() {
                     <span className="text-xs text-surface-500">Store Rating</span>
                     <span className="text-xs font-semibold text-surface-900 flex items-center gap-1">
                       <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                      {vendor?.rating?.toFixed(1) || '0.0'}
+                      {Number(vendor?.rating || 0).toFixed(1)}
                     </span>
                   </div>
                 </div>

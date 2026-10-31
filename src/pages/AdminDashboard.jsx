@@ -447,7 +447,7 @@ export default function AdminDashboard() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-surface-900">{vendor.storeName}</p>
-                    <p className="text-xs text-surface-500">{vendor.totalSales || 0} sales &middot; {vendor.totalProducts || 0} products &middot; {vendor.rating?.toFixed(1) || '0.0'} rating</p>
+                    <p className="text-xs text-surface-500">{vendor.totalSales || 0} sales &middot; {vendor.totalProducts || 0} products &middot; {Number(vendor.rating || 0).toFixed(1)} rating</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -555,13 +555,13 @@ export default function AdminDashboard() {
                           {order.advanceAmount != null && (
                             <div className="flex justify-between gap-4">
                               <span className="text-surface-500">Advance Paid</span>
-                              <span className="font-medium">₹{order.advanceAmount.toFixed(2)}</span>
+                              <span className="font-medium">₹{Number(order.advanceAmount || 0).toFixed(2)}</span>
                             </div>
                           )}
                           {order.balanceDue != null && (
                             <div className="flex justify-between gap-4">
                               <span className="text-surface-500">Balance on Delivery</span>
-                              <span className="font-medium">₹{order.balanceDue.toFixed(2)}</span>
+                              <span className="font-medium">₹{Number(order.balanceDue || 0).toFixed(2)}</span>
                             </div>
                           )}
                           <div className="flex justify-between gap-4">
