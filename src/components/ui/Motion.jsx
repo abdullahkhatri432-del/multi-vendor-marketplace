@@ -179,7 +179,7 @@ export function Parallax({ children, speed = 0.12, className = '' }) {
       frame = 0;
       const rect = el.getBoundingClientRect();
       const offset = (rect.top + rect.height / 2 - window.innerHeight / 2) * -speed;
-      el.style.transform = `translate3d(0, ${offset.toFixed(2)}px, 0)`;
+      el.style.transform = `translate3d(0, ${Number(offset || 0).toFixed(2)}px, 0)`;
     };
     const onScroll = () => {
       if (!frame) frame = window.requestAnimationFrame(update);

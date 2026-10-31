@@ -86,7 +86,7 @@ export default function InvoiceModal({ order, onClose }) {
                   </td>
                   <td className="py-3 text-center text-surface-600">{item.quantity}</td>
                   <td className="py-3 text-right font-medium">
-                    ₹{((item.price * item.quantity) + (item.addonTotal || 0)).toFixed(2)}
+                    ₹{((Number(item.price) * item.quantity) + (item.addonTotal || 0)).toFixed(2)}
                   </td>
                 </tr>
               ))}
@@ -106,7 +106,7 @@ export default function InvoiceModal({ order, onClose }) {
             )}
             <div className="flex justify-between text-surface-600">
               <span>Shipping</span>
-              <span>{order.shipping ? `₹${order.shipping.toFixed(2)}` : 'Free'}</span>
+              <span>{Number(order.shipping || 0) > 0 ? `₹${Number(order.shipping).toFixed(2)}` : 'Free'}</span>
             </div>
             <div className="flex justify-between text-surface-600">
               <span>Tax</span>

@@ -300,7 +300,7 @@ export default function AdminDashboard() {
             <StatCard icon={Store} label="Vendors" value={stats?.totalVendors || 0} color="accent" />
             <StatCard icon={Package} label="Products" value={stats?.totalProducts || 0} color="primary" />
             <StatCard icon={ShoppingCart} label="Orders" value={stats?.totalOrders || 0} color="success" />
-            <StatCard icon={DollarSign} label="Revenue" value={`₹${stats?.totalRevenue?.toFixed(2) || '0.00'}`} color="success" />
+            <StatCard icon={DollarSign} label="Revenue" value={`₹${Number(stats?.totalRevenue || 0).toFixed(2)}`} color="success" />
           </div>
 
           {/* Quick Stats */}
@@ -358,7 +358,7 @@ export default function AdminDashboard() {
                         <td className="py-3 text-surface-600">{order.customerName || 'N/A'}</td>
                         <td className="py-3 text-surface-500">{order.createdAt?.toDate?.().toLocaleDateString() || '—'}</td>
                         <td className="py-3"><span className={`badge ${statusColors[order.status] || 'badge-primary'}`}>{order.status || 'pending'}</span></td>
-                        <td className="py-3 text-right font-semibold">₹{order.total?.toFixed(2) || '0.00'}</td>
+                        <td className="py-3 text-right font-semibold">₹{Number(order.total || 0).toFixed(2)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -500,14 +500,14 @@ export default function AdminDashboard() {
                       <p className="mt-0.5 text-xs text-primary-700 font-mono">
                         {order.paymentMethod === 'cod' ? 'COD' : order.paymentMethod?.toUpperCase()}
                         {order.paymentReference ? ` · UTR ${normalizeUtr(order.paymentReference)}` : ''}
-                        {order.advanceAmount ? ` · Adv ₹${order.advanceAmount.toFixed(2)}` : ''}
+                        {order.advanceAmount > 0 ? ` · Adv ₹${Number(order.advanceAmount).toFixed(2)}` : ''}
                       </p>
                     )}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className={`badge ${statusColors[order.status] || 'badge-primary'}`}>{order.status || 'pending'}</span>
-                  <span className="text-lg font-bold text-surface-900">₹{order.total?.toFixed(2) || '0.00'}</span>
+                  <span className="text-lg font-bold text-surface-900">₹{Number(order.total || 0).toFixed(2)}</span>
                   <ChevronDown className={`h-5 w-5 text-surface-400 transition-transform ${expandedOrder === order.id ? 'rotate-180' : ''}`} />
                 </div>
               </button>
@@ -521,15 +521,15 @@ export default function AdminDashboard() {
                         {order.items?.map((item, i) => (
                           <div key={i} className="flex items-center justify-between text-sm rounded-lg bg-white px-3 py-2">
                             <span className="text-surface-600">{item.name} x{item.quantity}</span>
-                            <span className="font-medium">₹{(item.price * item.quantity).toFixed(2)}</span>
+                            <span className="font-medium">₹{(Number(item.price) * item.quantity).toFixed(2)}</span>
                           </div>
                         ))}
                       </div>
                       <div className="mt-3 pt-3 border-t border-surface-100 space-y-1 text-sm">
-                        <div className="flex justify-between"><span className="text-surface-500">Subtotal</span><span>₹{order.subtotal?.toFixed(2)}</span></div>
-                        <div className="flex justify-between"><span className="text-surface-500">Shipping</span><span>₹{order.shipping?.toFixed(2)}</span></div>
-                        <div className="flex justify-between"><span className="text-surface-500">Tax</span><span>₹{order.tax?.toFixed(2)}</span></div>
-                        <div className="flex justify-between font-bold pt-1 border-t border-surface-100"><span>Total</span><span>₹{order.total?.toFixed(2)}</span></div>
+                        <div className="flex justify-between"><span className="text-surface-500">Subtotal</span><span>₹{Number(order.subtotal || 0).toFixed(2)}</span></div>
+                        <div className="flex justify-between"><span className="text-surface-500">Shipping</span><span>₹{Number(order.shipping || 0).toFixed(2)}</span></div>
+                        <div className="flex justify-between"><span className="text-surface-500">Tax</span><span>₹{Number(order.tax || 0).toFixed(2)}</span></div>
+                        <div className="flex justify-between font-bold pt-1 border-t border-surface-100"><span>Total</span><span>₹{Number(order.total || 0).toFixed(2)}</span></div>
                       </div>
                     </div>
                     <div>
@@ -626,7 +626,7 @@ export default function AdminDashboard() {
                   <span className="text-xs text-surface-500">{product.category}</span>
                 </div>
                 <div className="flex items-center justify-between mt-3">
-                  <span className="text-sm font-bold text-primary-600">₹{product.price?.toFixed(2)}</span>
+                  <span className="text-sm font-bold text-primary-600">₹{Number(product.price || 0).toFixed(2)}</span>
                   <div className="flex items-center gap-1">
                     <span className={`badge ${product.active ? 'badge-success' : 'badge-warning'}`}>
                       {product.active ? 'Active' : 'Inactive'}
@@ -762,7 +762,7 @@ export default function AdminDashboard() {
                               Order #{order.id?.slice(0, 8)} · {order.customerName}
                             </p>
                             <p className="mt-0.5 text-xs text-surface-500 font-mono">
-                              UTR {normalizeUtr(order.paymentReference)} · ₹{(order.paymentMethod === 'cod' ? order.advanceAmount : order.total)?.toFixed?.(2)}
+                              UTR {normalizeUtr(order.paymentReference)} · ₹{Number(order.paymentMethod === 'cod' ? order.advanceAmount : order.total || 0).toFixed(2)}
                             </p>
                             {!amountMatches && (
                               <p className="mt-1 text-xs text-amber-700">
@@ -814,7 +814,7 @@ export default function AdminDashboard() {
                               Order #{order.id?.slice(0, 8)} · {order.customerName}
                             </p>
                             <p className="mt-0.5 text-xs text-surface-500 font-mono">
-                              UTR {normalizeUtr(order.paymentReference) || '—'} · ₹{(order.paymentMethod === 'cod' ? order.advanceAmount : order.total)?.toFixed?.(2)} · {order.paymentStatus}
+                              UTR {normalizeUtr(order.paymentReference) || '—'} · ₹{Number(order.paymentMethod === 'cod' ? order.advanceAmount : order.total || 0).toFixed(2)} · {order.paymentStatus}
                             </p>
                           </div>
                           <button
@@ -895,7 +895,7 @@ export default function AdminDashboard() {
                               {proofNote || 'No note provided'}
                             </p>
                             <p className="mt-1 text-xs text-surface-600">
-                              Total: <span className="font-bold">₹{order.total?.toFixed(2)}</span>
+                              Total: <span className="font-bold">₹{Number(order.total || 0).toFixed(2)}</span>
                             </p>
                           </div>
                           {proofUrl && (
