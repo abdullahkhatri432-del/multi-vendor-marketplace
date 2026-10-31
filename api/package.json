@@ -1,6 +1,7 @@
 {
   "type": "commonjs",
   "dependencies": {
+    "@vercel/blob": "^2.7.0",
     "axios": "^1.19.0",
     "cheerio": "^1.2.0",
     "firebase-admin": "^12.7.0"
