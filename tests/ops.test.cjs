@@ -231,6 +231,35 @@ test('document references are rebuilt when a db handle is supplied', () => {
   assert.deepEqual(decoded, { rebuilt: 'orders/o1' });
 });
 
+// -------------------------------------------------------- blob access ------
+
+test('an access-mode mismatch is recognised so the write can be retried', () => {
+  // The two messages @vercel/blob returns when `access` does not match the store.
+  assert.equal(
+    ops.isBlobAccessError(new Error('Cannot use public access on a private store.')),
+    true
+  );
+  assert.equal(
+    ops.isBlobAccessError(new Error('Cannot use private access on a public store')),
+    true
+  );
+});
+
+test('genuine Blob failures are not mistaken for an access-mode mismatch', () => {
+  // These must reach the caller: retrying with the other mode would not help.
+  assert.equal(ops.isBlobAccessError(new Error('fetch failed')), false);
+  assert.equal(ops.isBlobAccessError(new Error('The requested blob does not exist')), false);
+  assert.equal(ops.isBlobAccessError(new Error('Unauthorized: token expired')), false);
+  assert.equal(ops.isBlobAccessError(new Error('Store is suspended')), false);
+  assert.equal(ops.isBlobAccessError(null), false);
+});
+
+test('flipping the access mode always changes it', () => {
+  assert.equal(ops.flipAccessMode('public'), 'private');
+  assert.equal(ops.flipAccessMode('private'), 'public');
+  assert.equal(ops.flipAccessMode(undefined), 'private');
+});
+
 // -------------------------------------------------------------- retention --
 
 test('retention keeps the newest day folders and deletes the rest', () => {

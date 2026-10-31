@@ -34,8 +34,10 @@ function blobAuth() {
 }
 
 // Public stores reject `access: 'private'` and vice versa, and the SDK requires
-// the value explicitly. Default to public (backups are encrypted either way);
-// set BLOB_ACCESS=private when the store is private.
+// the value explicitly. This project's store is **private**, so BLOB_ACCESS must
+// be `private`; a public store needs `public`. A mismatch is a 400 on every
+// write, which is why writeBackup() retries once with the other mode instead of
+// failing the whole backup over one environment variable.
 function blobAccess() {
   return process.env.BLOB_ACCESS === 'private' ? 'private' : 'public';
 }
@@ -70,14 +72,28 @@ async function exportCollection(db, name) {
   return { docs, truncated };
 }
 
+// The store has exactly one access mode; if our guess is wrong every single
+// backup fails with a 400 that looks like a Blob outage. Retry once with the
+// opposite mode — the payload is already encrypted either way, so the retry
+// cannot expose anything the first attempt would not have.
 async function writeBackup(pathname, payload, key, auth) {
   const encrypted = ops.encryptBuffer(Buffer.from(payload, 'utf8'), key);
-  await put(pathname, encrypted, {
-    access: blobAccess(),
+  const base = {
     addRandomSuffix: false,
     contentType: 'application/octet-stream',
     ...auth,
-  });
+  };
+  const access = blobAccess();
+
+  try {
+    await put(pathname, encrypted, { ...base, access });
+  } catch (err) {
+    if (!ops.isBlobAccessError(err)) throw err;
+    const retry = ops.flipAccessMode(access);
+    console.warn(`[backup] access=${access} rejected by the store, retrying with access=${retry}`);
+    await put(pathname, encrypted, { ...base, access: retry });
+  }
+
   return encrypted.length;
 }
 
@@ -195,6 +211,12 @@ module.exports = async function handler(req, res) {
       title: 'Firestore backup failed',
       detail: ops.summarizeError(err),
     });
-    return res.status(500).json({ error: 'Backup failed. Check the logs and the alert channel.' });
+    return res.status(500).json({
+      error: 'Backup failed. Check the logs and the alert channel.',
+      // Safe to echo: this endpoint already required CRON_SECRET, and the
+      // summary is a message + code with no stack and no secrets. Without it,
+      // diagnosing a failed backup needs dashboard log access.
+      detail: ops.summarizeError(err),
+    });
   }
 };
