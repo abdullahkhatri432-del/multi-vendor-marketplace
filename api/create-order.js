@@ -19,6 +19,7 @@ const {
   TAX_RATE,
   round2,
 } = require('../lib/pricing.cjs');
+const ops = require('../lib/ops.cjs');
 
 const UPI_ID = process.env.UPI_ID || '8160587811@kotak811';
 const MAX_ITEMS = 50;
@@ -376,6 +377,12 @@ module.exports = async function handler(req, res) {
     const status = err instanceof HttpError ? err.status : 500;
     if (status >= 500) {
       console.error('[create-order] failed:', err?.message);
+      await ops.notifyOps({
+        level: 'error',
+        source: 'create-order',
+        title: 'Checkout failed (HTTP 500)',
+        detail: ops.summarizeError(err),
+      });
     }
     return res.status(status).json({
       error: status >= 500 ? 'Could not place your order. Please try again.' : err.message,

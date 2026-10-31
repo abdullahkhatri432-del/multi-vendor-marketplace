@@ -57,6 +57,7 @@ Copy `.env.example` to `.env` and fill in what you need:
 - **Server (`FIREBASE_SERVICE_ACCOUNT`)** — required for checkout, import and bulk import. It is a single-line JSON service account from Firebase Console → Project settings → Service accounts. Never commit it.
 - `UPI_ID` — canonical UPI id used to build orders and verification notes.
 - `ALLOWED_ORIGINS` — comma-separated browser origins allowed to call the API (defaults to localhost in development).
+- **Operations** — `CRON_SECRET`, `BACKUP_ENCRYPTION_KEY`, the Blob credentials, `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` and `SITE_URL`. All are documented in [docs/OPERATIONS.md](docs/OPERATIONS.md#1-what-runs-automatically); without them the store runs, but you get no backups and no alerts.
 
 ### 3. Run
 
@@ -73,10 +74,10 @@ Vite proxies `/api` to `http://localhost:3001`, so the checkout flow works exact
 Deploy the repository's security rules and indexes before going live:
 
 ```bash
-firebase deploy --only firestore:rules,firestore:indexes,storage
+firebase deploy --only firestore:rules,firestore:indexes
 ```
 
-The rules make orders, UTRs and reviews server-only and stop vendors from editing trust or financial fields.
+The rules make orders, UTRs and reviews server-only and stop vendors from editing trust or financial fields. Deploy them **after** the matching app version is live — the rules deny the client writes that older builds still made.
 
 ### 5. Build and test
 
@@ -116,16 +117,31 @@ Push to `main`; `.github/workflows/deploy.yml` builds with `VITE_BASE_PATH=/mult
 - Order status, stock restoration and reviews are written only by `/api/order-status` and `/api/reviews`; Firestore rules deny client writes.
 - Checkout accepts UPI and Cash on Delivery only. There is no file upload anywhere in the app, so no Firebase Storage (and no Blaze plan) is required.
 
+## Operations
+
+A live store needs more than a deploy. `docs/OPERATIONS.md` covers the daily
+encrypted Firestore backup, the health check, alert delivery and the incident
+runbook.
+
+| Concern | How it works |
+|---|---|
+| Backup | `GET /api/backup` daily at 18:30 UTC → AES-256-GCM encrypted JSON per collection in Vercel Blob, 14 days retained |
+| Restore | `npm run restore -- --from <backup>` (dry run unless `--write`) |
+| Alerting | Any 5xx from the API, a failed backup or a CSP violation is pushed to Telegram (and to `ALERT_WEBHOOK_URL` if set) |
+| Health | `GET /api/health` (Firestore reachability) plus a daily cron that also checks backup age |
+| Security headers | HSTS, `X-Frame-Options: DENY`, `nosniff`, Referrer-Policy, Permissions-Policy, and a CSP that ships in report-only mode until it has a report-free day |
+
 ## Before going live
 
 These items need credentials or business decisions and are **not** automated:
 
 1. Rotate the Firebase service account key (any key that ever sat in a local `.env` should be treated as exposed) and set it only in the host's environment variables.
-2. Deploy `firestore.rules`, `firestore.indexes.json` and `storage.rules` to the production project.
+2. Set the operations variables (`CRON_SECRET`, `BACKUP_ENCRYPTION_KEY`, the Blob credentials, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`) and confirm one manual backup succeeds — see [docs/OPERATIONS.md](docs/OPERATIONS.md).
 3. Set `VITE_SITE_URL` to the final domain and regenerate the sitemap.
 4. Review `Terms` and `Privacy` with a lawyer for your jurisdiction; they are templates, not legal advice.
 5. Email notifications, returns/refund UI and a real payment gateway are not implemented. Checkout supports UPI reference matching and Cash on Delivery only.
 6. If you ever ran an older build that used manual transfers, delete any leftover screenshots under `product-images/payment-proofs/` and `payment-proofs/` in the Firebase Console — rules cannot retroactively revoke objects that were already public.
+7. After a report-free day, switch the CSP header from `Content-Security-Policy-Report-Only` to `Content-Security-Policy` in `vercel.json` so it enforces.
 
 ## License
 

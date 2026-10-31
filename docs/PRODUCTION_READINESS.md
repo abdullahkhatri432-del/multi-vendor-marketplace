@@ -117,6 +117,7 @@ Coverage by suite:
 | `tests/pricing.test.js` | 5 | Shipping threshold, tax, discount caps, COD split |
 | `tests/coupons.test.js` | 6 | Code normalisation, expiry/usage/min-order, percent cap, fixed cap |
 | `tests/payment-match.test.js` | 6 | UTR normalisation, amount parsing, paste parsing, matching, COD advance |
+| `tests/ops.test.cjs` | 17 | Alert payload per channel, dedupe, webhook failure safety, backup encrypt/decrypt round-trip, tamper rejection, wrong-key rejection, Firestore type round-trip, retention pruning, cron auth (fails closed) |
 
 **Not tested (honest gaps):**
 
@@ -133,17 +134,19 @@ Coverage by suite:
 | # | Requirement | Owner | Why it blocks |
 |---|---|---|---|
 | 1 | Rotate the Firebase service account key | You | A key exists in local `.env`; treat as exposed |
-| 2 | Deploy `firestore.rules`, `firestore.indexes.json`, `storage.rules` | You | App is insecure until rules are live |
+| 2 | ~~Deploy `firestore.rules`~~ | Done | Ruleset deployed 2026-10-31 and verified identical to `firestore.rules` |
 | 3 | Set `VITE_SITE_URL` + regenerate sitemap | You | Canonicals point at the Vercel default |
 | 4 | Legal review of Terms/Privacy | You | Templates, not legal advice |
 | 5 | Delete/migrate legacy public payment proofs | You | Rules cannot retroactively revoke public objects; only matters if an old build ran |
-| 6 | Email notifications | Decision + provider | No provider configured; no order emails are sent |
-| 7 | Payment gateway | Decision | Only UPI reference matching and COD exist |
-| 8 | Returns/refund customer workflow | Decision | Policy undefined; only cancel + refund flag |
-| 9 | Product pagination | Engineering | Full catalogue is loaded client-side |
-| 10 | Product variants | Engineering + data migration | Addons exist; size/colour does not |
-| 11 | Server-side rendering/prerender | Engineering | Social crawlers see generic HTML |
-| 12 | Address book, password change | Engineering | Addresses live in `localStorage` |
+| 6 | Configure backups + alerting | You | Code is in place (`/api/backup`, `/api/cron-health`, `lib/ops.cjs`); needs `CRON_SECRET`, `BACKUP_ENCRYPTION_KEY`, the Blob credentials and `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` — see `docs/OPERATIONS.md` |
+| 7 | Switch CSP from report-only to enforcing | You | After one report-free day (`vercel.json`) |
+| 8 | Email notifications | Decision + provider | No provider configured; no order emails are sent |
+| 9 | Payment gateway | Decision | Only UPI reference matching and COD exist |
+| 10 | Returns/refund customer workflow | Decision | Policy undefined; only cancel + refund flag |
+| 11 | Product pagination beyond the 50-item page | Engineering | `/products` loads one page of 50; no "load more" |
+| 12 | Product variants | Engineering + data migration | Addons exist; size/colour does not |
+| 13 | Server-side rendering/prerender | Engineering | Social crawlers see generic HTML |
+| 14 | Address book, password change | Engineering | Addresses live in `localStorage` |
 
 ---
 
@@ -153,6 +156,6 @@ Coverage by suite:
 
 The transactional core is now server-authoritative and covered by regression tests: a tampered cart cannot change the price, stock cannot be oversold at checkout, a UTR can only be claimed once, cancellations restore inventory, and neither order state nor reviews can be forged from the browser.
 
-It is **not** ready to take real money until items 1–5 in section E are completed (key rotation, rules deployment, canonical URL, legal review, legacy proof cleanup). Items 6–12 are product gaps, not defects: the platform will not send order emails, will not accept cards, and has no customer-facing returns flow.
+It is **not** ready to take real money until items 1, 3, 4, 5 and 6 in section E are completed (key rotation, canonical URL, legal review, legacy proof cleanup, backup/alert configuration). Items 8–14 are product gaps, not defects: the platform will not send order emails, will not accept cards, and has no customer-facing returns flow.
 
 No claim is made about search rankings; SEO work here only removes technical blockers (unique metadata, canonicals, crawl rules, sitemap, structured data).

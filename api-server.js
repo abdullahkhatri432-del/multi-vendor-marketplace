@@ -46,12 +46,24 @@ app.use((req, res, next) => {
 const importProductHandler = require('./api/import-product.js');
 const bulkImportHandler = require('./api/bulk-import.js');
 const createOrderHandler = require('./api/create-order.js');
+const orderStatusHandler = require('./api/order-status.js');
+const reviewsHandler = require('./api/reviews.js');
 const healthHandler = require('./api/health.js');
+const backupHandler = require('./api/backup.js');
+const cronHealthHandler = require('./api/cron-health.js');
+const cspReportHandler = require('./api/csp-report.js');
 
 app.get('/api/health', healthHandler);
 app.post('/api/import-product', importProductHandler);
 app.post('/api/bulk-import', bulkImportHandler);
 app.post('/api/create-order', createOrderHandler);
+app.post('/api/order-status', orderStatusHandler);
+app.post('/api/reviews', reviewsHandler);
+// Cron endpoints: local equivalents of the Vercel schedule. Both require
+// Authorization: Bearer $CRON_SECRET, exactly like production.
+app.get('/api/backup', backupHandler);
+app.get('/api/cron-health', cronHealthHandler);
+app.post('/api/csp-report', cspReportHandler);
 
 // Handle preflight for any API route (Express 5 no longer accepts '/api/*').
 app.use((req, res, next) => {

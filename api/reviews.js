@@ -13,6 +13,7 @@ const {
   rateLimit,
   FieldValue,
 } = require('../lib/http.cjs');
+const ops = require('../lib/ops.cjs');
 
 const MAX_COMMENT = 2000;
 const round1 = (n) => Math.round(n * 10) / 10;
@@ -150,7 +151,15 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ success: true, ...result });
   } catch (err) {
     const status = err instanceof HttpError ? err.status : 500;
-    if (status >= 500) console.error('[reviews] failed:', err?.message);
+    if (status >= 500) {
+      console.error('[reviews] failed:', err?.message);
+      await ops.notifyOps({
+        level: 'error',
+        source: 'reviews',
+        title: 'Review write failed (HTTP 500)',
+        detail: ops.summarizeError(err),
+      });
+    }
     return res.status(status).json({
       error: status >= 500 ? 'Could not save your review. Please try again.' : err.message,
     });
