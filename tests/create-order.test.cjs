@@ -72,6 +72,13 @@ const db = {
         if (ref && ref.collectionName === 'utrs' && state.utrClaim) {
           return { exists: true, data: () => ({ ...state.utrClaim }) };
         }
+        if (ref && ref.collectionName === 'orders' && state.existingOrder) {
+          return {
+            exists: true,
+            id: 'order-9',
+            data: () => ({ ...state.existingOrder }),
+          };
+        }
         return { exists: false, data: () => ({}) };
       },
       set(ref, data) {
@@ -158,6 +165,7 @@ test.beforeEach(() => {
     addons: [],
   };
   state.utrClaim = null;
+  state.existingOrder = null;
   refCounter = 0;
 });
 
@@ -256,6 +264,84 @@ test('a UTR already claimed by another customer is rejected', async () => {
   const res = await call({ ...baseBody, paymentMethod: 'upi', utr: '412345678901' });
   assert.equal(res.statusCode, 409);
   assert.match(res.payload.error, /already been used/i);
+});
+
+test('resubmitting the same reference returns the order created by the first attempt', async () => {
+  state.utrClaim = { customerId: 'u1', orderId: 'order-9' };
+  state.existingOrder = {
+    status: 'pending',
+    subtotal: 200,
+    discount: 0,
+    shipping: 49,
+    tax: 36,
+    total: 285,
+  };
+
+  const res = await call({ ...baseBody, paymentMethod: 'upi', utr: '412345678901' });
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.payload.duplicate, true);
+  assert.equal(res.payload.orderId, 'order-9');
+  assert.equal(res.payload.total, 285);
+  assert.equal(state.writes.length, 0, 'no second order or stock write');
+});
+
+test('a reference belonging to a cancelled order is not reused', async () => {
+  state.utrClaim = { customerId: 'u1', orderId: 'order-9' };
+  state.existingOrder = { status: 'cancelled', total: 285 };
+
+  const res = await call({ ...baseBody, paymentMethod: 'upi', utr: '412345678901' });
+
+  assert.equal(res.statusCode, 409);
+  assert.match(res.payload.error, /cancelled order/i);
+});
+
+test('the same product on two lines is validated and decremented once', async () => {
+  state.product.addons = [{ id: 'gift', title: 'Gift wrap', price: 10 }];
+
+  // 4 + 4 = 8 units against a stock of 10 must succeed and write one update.
+  const ok = await call({
+    ...baseBody,
+    items: [
+      { productId: 'p1', quantity: 4, addons: [] },
+      { productId: 'p1', quantity: 4, addons: [{ id: 'gift', title: 'Gift wrap' }] },
+    ],
+    paymentMethod: 'upi',
+    utr: '412345678903',
+  });
+  assert.equal(ok.statusCode, 200);
+  const updates = state.writes.filter((w) => w.ref.collectionName === 'products');
+  assert.equal(updates.length, 1);
+  assert.equal(updates[0].data.stock, 2);
+
+  // 6 + 6 = 12 against a stock of 10 must be rejected, not silently oversold.
+  const over = await call({
+    ...baseBody,
+    items: [
+      { productId: 'p1', quantity: 6, addons: [] },
+      { productId: 'p1', quantity: 6, addons: [] },
+    ],
+    paymentMethod: 'upi',
+    utr: '412345678904',
+  });
+  assert.equal(over.statusCode, 409);
+  assert.match(over.payload.error, /Only 10 left/i);
+});
+
+test('inline data-URL product photos are not copied into the order', async () => {
+  state.product.images = ['data:image/webp;base64,AAAA'];
+  const res = await call({ ...baseBody, paymentMethod: 'upi', utr: '412345678905' });
+  assert.equal(res.statusCode, 200);
+  const order = findWrite('orders', 'set');
+  assert.equal(order.data.items[0].image, '');
+});
+
+test('remote product photos are kept on the order', async () => {
+  state.product.images = ['https://cdn.example.com/widget.webp'];
+  const res = await call({ ...baseBody, paymentMethod: 'upi', utr: '412345678906' });
+  assert.equal(res.statusCode, 200);
+  const order = findWrite('orders', 'set');
+  assert.equal(order.data.items[0].image, 'https://cdn.example.com/widget.webp');
 });
 
 test('an incomplete shipping address is rejected', async () => {

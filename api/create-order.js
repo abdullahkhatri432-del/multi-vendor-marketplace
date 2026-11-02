@@ -35,6 +35,18 @@ const isValidUtr = (utr) => utr.length >= 12 && utr.length <= 22 && /^[0-9]/.tes
 
 const hashUtr = (utr) => crypto.createHash('sha256').update(utr).digest('hex');
 
+// Product photos uploaded by vendors are compressed data: URLs stored on the
+// product document (see src/config/upload.js). Copying those into every order
+// item quickly inflates an order document towards Firestore's 1 MiB limit and
+// makes checkout fail for larger carts. Orders only need a reference the UI can
+// render, so keep http(s) and root-relative URLs and drop inline data.
+const orderImage = (raw) => {
+  const value = String(raw || '').trim();
+  if (!value || value.startsWith('data:')) return '';
+  if (value.startsWith('/') || /^https?:\/\//i.test(value)) return value.slice(0, 1000);
+  return '';
+};
+
 const toDate = (value) => {
   if (!value) return null;
   if (value instanceof Date) return value;
@@ -170,8 +182,21 @@ module.exports = async function handler(req, res) {
       const productSnaps = await transaction.getAll(...productRefs);
 
       const orderItems = [];
-      const stockUpdates = [];
+      const stockUpdatesByProduct = new Map();
+      const requestedByProduct = new Map();
+      const validatedProducts = new Set();
       let subtotal = 0;
+
+      // The same product can appear on several lines with different add-ons.
+      // Validate and decrement stock once per product, for the combined
+      // quantity, otherwise two lines of 6 against a stock of 10 both pass the
+      // per-line check and the second write overwrites the first decrement.
+      for (const item of items) {
+        requestedByProduct.set(
+          item.productId,
+          (requestedByProduct.get(item.productId) || 0) + item.quantity
+        );
+      }
 
       items.forEach((item, index) => {
         const snap = productSnaps[index];
@@ -182,13 +207,17 @@ module.exports = async function handler(req, res) {
         if (product.active === false) {
           throw new HttpError(409, `"${product.name || 'An item'}" is no longer available.`);
         }
-        if (typeof product.stock === 'number' && product.stock < item.quantity) {
-          throw new HttpError(
-            409,
-            product.stock <= 0
-              ? `"${product.name}" is out of stock.`
-              : `Only ${product.stock} left of "${product.name}".`
-          );
+        if (!validatedProducts.has(item.productId)) {
+          validatedProducts.add(item.productId);
+          const requested = requestedByProduct.get(item.productId);
+          if (typeof product.stock === 'number' && product.stock < requested) {
+            throw new HttpError(
+              409,
+              product.stock <= 0
+                ? `"${product.name}" is out of stock.`
+                : `Only ${product.stock} left of "${product.name}".`
+            );
+          }
         }
 
         const price = round2(product.price);
@@ -223,19 +252,22 @@ module.exports = async function handler(req, res) {
           name: String(product.name || 'Item').slice(0, 200),
           price,
           quantity: item.quantity,
-          image: product.images?.[0] || product.image || '',
+          image: orderImage(product.images?.[0] || product.image),
           vendorId: product.vendorId || null,
           vendorName: product.vendorName || '',
           addons: selectedAddons,
           addonTotal,
         });
 
-        stockUpdates.push({
-          ref: productRefs[index],
-          quantity: item.quantity,
-          productName: product.name,
-          stock: typeof product.stock === 'number' ? product.stock : null,
-        });
+        if (!stockUpdatesByProduct.has(item.productId)) {
+          stockUpdatesByProduct.set(item.productId, {
+            ref: productRefs[index],
+            quantity: 0,
+            productName: product.name,
+            stock: typeof product.stock === 'number' ? product.stock : null,
+          });
+        }
+        stockUpdatesByProduct.get(item.productId).quantity += item.quantity;
       });
 
       // Coupon
@@ -270,13 +302,48 @@ module.exports = async function handler(req, res) {
       const utrSnap = await transaction.get(utrRef);
       if (utrSnap.exists) {
         const claim = utrSnap.data() || {};
-        if (claim.customerId !== token.uid || claim.orderId != null) {
+        if (claim.customerId !== token.uid) {
+          throw new HttpError(
+            409,
+            'This UPI reference has already been used. If you were charged, please check My Orders before retrying.'
+          );
+        }
+        if (claim.orderId != null) {
+          // Same customer, same reference: this is a resubmit (double click or a
+          // retry after the response was lost). The first request already
+          // created the order — return it instead of a misleading 409 that
+          // makes the customer think checkout failed.
+          const existingSnap = await transaction.get(
+            db.collection('orders').doc(String(claim.orderId))
+          );
+          if (existingSnap.exists) {
+            const existing = existingSnap.data() || {};
+            if (['cancelled', 'returned', 'refunded'].includes(String(existing.status || ''))) {
+              throw new HttpError(
+                409,
+                'This payment reference belongs to a cancelled order. Please pay again and use the new UTR.'
+              );
+            }
+            return {
+              orderId: existingSnap.id || claim.orderId,
+              subtotal: existing.subtotal,
+              discount: existing.discount,
+              shipping: existing.shipping,
+              tax: existing.tax,
+              total: existing.total,
+              advanceAmount: existing.advanceAmount ?? null,
+              balanceDue: existing.balanceDue ?? null,
+              duplicate: true,
+            };
+          }
           throw new HttpError(
             409,
             'This UPI reference has already been used. If you were charged, please check My Orders before retrying.'
           );
         }
       }
+
+      const stockUpdates = [...stockUpdatesByProduct.values()];
 
       // ---------- writes ----------
       const orderRef = db.collection('orders').doc();

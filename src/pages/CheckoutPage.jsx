@@ -65,6 +65,21 @@ export default function CheckoutPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.uid]);
 
+  // The form is initialised on first render, when the auth session may still be
+  // loading (user === null), which left name/email empty for signed-in buyers.
+  // Fill them once the profile is available without overwriting typed values.
+  const authUid = user?.uid;
+  const authName = user?.displayName;
+  const authEmail = user?.email;
+  useEffect(() => {
+    if (!authUid) return;
+    setForm((f) => ({
+      ...f,
+      fullName: f.fullName || authName || '',
+      email: f.email || authEmail || '',
+    }));
+  }, [authUid, authName, authEmail]);
+
   const [form, setForm] = useState({
     fullName: user?.displayName || '',
     email: user?.email || '',
@@ -528,7 +543,7 @@ export default function CheckoutPage() {
                     <span className="font-semibold text-surface-800">
                       {inr(paymentMethod === 'cod' ? codAdvance : total)}
                     </span>{' '}
-                    via UPI, and I understand the order will only be placed after my payment is verified.
+                    via UPI. The order is placed now; the seller verifies this reference against the bank statement.
                   </span>
                 </label>
               )}
