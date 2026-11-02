@@ -33,6 +33,10 @@ export default function CheckoutPage() {
   const [processing, setProcessing] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
   const [orderId, setOrderId] = useState(null);
+  // Snapshot of the server-confirmed order. The cart is cleared on success, so
+  // recomputing totals from it would show only the shipping fee on the
+  // confirmation screen (e.g. ₹49 instead of the real amount due).
+  const [placedOrder, setPlacedOrder] = useState(null);
   const [needsAuth, setNeedsAuth] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('upi');
   const [upiRef, setUpiRef] = useState('');
@@ -95,6 +99,11 @@ export default function CheckoutPage() {
   const { shipping, tax, total } = computeTotals(cartTotal, discount);
   // COD is settled on delivery, so nothing is payable at checkout.
   const payableNow = paymentMethod === 'cod' ? 0 : total;
+  // On the confirmation screen the cart is already empty, so use the totals the
+  // server returned for this order instead of recomputing from the cart.
+  const confirmedTotal = placedOrder?.total ?? total;
+  const confirmedMethod = placedOrder?.paymentMethod ?? paymentMethod;
+  const confirmedBalance = placedOrder?.balanceDue || confirmedTotal;
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -305,6 +314,12 @@ export default function CheckoutPage() {
       const chargedTotal = Number(data.total) || total;
 
       setOrderId(newOrderId);
+      setPlacedOrder({
+        total: chargedTotal,
+        advanceAmount: Number(data.advanceAmount) || 0,
+        balanceDue: Number(data.balanceDue) || 0,
+        paymentMethod,
+      });
       setOrderComplete(true);
       clearCart();
 
@@ -356,10 +371,13 @@ export default function CheckoutPage() {
         <p className="mt-4 text-surface-500">
           Thank you for your purchase. Your order <span className="font-semibold text-surface-700">#{orderId?.slice(0, 8)}</span> has been placed successfully.
         </p>
+        <p className="mt-2 text-sm text-surface-500">
+          Order total: <span className="font-semibold text-surface-800">{inr(confirmedTotal)}</span>
+        </p>
         <div className="mt-4 mx-auto max-w-md rounded-xl bg-amber-50 border border-amber-100 px-4 py-3 text-sm text-amber-700">
-          {paymentMethod === 'cod' ? (
+          {confirmedMethod === 'cod' ? (
             <>
-              Please keep <span className="font-semibold">{inr(total)}</span> ready in cash or UPI for the
+              Please keep <span className="font-semibold">{inr(confirmedBalance)}</span> ready in cash or UPI for the
               courier. You can track the order in <span className="font-semibold">My Orders</span>.
             </>
           ) : (
