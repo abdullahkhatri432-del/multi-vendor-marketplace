@@ -1,6 +1,6 @@
 # Speedersmania — Multi-Vendor Marketplace
 
-A production-ready multi-vendor e-commerce marketplace built with React 18, Vite, Firebase (Auth + Firestore) and Tailwind CSS. Payments are collected over UPI (with optional COD advance) and verified against the transaction reference (UTR).
+A production-ready multi-vendor e-commerce marketplace built with React 18, Vite, Firebase (Auth + Firestore) and Tailwind CSS. UPI payments are verified against their transaction reference (UTR); cash on delivery is paid to the courier.
 
 ## Tech stack
 

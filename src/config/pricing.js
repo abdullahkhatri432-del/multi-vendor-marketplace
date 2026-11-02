@@ -17,11 +17,4 @@ export const computeTotals = (subtotal, discount = 0) => {
   return { subtotal: round2(safeSubtotal), discount: round2(safeDiscount), subtotalAfterDiscount, shipping, tax, total };
 };
 
-// COD requires a small UPI advance to confirm intent. Mirrors the server.
-export const computeCodSplit = (total) => {
-  const advanceAmount = Math.min(
-    Number(total) || 0,
-    Math.max(499, Math.round((Number(total) || 0) * 0.2))
-  );
-  return { advanceAmount, balanceDue: round2((Number(total) || 0) - advanceAmount) };
-};
+// COD is settled at the door; there is no advance and therefore no split.

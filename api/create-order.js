@@ -168,9 +168,12 @@ module.exports = async function handler(req, res) {
       throw new HttpError(400, 'Please choose a valid payment method (UPI or Cash on Delivery).');
     }
 
-    // Every order is matched to a UPI reference — including the COD advance.
-    const utr = normalizeUtr(body.utr || body.paymentReference);
-    if (!isValidUtr(utr)) {
+    // UPI orders must carry the reference that will be matched against the bank
+    // statement. Cash on delivery is settled at the door, so it needs no
+    // reference and never reserves one.
+    const utr =
+      paymentMethod === 'upi' ? normalizeUtr(body.utr || body.paymentReference) : '';
+    if (paymentMethod === 'upi' && !isValidUtr(utr)) {
       throw new HttpError(400, 'Please enter a valid UPI transaction reference (12–22 characters starting with a digit).');
     }
 
@@ -288,58 +291,63 @@ module.exports = async function handler(req, res) {
       const tax = round2(subtotalAfterDiscount * TAX_RATE);
       const total = round2(subtotalAfterDiscount + shipping + tax);
 
-      const advanceAmount =
-        paymentMethod === 'cod' ? Math.min(total, Math.max(499, Math.round(total * 0.2))) : null;
-      const balanceDue = paymentMethod === 'cod' ? round2(total - advanceAmount) : null;
+      // Cash on delivery is collected at the door, so there is no advance and
+      // no payment reference to verify.
+      const advanceAmount = paymentMethod === 'cod' ? 0 : null;
+      const balanceDue = paymentMethod === 'cod' ? total : null;
 
       const vendorIds = [...new Set(orderItems.map((item) => item.vendorId).filter(Boolean))];
       const vendorRefs = vendorIds.map((id) => db.collection('vendors').doc(id));
       const vendorSnaps = vendorRefs.length ? await transaction.getAll(...vendorRefs) : [];
 
       // UPI reference uniqueness: a reference can only ever be attached to one
-      // order, and only the customer who claimed it may retry with it.
-      const utrRef = db.collection('utrs').doc(hashUtr(utr));
-      const utrSnap = await transaction.get(utrRef);
-      if (utrSnap.exists) {
-        const claim = utrSnap.data() || {};
-        if (claim.customerId !== token.uid) {
-          throw new HttpError(
-            409,
-            'This UPI reference has already been used. If you were charged, please check My Orders before retrying.'
-          );
-        }
-        if (claim.orderId != null) {
-          // Same customer, same reference: this is a resubmit (double click or a
-          // retry after the response was lost). The first request already
-          // created the order — return it instead of a misleading 409 that
-          // makes the customer think checkout failed.
-          const existingSnap = await transaction.get(
-            db.collection('orders').doc(String(claim.orderId))
-          );
-          if (existingSnap.exists) {
-            const existing = existingSnap.data() || {};
-            if (['cancelled', 'returned', 'refunded'].includes(String(existing.status || ''))) {
-              throw new HttpError(
-                409,
-                'This payment reference belongs to a cancelled order. Please pay again and use the new UTR.'
-              );
-            }
-            return {
-              orderId: existingSnap.id || claim.orderId,
-              subtotal: existing.subtotal,
-              discount: existing.discount,
-              shipping: existing.shipping,
-              tax: existing.tax,
-              total: existing.total,
-              advanceAmount: existing.advanceAmount ?? null,
-              balanceDue: existing.balanceDue ?? null,
-              duplicate: true,
-            };
+      // order, and only the customer who claimed it may retry with it. COD has
+      // no reference, so this block is skipped entirely.
+      let utrRef = null;
+      if (utr) {
+        utrRef = db.collection('utrs').doc(hashUtr(utr));
+        const utrSnap = await transaction.get(utrRef);
+        if (utrSnap.exists) {
+          const claim = utrSnap.data() || {};
+          if (claim.customerId !== token.uid) {
+            throw new HttpError(
+              409,
+              'This UPI reference has already been used. If you were charged, please check My Orders before retrying.'
+            );
           }
-          throw new HttpError(
-            409,
-            'This UPI reference has already been used. If you were charged, please check My Orders before retrying.'
-          );
+          if (claim.orderId != null) {
+            // Same customer, same reference: this is a resubmit (double click or a
+            // retry after the response was lost). The first request already
+            // created the order — return it instead of a misleading 409 that
+            // makes the customer think checkout failed.
+            const existingSnap = await transaction.get(
+              db.collection('orders').doc(String(claim.orderId))
+            );
+            if (existingSnap.exists) {
+              const existing = existingSnap.data() || {};
+              if (['cancelled', 'returned', 'refunded'].includes(String(existing.status || ''))) {
+                throw new HttpError(
+                  409,
+                  'This payment reference belongs to a cancelled order. Please pay again and use the new UTR.'
+                );
+              }
+              return {
+                orderId: existingSnap.id || claim.orderId,
+                subtotal: existing.subtotal,
+                discount: existing.discount,
+                shipping: existing.shipping,
+                tax: existing.tax,
+                total: existing.total,
+                advanceAmount: existing.advanceAmount ?? null,
+                balanceDue: existing.balanceDue ?? null,
+                duplicate: true,
+              };
+            }
+            throw new HttpError(
+              409,
+              'This UPI reference has already been used. If you were charged, please check My Orders before retrying.'
+            );
+          }
         }
       }
 
@@ -368,18 +376,22 @@ module.exports = async function handler(req, res) {
         taxRate: TAX_RATE,
         total,
         paymentMethod,
-        paymentStatus: 'pending-verification',
-        paymentReference: utr,
-        paymentDetails: {
-          upiId: UPI_ID,
-          transactionRef: utr,
-          confirmedAt: new Date().toISOString(),
-        },
+        // UPI is verified against the bank statement; COD is collected at the
+        // door and starts as an ordinary unpaid order.
+        paymentStatus: paymentMethod === 'cod' ? 'pending' : 'pending-verification',
+        paymentReference: utr || null,
+        paymentDetails: utr
+          ? {
+              upiId: UPI_ID,
+              transactionRef: utr,
+              confirmedAt: new Date().toISOString(),
+            }
+          : null,
         ...(paymentMethod === 'cod'
           ? {
-              advanceAmount,
-              balanceDue,
-              paymentNote: `₹${advanceAmount.toFixed(2)} advance paid (UTR ${utr}), ₹${balanceDue.toFixed(2)} payable on delivery`,
+              advanceAmount: 0,
+              balanceDue: total,
+              paymentNote: `₹${total.toFixed(2)} payable on delivery`,
             }
           : {}),
         status: 'pending',
@@ -387,14 +399,16 @@ module.exports = async function handler(req, res) {
         updatedAt: now,
       });
 
-      transaction.set(utrRef, {
-        utr,
-        customerId: token.uid,
-        orderId: orderRef.id,
-        pending: false,
-        createdAt: now,
-        updatedAt: now,
-      });
+      if (utrRef) {
+        transaction.set(utrRef, {
+          utr,
+          customerId: token.uid,
+          orderId: orderRef.id,
+          pending: false,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
       for (const update of stockUpdates) {
         const data = {
           soldCount: FieldValue.increment(update.quantity),

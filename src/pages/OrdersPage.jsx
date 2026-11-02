@@ -127,8 +127,11 @@ export default function OrdersPage() {
       };
     }
     if (method === 'cod') {
+      const hasAdvance = Number(order.advanceAmount) > 0;
       return {
-        label: `COD · Advance ${inr(order.advanceAmount)} · Balance ${inr(order.balanceDue || order.total)}`,
+        label: hasAdvance
+          ? `COD · Advance ${inr(order.advanceAmount)} · Balance ${inr(order.balanceDue || order.total)}`
+          : `COD · ${inr(order.total)} payable on delivery`,
         icon: CircleDollarSign,
       };
     }
@@ -185,7 +188,9 @@ export default function OrdersPage() {
                 </div>
                 <div className="flex items-center gap-4">
                   <span className={`badge ${paymentColor(order.paymentStatus)}`}>
-                    {paymentLabel(order.paymentStatus)}
+                    {order.paymentMethod === 'cod' && order.paymentStatus === 'pending'
+                      ? 'Pay on delivery'
+                      : paymentLabel(order.paymentStatus)}
                   </span>
                   <span className={statusColors[order.status] || 'badge-primary'}>
                     {order.status || 'pending'}

@@ -578,7 +578,7 @@ export default function AdminDashboard() {
                               <span className="font-mono font-semibold text-primary-700">{normalizeUtr(order.paymentReference)}</span>
                             </div>
                           )}
-                          {order.advanceAmount != null && (
+                          {Number(order.advanceAmount) > 0 && (
                             <div className="flex justify-between gap-4">
                               <span className="text-surface-500">Advance Paid</span>
                               <span className="font-medium">₹{Number(order.advanceAmount || 0).toFixed(2)}</span>

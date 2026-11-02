@@ -26,7 +26,7 @@ Legend: **Works** = implemented and exercised by automated tests or by reading t
 | Cart | Stock enforcement | **Broken** | Fixed | Quantities now clamped; sold-out blocked |
 | Checkout | Server-side pricing/stock revalidation | Works | Works | `api/create-order.js` |
 | Checkout | UPI reference (UTR) matching | **Broken** | Fixed | `utrRef` scope bug returned HTTP 500 for UPI/COD |
-| Checkout | Cash on Delivery with advance | Works | Works | |
+| Checkout | Cash on Delivery (pay at the door, no advance) | Works | Works | |
 | Checkout | Manual bank/UPI transfer with proof | Works | **Removed** | Feature deleted: checkout is UPI + COD only |
 | Checkout | Card payments | Missing (by design) | Missing (by design) | Rejected with a clear message |
 | Orders | Order creation | Works | Works | API-only |
@@ -114,7 +114,7 @@ Coverage by suite:
 |---|---|---|
 | `tests/create-order.test.cjs` | 11 | Server pricing, client price tampering ignored, UPI/COD paths, UTR reuse rejected, stock limits, address validation, removed-method and card rejection |
 | `tests/order-status.test.cjs` | 11 | Role matrix, allowed transitions, stock restoration, multi-vendor cancel refusal, idempotency, tracking URL validation, 404 |
-| `tests/pricing.test.js` | 5 | Shipping threshold, tax, discount caps, COD split |
+| `tests/pricing.test.js` | 4 | Shipping threshold, tax, discount caps |
 | `tests/coupons.test.js` | 6 | Code normalisation, expiry/usage/min-order, percent cap, fixed cap |
 | `tests/payment-match.test.js` | 6 | UTR normalisation, amount parsing, paste parsing, matching, COD advance |
 | `tests/ops.test.cjs` | 17 | Alert payload per channel, dedupe, webhook failure safety, backup encrypt/decrypt round-trip, tamper rejection, wrong-key rejection, Firestore type round-trip, retention pruning, cron auth (fails closed) |

@@ -207,16 +207,19 @@ test('client-supplied prices are ignored', async () => {
   assert.equal(res.payload.total, 285);
 });
 
-test('COD order records the advance and the balance due', async () => {
-  const res = await call({ ...baseBody, paymentMethod: 'cod', utr: '412345678902' });
+test('COD order needs no advance or payment reference', async () => {
+  const res = await call({ ...baseBody, paymentMethod: 'cod', utr: '' });
 
   assert.equal(res.statusCode, 200);
-  assert.equal(res.payload.advanceAmount, 285);
-  assert.equal(res.payload.balanceDue, 0);
+  assert.equal(res.payload.advanceAmount, 0);
+  assert.equal(res.payload.balanceDue, 285);
 
   const order = findWrite('orders', 'set');
   assert.equal(order.data.paymentMethod, 'cod');
-  assert.equal(order.data.balanceDue, 0);
+  assert.equal(order.data.paymentStatus, 'pending');
+  assert.equal(order.data.paymentReference, null);
+  assert.equal(order.data.balanceDue, 285);
+  assert.equal(findWrite('utrs'), undefined, 'no UTR claim reserved for COD');
 });
 
 test('manual transfer is rejected because the method was removed', async () => {

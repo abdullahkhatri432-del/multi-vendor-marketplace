@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  CheckCircle, MapPin, AlertCircle, Mail, Smartphone, Banknote, ShieldCheck, Truck,
+  CheckCircle, MapPin, AlertCircle, Mail, Smartphone, Banknote, ShieldCheck,
   Ticket, X, Loader2, Trash2, BookmarkCheck,
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
@@ -10,7 +10,7 @@ import { useCheckoutInterceptor } from '../context/CheckoutInterceptorContext';
 import { getCouponByCode } from '../config/firestore';
 import { getCouponStatus, computeDiscount, normalizeCoupon, normalizeCouponCode } from '../utils/coupons';
 import { isValidUtrFormat, normalizeUtr } from '../utils/paymentMatch';
-import { computeTotals, computeCodSplit, TAX_RATE } from '../config/pricing';
+import { computeTotals, TAX_RATE } from '../config/pricing';
 import { trackEvent } from '../config/analytics';
 import UpiPayment from '../components/ui/UpiPayment';
 import { inr } from '../utils/currency';
@@ -93,8 +93,8 @@ export default function CheckoutPage() {
   // Preview totals only — /api/create-order recomputes and is authoritative.
   const discount = computeDiscount(coupon, cartTotal);
   const { shipping, tax, total } = computeTotals(cartTotal, discount);
-  const { advanceAmount: codAdvance, balanceDue: codBalance } = computeCodSplit(total);
-  const payableNow = paymentMethod === 'cod' ? codAdvance : total;
+  // COD is settled on delivery, so nothing is payable at checkout.
+  const payableNow = paymentMethod === 'cod' ? 0 : total;
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -189,14 +189,10 @@ export default function CheckoutPage() {
 
   // ===== Payment validation helpers =====
   const validatePayment = () => {
-    if (paymentMethod === 'upi') {
-      if (!isValidUtrFormat(upiRef)) return 'Please enter the UPI transaction reference (UTR) you received after paying.';
-      if (!paymentConfirmed) return 'Please confirm that you have completed the UPI payment.';
-    }
-    if (paymentMethod === 'cod') {
-      if (!isValidUtrFormat(upiRef)) return 'Please enter the UPI transaction reference (UTR) for your advance payment.';
-      if (!paymentConfirmed) return 'Please confirm that you have paid the advance amount.';
-    }
+    // Cash on delivery needs no payment now: the buyer pays the courier.
+    if (paymentMethod === 'cod') return null;
+    if (!isValidUtrFormat(upiRef)) return 'Please enter the UPI transaction reference (UTR) you received after paying.';
+    if (!paymentConfirmed) return 'Please confirm that you have completed the UPI payment.';
     return null;
   };
 
@@ -296,7 +292,7 @@ export default function CheckoutPage() {
           })),
           couponCode: coupon?.code || null,
           paymentMethod,
-          utr: normalizeUtr(upiRef),
+          utr: paymentMethod === 'upi' ? normalizeUtr(upiRef) : '',
         }),
       });
 
@@ -361,9 +357,18 @@ export default function CheckoutPage() {
           Thank you for your purchase. Your order <span className="font-semibold text-surface-700">#{orderId?.slice(0, 8)}</span> has been placed successfully.
         </p>
         <div className="mt-4 mx-auto max-w-md rounded-xl bg-amber-50 border border-amber-100 px-4 py-3 text-sm text-amber-700">
-          Your payment is marked <span className="font-semibold">pending verification</span>. It will be
-          confirmed after the seller verifies your UTR against the bank statement (usually within a few hours).
-          You can track the status in <span className="font-semibold">My Orders</span>.
+          {paymentMethod === 'cod' ? (
+            <>
+              Please keep <span className="font-semibold">{inr(total)}</span> ready in cash or UPI for the
+              courier. You can track the order in <span className="font-semibold">My Orders</span>.
+            </>
+          ) : (
+            <>
+              Your payment is marked <span className="font-semibold">pending verification</span>. It will be
+              confirmed after the seller verifies your UTR against the bank statement (usually within a few hours).
+              You can track the status in <span className="font-semibold">My Orders</span>.
+            </>
+          )}
         </div>
         <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
           <button onClick={() => navigate('/orders')} className="btn-primary">View Orders</button>
@@ -530,7 +535,7 @@ export default function CheckoutPage() {
                 <UpiPayment amount={total} upiRef={upiRef} onUpiRefChange={setUpiRef} />
               )}
 
-              {(paymentMethod === 'upi' || paymentMethod === 'cod') && (
+              {paymentMethod === 'upi' && (
                 <label className="mt-4 flex items-start gap-3 rounded-xl border border-surface-200 bg-surface-50 px-4 py-3 cursor-pointer">
                   <input
                     type="checkbox"
@@ -540,30 +545,21 @@ export default function CheckoutPage() {
                   />
                   <span className="text-xs text-surface-600">
                     I confirm that I have completed the payment of{' '}
-                    <span className="font-semibold text-surface-800">
-                      {inr(paymentMethod === 'cod' ? codAdvance : total)}
-                    </span>{' '}
+                    <span className="font-semibold text-surface-800">{inr(total)}</span>{' '}
                     via UPI. The order is placed now; the seller verifies this reference against the bank statement.
                   </span>
                 </label>
               )}
 
               {paymentMethod === 'cod' && (
-                <div className="mt-2 space-y-4">
-                  <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                    <Truck className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-semibold text-amber-800">Cash on Delivery — Advance Required</p>
-                      <p className="mt-1 text-xs text-amber-700">
-                        Pay a small <span className="font-semibold">{inr(codAdvance)}</span> advance now to secure your order.
-                        Remaining <span className="font-semibold">{inr(codBalance)}</span> payable in cash/UPI at delivery.
-                      </p>
-                    </div>
-                  </div>
-                  <UpiPayment amount={codAdvance} upiRef={upiRef} onUpiRefChange={setUpiRef} />
-                  <div className="flex items-center gap-2 text-xs text-surface-500">
-                    <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                    Advance is refunded if the order is cancelled before dispatch.
+                <div className="mt-2 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                  <Banknote className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-emerald-800">Pay on delivery</p>
+                    <p className="mt-1 text-xs text-emerald-700">
+                      No advance needed. Pay <span className="font-semibold">{inr(total)}</span> in cash or
+                      UPI when the order arrives.
+                    </p>
                   </div>
                 </div>
               )}
@@ -674,7 +670,11 @@ export default function CheckoutPage() {
                 )}
               </div>
               <button type="submit" disabled={processing} className="btn-primary w-full mt-6">
-                {processing ? 'Processing...' : `Pay ${inr(payableNow)}`}
+                {processing
+                  ? 'Processing...'
+                  : paymentMethod === 'cod'
+                    ? 'Place Order — Pay on Delivery'
+                    : `Pay ${inr(payableNow)}`}
               </button>
             </div>
           </div>
